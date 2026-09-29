@@ -6,6 +6,8 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # semanal: drift de deps/vulns sem queimar quota diária
 
 permissions:
   contents: read
@@ -58,6 +60,17 @@ jobs:
         run: |
           npm i -g --foreground-scripts @the-open-engine-company/opcore@0.3.3
           opcore check --repo . --all
+
+      - name: npm audit (grátis, ilimitado)
+        run: pnpm audit --prod --audit-level high || true
+
+      - name: Snyk (SAST + dependências — quota do plano Free)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          npm i -g snyk@latest
+          snyk code test --severity-threshold=low
+          snyk test --all-projects
 
   commitlint:
     runs-on: ubuntu-latest

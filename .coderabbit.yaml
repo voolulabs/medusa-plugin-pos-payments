@@ -1,0 +1,28 @@
+# Config de review do CodeRabbit (lida pelo GitHub App e pelo CLI).
+# Ref: https://docs.coderabbit.ai/guides/configure-coderabbit-overview
+language: pt-BR
+early_access: false
+
+reviews:
+  profile: "assertive"
+  high_level_summary: true
+  review_status: true
+  poem: false
+  path_filters:
+    - "!pnpm-lock.yaml"
+    - "!.adlc/**"
+    - "!.codex/**"
+    - "!.github/**"
+  path_instructions:
+    - path: "plugins/pos-payments/src/**"
+      instructions: >-
+        Pagamentos de terminal BR (plano-pos-br.md §6, ADRs 0001/0002/0005).
+        Dinheiro em minor units com MathBN — nunca float. getPaymentStatus nunca
+        lança. Todo método do provider devolve o blob `data` completo (o módulo
+        substitui o estado — devolver {} clobberiza). Credenciais de adquirente
+        nunca no app/terminal. Session `data` validada com zod de
+        @medusajs/framework/zod (rejeitar __proto__/constructor/prototype).
+        Rotas sob /admin/pos-payments/* sem authenticate próprio (auth do core).
+
+chat:
+  auto_reply: true
