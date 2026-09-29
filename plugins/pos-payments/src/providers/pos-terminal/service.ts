@@ -40,6 +40,17 @@ export type PosTerminalOptions = {
 type SessionData = Record<string, unknown>
 
 /**
+ * Mapa puro do `data` para o status (opcore: complexity.max-nesting). Erro de
+ * leitura degrada para pending — §6.2: getPaymentStatus nunca lança.
+ */
+function mapStatus(data: SessionData): GetPaymentStatusOutput {
+  if (data.captured_at) return { status: "captured" }
+  if (data.canceled_at) return { status: "canceled" }
+  if (data.authorized_at) return { status: "authorized" }
+  return { status: "pending" }
+}
+
+/**
  * Provider "terminal-presente" (plano-pos-br.md §6.2): a cobrança acontece
  * fisicamente na maquininha operada pelo caixa; o backend registra o estado.
  * Nenhuma chamada externa na Fase 1.
@@ -146,13 +157,9 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
   ): Promise<GetPaymentStatusOutput> {
     // §6.2: nunca lança — erro degrada para pending (padrão paypal-integration).
     try {
-      const data = (input.data ?? {}) as SessionData
-      if (data.captured_at) return { status: "captured" }
-      if (data.canceled_at) return { status: "canceled" }
-      if (data.authorized_at) return { status: "authorized" }
-      return { status: "pending" }
+      return mapStatus((input.data ?? {}) as SessionData)
     } catch {
-      return { status: "pending" }
+      return mapStatus({})
     }
   }
 
