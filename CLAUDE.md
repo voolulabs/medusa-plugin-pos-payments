@@ -35,6 +35,9 @@ em `node_modules/` raiz do backend. Produção = `npm publish` + versão fixa.
   blob `data` completo (engenharia.md §1.11).
 - Gates ADLC: `adlc spec-lint .adlc/specs/fase-1-provider-manual.md` (8/8) antes de abrir mão
   da spec; pós-commit: `hollow-test`, `rails-guard`, `gate-manifest`, `prosecute`.
+- **CodeRabbit CLI** (0.8.2, `~/.local/bin/coderabbit`): `coderabbit review --agent --base main`
+  no P5 (skills `code-review`/`autofix` instaladas p/ zcode; nossa `review` 7-eixos intacta).
+  Requer auth (agentic key ou `coderabbit auth login`).
 - **Opcore** (`@the-open-engine-company/opcore` ≥0.3): verificação local (check/sense) +
   `opcore run pre-commit` — roda **no host WSL** (0.3 só publica linux/x64 e darwin/arm64;
   este mac é Intel e não roda). Lição da casa: **rodar TODOS os gates (adlc + opcore +
