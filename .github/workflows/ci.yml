@@ -72,6 +72,11 @@ jobs:
           snyk code test --severity-threshold=low
           snyk test --all-projects
 
+      - name: Gitleaks (secret scanning — critério MUST da spec §6.6)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+
   commitlint:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
