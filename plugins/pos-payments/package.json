@@ -7,6 +7,9 @@
   "files": [
     ".medusa/server"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "require": "./.medusa/server/src/index.js",
