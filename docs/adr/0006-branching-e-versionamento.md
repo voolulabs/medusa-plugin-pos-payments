@@ -51,10 +51,12 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    sincronizam números — a compatibilidade app ↔ plugin ↔ Medusa é documentada (matriz no plano
    §2), não acoplada por versionamento. `store-b2c-boilerplate` segue o upstream (master+staging,
    sem semver próprio) enquanto o boilerplate comandar.
-8. **Gate de release da família: o E2E.** Nenhuma versão do plugin é publicada sem o E2E de
-   vendas (`scripts/e2e-pos.mjs`) passando contra um backend real executando essa versão — banco
-   limpo, providers na região, fluxo completo até refund. O script vive no backend e é o teste de
-   contrato da família; o procedimento de release do backend o lista como passo obrigatório.
+8. **Gate de release da família: o E2E.** A publicação estável (`latest`) exige o E2E de vendas
+   (`scripts/e2e-pos.mjs`) verde contra um backend real executando a versão candidata. A candidata
+   chega ao backend antes da estável por um dos caminhos: prerelease `-rc.N` no dist-tag `next`
+   (§6) ou registry local de ensaio (Verdaccio no dev) enquanto a homologação não existe. O
+   script vive no backend e é o teste de contrato da família; o procedimento de release do
+   backend o lista como passo obrigatório.
 
 ## Consequências
 
