@@ -1,0 +1,76 @@
+# CI do plugin — padrão da casa (engenharia.md §4.1) + gates ADLC + opcore.
+# Pino de versões: oficial actions/* em major tag; opcore/adlc pinados por versão exata.
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # opcore precisa da base history
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.10.0 --activate
+          pnpm --version
+
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (medusa plugin:build)
+        working-directory: plugins/pos-payments
+        run: pnpm exec medusa plugin:build
+
+      - name: Unit tests (vitest)
+        working-directory: plugins/pos-payments
+        run: pnpm exec vitest run
+
+      - name: Typecheck (strict)
+        working-directory: plugins/pos-payments
+        run: pnpm exec tsc --noEmit
+
+      - name: ADLC spec gate
+        run: |
+          npm i -g @adlc/cli@1.11.1
+          adlc spec-lint .adlc/specs/fase-1-provider-manual.md
+
+      - name: Opcore (check + sense vs base)
+        env:
+          OPCORE_NO_HOOKS: "1"
+        run: |
+          npm i -g --foreground-scripts @the-open-engine-company/opcore@0.3.3
+          BASE="$(git merge-base HEAD origin/${{ github.base_ref || 'develop' }} 2>/dev/null || echo 4b825dc642cb6eb9a060e54bf8d69288fbee4904)"
+          opcore run ci --base "$BASE"
+
+  commitlint:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Lint commits (conventional — ADR 0006 §2)
+        run: |
+          npx --yes -p @commitlint/cli@21 -p @commitlint/config-conventional@21 \
+            commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.sha }}

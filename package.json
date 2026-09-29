@@ -1,0 +1,16 @@
+{
+  "name": "medusa-plugin-pos-payments",
+  "private": true,
+  "workspaces": [
+    "./plugins/*",
+    "./packages/*"
+  ],
+  "scripts": {
+    "build": "yarn workspaces run build",
+    "test": "yarn workspaces run test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.10.0"
+}

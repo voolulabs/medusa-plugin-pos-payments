@@ -1,0 +1,26 @@
+node_modules/
+.medusa/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# ADLC runtime
+.adlc/*
+!.adlc/config.json
+!.adlc/tickets.json
+!.adlc/tickets/
+!.adlc/tickets/**
+!.adlc/ticket-archive/
+!.adlc/ticket-archive/**
+!.adlc/specs/
+
+# ADLC runtime
+!.adlc/manifest.jsonl
+!.adlc/manifest.d/
+!.adlc/manifest.d/**
+.adlc/manifest.d/.lineage
+.adlc/manifest.d/*.lock
+.adlc/manifest.d/*.tmp-*
