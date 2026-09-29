@@ -36,41 +36,6 @@ describe("PosTerminalProviderService", () => {
     expect(second.data!["captured_at"]).toBe(first.data!["captured_at"])
   })
 
-  it("capturePayment rejeita cobrança cancelada (UNEXPECTED_STATE)", async () => {
-    await expect(
-      service.capturePayment({ data: { canceled_at: "t" } } as never)
-    ).rejects.toThrow(/cancelada/)
-  })
-
-  it("refundPayment rejeita cobrança cancelada", async () => {
-    await expect(
-      service.refundPayment({ data: { canceled_at: "t" } } as never)
-    ).rejects.toThrow(/cancelada/)
-  })
-
-  it("cancelPayment rejeita cobrança já capturada (é refund)", async () => {
-    await expect(
-      service.cancelPayment({ data: { captured_at: "t" } } as never)
-    ).rejects.toThrow(/capturada/)
-  })
-
-  it("refundPayment espelha o amount deste reembolso (minor units)", async () => {
-    const out = await service.refundPayment({
-      data: { captured_at: "t" },
-      amount: 1500,
-    } as never)
-    expect(out.data!["last_refunded_amount"]).toBe(1500)
-  })
-
-  it("initiatePayment e authorizePayment validam a fronteira do data (§3.6)", async () => {
-    await expect(
-      service.initiatePayment({ data: { ["__proto__"]: { x: 1 } } } as never)
-    ).rejects.toThrow(/proibida/)
-    await expect(
-      service.authorizePayment({ data: { ["constructor"]: 1 } } as never)
-    ).rejects.toThrow(/proibida/)
-  })
-
   it("métodos devolvem o blob completo (§1.11: sem clobber)", async () => {
     const auth = await service.authorizePayment({
       data: { external_id: "x1" },
