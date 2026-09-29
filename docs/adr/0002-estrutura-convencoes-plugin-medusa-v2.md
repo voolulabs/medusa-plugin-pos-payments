@@ -57,7 +57,9 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
      **Webhook por adquirente** (decisão 3 do ADR 0001 + specs): MP/SumUp/Stone configuram a rota
      nativa do core no adquirente; **Cielo não tem webhook** (fluxo síncrono + consulta —
      cielo.md §9): `getWebhookActionAndData` devolve `not_supported` e nenhuma URL é configurada.
-   - `src/adapters/` — interface comum + um arquivo por adquirente. Padrões de provider
+   - `src/adapters/` — interface comum + um arquivo por adquirente. **Entra na Fase 2, com o
+     primeiro adapter real** (decisão da review 2026-09-29: na Fase 1 o modo manual vive
+     inline no provider — sem seam sem segundo caso). Padrões de provider
      consolidados (minados no código de `@easypayment/medusa-payment-paypal` e
      `@lambdacurry/medusa-payment-braintree`): taxonomia de erros preservando `MedusaError`
      (`MedusaError.isMedusaError`; recusas da processadora → `PAYMENT_AUTHORIZATION_ERROR`;
