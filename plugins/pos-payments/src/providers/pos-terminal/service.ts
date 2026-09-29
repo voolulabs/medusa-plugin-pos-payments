@@ -86,9 +86,11 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
   }
 
   override async initiatePayment(
-    _input: InitiatePaymentInput
+    input: InitiatePaymentInput
   ): Promise<InitiatePaymentOutput> {
-    // §6.2: no-op no modo manual — o módulo faz merge do data de entrada.
+    // §6.2: no-op no modo manual — o módulo faz merge do data de entrada, que
+    // é replayado pelo cliente: valida na fronteira antes (engenharia §1.5/§3.6).
+    assertSafeSessionKeys(input.data as Record<string, unknown> | undefined)
     // O id do provider é opaco e público (nunca carregar dado sensível).
     return { id: randomUUID(), data: {} }
   }
@@ -96,6 +98,10 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
   override async authorizePayment(
     input: AuthorizePaymentInput
   ): Promise<AuthorizePaymentOutput> {
+    // O data persistido passa por aqui no markAsPaid — mesma fronteira do
+    // updatePayment (o que chega já foi validado no create/update, mas o
+    // provider não confia: valida de novo antes de persistir o blob).
+    assertSafeSessionKeys(input.data as Record<string, unknown> | undefined)
     // Fase 1: a confirmação do caixa autenticado (admin JWT, via markAsPaid) É
     // a verificação do terminal-presente — rota de autorização é admin-only.
     // Fase 2 (hardening): vincular a register_session_id/handshake do caixa.
@@ -109,6 +115,15 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
     input: CapturePaymentInput
   ): Promise<CapturePaymentOutput> {
     const data = (input.data ?? {}) as SessionData
+    // Guarda local barata (review 2026-09-29): o core protege os fluxos
+    // atuais, mas com adapters remotos (Fase 2) falhar aqui evita chamada
+    // à adquirente antes do UNEXPECTED_STATE.
+    if (data.canceled_at) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "pos-terminal: captura de cobrança cancelada"
+      )
+    }
     if (data.captured_at) return { data }
     return { data: { ...data, captured_at: new Date().toISOString() } }
   }
@@ -116,16 +131,40 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
   override async refundPayment(
     input: RefundPaymentInput
   ): Promise<RefundPaymentOutput> {
+    const data = (input.data ?? {}) as SessionData
+    if (data.canceled_at) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "pos-terminal: reembolso de cobrança cancelada"
+      )
+    }
+    // Espelho de auditoria no data (o core guarda os refunds autoritativos):
+    // amount deste reembolso em minor units, verbatim — parcial incluído.
     return {
-      data: { ...(input.data ?? {}), refunded_at: new Date().toISOString() },
+      data: {
+        ...data,
+        refunded_at: new Date().toISOString(),
+        ...(input.amount !== undefined
+          ? { last_refunded_amount: input.amount }
+          : {}),
+      },
     }
   }
 
   override async cancelPayment(
     input: CancelPaymentInput
   ): Promise<CancelPaymentOutput> {
+    const data = (input.data ?? {}) as SessionData
+    // Capturada não se cancela — é refund (§6.2: cancel é sucesso local
+    // apenas para cobrança não finalizada).
+    if (data.captured_at) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "pos-terminal: cancelamento de cobrança já capturada (usar refund)"
+      )
+    }
     return {
-      data: { ...(input.data ?? {}), canceled_at: new Date().toISOString() },
+      data: { ...data, canceled_at: new Date().toISOString() },
     }
   }
 
