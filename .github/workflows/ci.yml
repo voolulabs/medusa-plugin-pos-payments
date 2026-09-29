@@ -52,13 +52,12 @@ jobs:
           npm i -g @adlc/cli@1.11.1
           adlc spec-lint .adlc/specs/fase-1-provider-manual.md
 
-      - name: Opcore (check + sense vs base)
+      - name: Opcore (fast verify completo)
         env:
           OPCORE_NO_HOOKS: "1"
         run: |
           npm i -g --foreground-scripts @the-open-engine-company/opcore@0.3.3
-          BASE="$(git merge-base HEAD origin/${{ github.base_ref || 'develop' }} 2>/dev/null || echo 4b825dc642cb6eb9a060e54bf8d69288fbee4904)"
-          opcore run ci --base "$BASE"
+          opcore check --repo . --all
 
   commitlint:
     runs-on: ubuntu-latest
@@ -73,4 +72,4 @@ jobs:
       - name: Lint commits (conventional — ADR 0006 §2)
         run: |
           npx --yes -p @commitlint/cli@21 -p @commitlint/config-conventional@21 \
-            commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.sha }}
+            commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
