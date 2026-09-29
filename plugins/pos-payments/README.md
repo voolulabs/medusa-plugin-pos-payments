@@ -76,7 +76,14 @@ _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 ## Test the Plugin
 
 1. Run your Medusa backend (`pnpm dev` / `pnpm start`).
-2. Log in to the admin API and check `GET /admin/payment-providers` — the `pp_pos-terminal_*` providers must be listed.
+2. Log in and list the providers enabled on your POS region — on Medusa 2.19 the listing lives on the Store API:
+
+   ```bash
+   curl "http://<backend>:9000/store/payment-providers?region_id=<region>" \
+     -H "x-publishable-api-key: pk_..."
+   ```
+
+   The `pp_pos-terminal_*` providers must be listed (the admin API does not expose this route on 2.19).
 3. Place a test order with the provider `pp_pos-terminal_card` (draft order → payment collection → payment session → mark as paid) and confirm `payment_status` is `captured` with the provider id preserved.
 4. Or run the E2E script shipped with the FUNKYTON backend template this plugin was built against:
 
