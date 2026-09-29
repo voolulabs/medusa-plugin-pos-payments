@@ -14,6 +14,12 @@ describe("PosTerminalProviderService", () => {
     ).toThrow(/acquirer/)
   })
 
+  it("validateOptions rejeita adquirente sem adapter implementado", () => {
+    expect(() =>
+      PosTerminalProviderService.validateOptions({ acquirer: "mercadopago" })
+    ).toThrow(/manual/)
+  })
+
   it("initiatePayment é no-op e devolve id opaco público (§6.2)", async () => {
     const out = await service.initiatePayment({
       amount: 100,

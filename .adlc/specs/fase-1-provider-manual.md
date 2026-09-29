@@ -4,7 +4,7 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
 
 ## 6. Fase 1 — Plugin @voolulabs com provider genérico (sem adquirente)
 
-### 6.1 Estrutura e convenções (detalhadas no [ADR 0002](adr/0002-estrutura-convencoes-plugin-medusa-v2.md))
+### 6.1 Estrutura e convenções (detalhadas no [ADR 0002](../../docs/adr/0002-estrutura-convencoes-plugin-medusa-v2.md))
 
 - Monorepo **pnpm** (`medusajs-plugin-pos-payments/`, workspaces), pacote `plugins/pos-payments` com
   `name: @voolulabs/medusajs-plugin-pos-payments`; `files: [".medusa/server"]`; exports: `.` (entry do
@@ -18,7 +18,7 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
 - Layout: `src/index.ts` (factory), `src/api/` (rotas + `middlewares.ts` `export default` —
   rotas autenticadas sob `/admin/pos-payments/*` cobertas pela auth do core, **sem
   authenticate próprio**; a rota pública de callback OAuth usa o namespace
-  `/pos-payments/*` — §2.1/[ADR 0005](adr/0005-superficies-api-auth-plugin.md); **webhooks são
+  `/pos-payments/*` — §2.1/[ADR 0005](../../docs/adr/0005-superficies-api-auth-plugin.md); **webhooks são
   da rota NATIVA do core**, ver §6.3),
   `src/providers/pos-terminal/` (`index.ts` com `ModuleProvider(Modules.PAYMENT, { services })`,
   `service.ts` com o `AbstractPaymentProvider` — options no 2º argumento do construtor,
@@ -88,7 +88,7 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
 - **Contrato de rotas do plugin** (substantivos genéricos, agnósticos de adquirente — cada
   adapter faz o mapa para a API dele; detalhado em [mercado-pago.md](mercado-pago.md) §7 (item 5)
   e [sumup.md](sumup.md) §9 (item 5)). **Autenticadas, sob `/admin/pos-payments/*`** (auth do
-  core — [ADR 0005](adr/0005-superficies-api-auth-plugin.md)): `POST /admin/pos-payments/charges`
+  core — [ADR 0005](../../docs/adr/0005-superficies-api-auth-plugin.md)): `POST /admin/pos-payments/charges`
   (criar cobrança no terminal) · `GET /admin/pos-payments/charges/:id` (estado autoritativo —
   poll do POS) · `POST /admin/pos-payments/charges/:id/cancel` ·
   `POST /admin/pos-payments/charges/:id/refund` ·
@@ -105,7 +105,7 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
   com `{data, rawData (Buffer do body bruto), headers}`. **O URL configurado no adquirente é
   `https://<backend>/hooks/payment/pos-terminal_<id>` — sem o prefixo `pp_`**: o módulo monta
   `pp_${segmento}` para resolver o provider (`payment-module.ts:1455-1465`); provider
-  desconhecido → 200 na rota e erro no subscriber com retry ([ADR 0005](adr/0005-superficies-api-auth-plugin.md)).
+  desconhecido → 200 na rota e erro no subscriber com retry ([ADR 0005](../../docs/adr/0005-superficies-api-auth-plugin.md)).
   Ações que movem estado: **`authorized` e `captured`**, com `data.session_id` obrigatório (enum
   completo no core: `authorized, captured, failed, pending, requires_more, canceled,
   not_supported, pending_authorization`). A rota é do core — o plugin não registra nenhuma rota

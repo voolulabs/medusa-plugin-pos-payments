@@ -6,8 +6,8 @@
     "./packages/*"
   ],
   "scripts": {
-    "build": "yarn workspaces run build",
-    "test": "yarn workspaces run test"
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test"
   },
   "engines": {
     "node": ">=20"

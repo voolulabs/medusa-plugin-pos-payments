@@ -57,10 +57,13 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
   protected options_: PosTerminalOptions
 
   static override validateOptions(options: PosTerminalOptions): void {
-    if (!options?.acquirer) {
+    // Fase 1: só "manual". A lista expande quando os adapters de adquirente
+    // forem implementados (Fases 2-3) — adquirente desconhecida falha no boot.
+    const SUPPORTED = ["manual"]
+    if (!options?.acquirer || !SUPPORTED.includes(options.acquirer)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "pos-terminal: options.acquirer é obrigatório (ex.: { acquirer: 'manual' })"
+        `pos-terminal: options.acquirer deve ser um de [${SUPPORTED.join(", ")}] (recebido: ${options?.acquirer ?? "ausente"})`
       )
     }
   }
@@ -82,6 +85,9 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
   override async authorizePayment(
     input: AuthorizePaymentInput
   ): Promise<AuthorizePaymentOutput> {
+    // Fase 1: a confirmação do caixa autenticado (admin JWT, via markAsPaid) É
+    // a verificação do terminal-presente — rota de autorização é admin-only.
+    // Fase 2 (hardening): vincular a register_session_id/handshake do caixa.
     return {
       data: { ...(input.data ?? {}), authorized_at: new Date().toISOString() },
       status: "authorized",
