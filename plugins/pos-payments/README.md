@@ -4,7 +4,7 @@ _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 
 `@voolulabs/medusajs-plugin-pos-payments` adds a `pos-terminal` payment provider family to Medusa so a point-of-sale front end can take BRL payments made on physical card terminals (cash, card, Pix, bank transfer). Phase 1 ships the manual / terminal-present flow: the cashier confirms the charge made on the terminal, and the backend records the payment state. Acquirer adapters (Mercado Pago Point, SumUp, Stone, Cielo) plug into the same provider in later phases.
 
-[Documentation](./docs) | [Medusa Website](https://www.medusajs.com) | [Medusa Repository](https://github.com/medusajs/medusa)
+[Documentation](https://github.com/voolulabs/medusajs-pos-payments/tree/main/docs) | [Medusa Website](https://www.medusajs.com) | [Medusa Repository](https://github.com/medusajs/medusa)
 
 ## Features
 
@@ -85,11 +85,6 @@ _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 
    The `pp_pos-terminal_*` providers must be listed (the admin API does not expose this route on 2.19).
 3. Place a test order with the provider `pp_pos-terminal_card` (draft order → payment collection → payment session → mark as paid) and confirm `payment_status` is `captured` with the provider id preserved.
-4. Or run the E2E script shipped with the FUNKYTON backend template this plugin was built against:
-
-   ```bash
-   BACKEND_URL=http://localhost:9000 ADMIN_EMAIL=… ADMIN_PASSWORD=… node scripts/e2e-pos.mjs
-   ```
 
 ---
 
