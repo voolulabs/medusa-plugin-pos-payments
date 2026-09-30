@@ -1,7 +1,9 @@
-# Publish por tag (ADR 0006): tag v* na main → npm publish.
+# Publish por tag (ADR 0006): tag v* na main → npm stage publish.
 # Guards: a tag aponta para main e bate com o version do package.json;
 # prerelease sai com dist-tag next, estável com latest (ADR 0006 §6).
-# Inerte até o secret NPM_TOKEN existir no environment "npm".
+# A versão NÃO vai direto ao ar: fica em stage e um mantenedor aprova com
+# 2FA (aba "Staged Packages" do npmjs.com ou `npm stage approve`) — o npm
+# remove o publish direto por token em janeiro de 2027; requires npm >=11.15.
 name: Publish
 
 on:
@@ -54,14 +56,17 @@ jobs:
         working-directory: plugins/pos-payments
         run: pnpm exec medusa plugin:build
 
-      - name: Publish (provenance, dist-tag por versão — ADR 0006 §6)
+      - name: npm 11 (staged publishing exige >=11.15 — Node 22 traz npm 10.x)
+        run: npm install -g npm@11
+
+      - name: Publish (stage — aprovação humana com 2FA; ADR 0006 §3/§6)
         working-directory: plugins/pos-payments
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PKG=$(node -p "require('./package.json').version")
           # Prerelease (-rc.N) vai para next; estável sobrescreve latest.
-          # Explícito porque o default do npm não distingue os dois.
+          # Tag é imutável no stage: mudou o tag, reject + re-stage.
           if [[ "$PKG" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi
-          echo "publicando v$PKG com dist-tag $DIST_TAG"
-          npm publish --provenance --access public --tag "$DIST_TAG"
+          echo "stage v$PKG com dist-tag $DIST_TAG — aguarda approve com 2FA"
+          npm stage publish --provenance --access public --tag "$DIST_TAG"
