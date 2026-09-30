@@ -63,7 +63,10 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    chega ao backend antes da estável por um dos caminhos: prerelease `-rc.N` no dist-tag `next`
    (§6) ou registry local de ensaio (Verdaccio no dev) enquanto a homologação não existe. O
    script vive no backend e é o teste de contrato da família; o procedimento de release do
-   backend o lista como passo obrigatório.
+   backend o lista como passo obrigatório. **Ciclo operacional:** rc `-rc.N` (`next`) →
+   homologação na versão exata → E2E + integração de adquirente em staging → estável (`latest`)
+   → produção; a branch `staging` é a janela de curadoria da release, o isolamento prod×candidata
+   é dos artefatos (`next`/`latest` + versão exata).
 
 ## Consequências
 
