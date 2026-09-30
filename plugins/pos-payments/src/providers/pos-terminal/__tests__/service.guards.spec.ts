@@ -39,11 +39,12 @@ describe("PosTerminalProviderService (guardas)", () => {
     })
   })
 
-  it("refundPayment espelha o amount deste reembolso (minor units)", async () => {
+  it("refundPayment espelha o amount deste reembolso e preserva o blob", async () => {
     const out = await service.refundPayment({
-      data: { captured_at: "t" },
+      data: { captured_at: "t", external_id: "x1" },
       amount: 1500,
     } as never)
+    expect(out.data!["external_id"]).toBe("x1")
     expect(out.data!["last_refunded_amount"]).toBe(1500)
   })
 

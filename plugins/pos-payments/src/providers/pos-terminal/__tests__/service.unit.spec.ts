@@ -34,6 +34,7 @@ describe("PosTerminalProviderService", () => {
     const first = await service.capturePayment({ data: { mode: "manual" } } as never)
     const second = await service.capturePayment({ data: first.data! } as never)
     expect(second.data!["captured_at"]).toBe(first.data!["captured_at"])
+    expect(second.data!["mode"]).toBe("manual")
   })
 
   it("métodos devolvem o blob completo (§1.11: sem clobber)", async () => {
