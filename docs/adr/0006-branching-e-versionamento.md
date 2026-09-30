@@ -29,7 +29,12 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
 2. **Conventional Commits enforçados por CI** (commitlint no push/PR), com scopes dos adapters
    (`feat(mercadopago):`, `fix(cielo):`) — resolve a inconsistência do histórico sem mudar o
    mecanismo de release da casa.
-3. **Versionamento = bump manual em PR `chore(release): vX.Y.Z` + tag `v*` → publish.**
+3. **Versionamento = bump manual em PR `chore(release): vX.Y.Z` + tag `v*` → publish com
+   aprovação humana (staged publishing).** A tag dispara `npm stage publish` (`--provenance`,
+   dist-tag `latest`/`next` derivado da versão); a versão fica em **stage** e só vai ao ar com
+   **approve de um mantenedor com 2FA** (aba "Staged Packages" do npmjs.com ou
+   `npm stage approve <id> --otp`). Requer npm ≥11.15/Node ≥22.14 no runner; o npm remove o
+   publish direto por token em janeiro de 2027 — errata 2026-09-30.
    Sem semantic-release e sem changesets: repo **single-package** não justifica changesets
    (ferramenta de monorepo — adotar só se o fatiamento do ADR 0002 §3.4 acontecer), e o
    semantic-release do boilerplate conflita com o fluxo tag-triggered da casa. O workflow de
