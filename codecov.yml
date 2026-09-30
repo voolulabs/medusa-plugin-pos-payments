@@ -1,0 +1,29 @@
+# Codecov — espelha a régua do vitest (money paths ≥95%, global ≥90%): os
+# thresholds locais do CI e os status de PR aqui são gates independentes.
+# Validar mudanças deste arquivo antes do push:
+#   curl -X POST --data-binary @codecov.yml https://codecov.io/validate
+#
+# fixes: o lcov é gerado a partir de plugins/pos-payments, então os SF: saem
+# como src/... — o mapeamento reescreve para o path do repo, sem o qual o
+# money-paths não seleciona os providers e o alvo de 95% não se aplica.
+fixes:
+  - "src/::plugins/pos-payments/src/"
+
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+      money-paths:
+        target: 95%
+        paths:
+          - "plugins/pos-payments/src/providers/"
+    patch:
+      default:
+        target: 90%
+
+comment:
+  layout: "reach, diff, flags, files"

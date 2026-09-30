@@ -1,5 +1,7 @@
 # Medusa POS Payments
 
+[![Codecov](https://codecov.io/github/voolulabs/medusa-plugin-pos-payments/graph/badge.svg)](https://codecov.io/github/voolulabs/medusa-plugin-pos-payments)
+
 _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 
 `@voolulabs/medusajs-plugin-pos-payments` adds a `pos-terminal` payment provider family to Medusa so a point-of-sale front end can take BRL payments made on physical card terminals (cash, card, Pix, bank transfer). Phase 1 ships the manual / terminal-present flow: the cashier confirms the charge made on the terminal, and the backend records the payment state. Acquirer adapters (Mercado Pago Point, SumUp, Stone, Cielo) plug into the same provider in later phases.
