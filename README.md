@@ -1,6 +1,7 @@
 # Medusa POS Payments
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments?ref=badge_shield)
 
+[![Codecov](https://codecov.io/github/voolulabs/medusa-plugin-pos-payments/graph/badge.svg)](https://codecov.io/github/voolulabs/medusa-plugin-pos-payments)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments?ref=badge_shield)
 
 _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 
@@ -96,4 +97,7 @@ _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 
 
 ## License
+
+Apache-2.0 — see [LICENSE](./LICENSE).
+
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments?ref=badge_large)
