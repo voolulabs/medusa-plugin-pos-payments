@@ -4,7 +4,9 @@ import type { PosPaymentsPluginOptions } from "../types"
 
 type Scope = MedusaRequest["scope"]
 
-const PLUGIN_NAME = "@voolulabs/medusajs-plugin-pos-payments"
+/** Fonte única do nome do pacote: o resolve no array `plugins` e a factory do
+ * src/index.ts derivam daqui — renomear o pacote não pode quebrar em silêncio. */
+export const PLUGIN_NAME = "@voolulabs/medusajs-plugin-pos-payments"
 
 /**
  * Lê as options do plugin do config module resolvido (ADR 0002 §5 — padrão

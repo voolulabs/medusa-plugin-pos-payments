@@ -23,8 +23,11 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
   `src/providers/pos-terminal/` (`index.ts` com `ModuleProvider(Modules.PAYMENT, { services })`,
   `service.ts` com o `AbstractPaymentProvider` — options no 2º argumento do construtor,
   padrão do [paypal-integration](https://github.com/medusajs/examples) oficial),
-  `src/adapters/`, `src/utils/plugin-options.ts` (padrão `getPluginOptions` via `CONFIG_MODULE`
-  — uso restrito a opções de rota, como o rate limit; as opções de provider são as do construtor).
+  `src/adapters/` (**Fase 2** — entra com o primeiro adapter real; na Fase 1 o modo manual
+  vive inline no provider, decisão da review 2026-09-29: sem seam sem segundo caso —
+  evitar Speculative Generality), `src/utils/plugin-options.ts` (padrão `getPluginOptions` via
+  `CONFIG_MODULE` — uso restrito a opções de rota, como o rate limit; as opções de provider
+  são as do construtor).
 - tsconfig estilo casa: CommonJS, ES2021, strict, `rootDir: "."`, `include: ["src"]`.
 
 ### 6.2 Provider `pos-terminal`
@@ -78,8 +81,9 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
 - `src/providers/pos-terminal/index.ts`:
   `export default ModuleProvider(Modules.PAYMENT, { services: [PosTerminalProviderService] })`.
 - Opções por registro: `{ acquirer: "manual" | "mercadopago" | ..., ...credenciais }`; adapter
-  resolvido por `options.acquirer` via registro em `src/adapters/` (interface comum em
-  `src/adapters/types.ts`); v1 inclui só o adapter `manual`.
+  resolvido por `options.acquirer` — **na Fase 1 o modo manual vive inline no service**; o
+  registro em `src/adapters/` (interface comum em `src/adapters/types.ts`) entra na Fase 2
+  com o primeiro adapter real.
 - Estado da cobrança em `payment.metadata` (sem DB próprio no v1, sem migrations).
 
 ### 6.3 Rotas do plugin
@@ -173,18 +177,21 @@ adquirente (multi-caixa); resolução no charge: register → default global →
 
 ### 6.6 Critérios de aceite
 
-- `GET /admin/payment-providers` lista `pp_system_default` + os 4 `pp_pos-terminal_*`.
+- Os 5 providers (`pp_system_default` + os 4 `pp_pos-terminal_*`) habilitados na região
+  Brasil — a listagem vive na Store API (`GET /store/payment-providers?region_id=` com
+  publishable key; a rota `GET /admin/payment-providers` não existe no Medusa 2.19,
+  verificado em 2026-09-29).
 - Venda E2E com cada método grava `payments[0].provider_id` = id do método (sem queda para
   `pp_system_default`) — **fecha o débito §1.1 do handoff doc** (conciliação por `provider_id`).
 - **Zero mudanças no app medusa-pos.**
 
 ## Acceptance Criteria (§6.6)
 
-- [ ] MUST: `GET /admin/payment-providers` lista `pp_system_default` + os 4 `pp_pos-terminal_*` — verify: `node scripts/e2e-pos.mjs` (step providers registrados)
+- [ ] MUST: os 5 providers habilitados na região Brasil — verify: `node scripts/e2e-pos.mjs` (step providers registrados, via `/store/payment-providers`)
 - [ ] MUST: venda E2E grava `payments[0].provider_id` = id do método, sem queda para `pp_system_default` — verify: `node scripts/e2e-pos.mjs` (step provider_id preservado)
 - [ ] MUST: zero mudanças no app medusa-pos — verify: `git -C ../medusa-pos status` sem mudanças de código de fluxo + review
 - [ ] MUST: rotas sob `/admin/pos-payments/*` sem `authenticate` próprio — verify: `grep -rn "authenticate" src/api` retorna vazio
-- [ ] MUST: provider implementa os 10 métodos abstratos; `getPaymentStatus` nunca lança — verify: `pnpm exec vitest run` (10/10) + `pnpm exec tsc --noEmit` (0)
+- [ ] MUST: provider implementa os 10 métodos abstratos; `getPaymentStatus` nunca lança — verify: `pnpm exec vitest run` (16/16) + `pnpm exec tsc --noEmit` (0)
 - [ ] MUST: nenhum segredo de adquirente fora do backend — verify: revisão §3 engenharia + gitleaks no CI
 - [ ] SHOULD: `metadata.pos` com ids reais + `guest_customer_email` (guard idempotente) — verify: `curl /admin/store` com Bearer após deploy
 - [ ] SHOULD: sem migrations no v1 (estado em data/metadata JSONB) — verify: `find src -path '*migration*'` vazio

@@ -1,8 +1,9 @@
 import type { PosPaymentsPluginOptions } from "./types"
+import { PLUGIN_NAME } from "./utils/plugin-options"
 
 export default function PosPaymentsPlugin(options: PosPaymentsPluginOptions = {}) {
   return {
-    resolve: "@voolulabs/medusajs-plugin-pos-payments",
+    resolve: PLUGIN_NAME,
     options: options as Record<string, unknown>,
   }
 }
