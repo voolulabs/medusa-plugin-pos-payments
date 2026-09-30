@@ -55,7 +55,7 @@ jobs:
           files: plugins/pos-payments/coverage/lcov.info
           flags: unittests
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+          fail_ci_if_error: true # secret ativo + baseline existente (2026-09-30)
 
       - name: Typecheck (strict)
         working-directory: plugins/pos-payments
