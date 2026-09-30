@@ -45,8 +45,10 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    roda contra as minors suportadas (a que produzimos + a última 2.2x). **Dropar uma minor do
    range = MINOR; suportada e quebrada = MAJOR.** Nunca peer pinado exato (anti-padrão
    `2.12.4`).
-6. **Prereleases:** `-rc.N` publicados a partir da `staging` com dist-tag **`next`**; dist-tag
-   `latest` só sai de `main`. Backend de homologação consome `next`; produção, `latest`.
+6. **Prereleases:** `-rc.N` publicados pelo **mesmo fluxo da estável** — tag `v*` na `main` (o
+   guard do publish só aceita tag ancestral de `main`; errata 2026-09-30: não existe caminho de
+   publish a partir da `staging`). Dist-tag derivado da versão no workflow: prerelease →
+   **`next`**; estável → `latest`. Backend de homologação consome `next`; produção, `latest`.
 7. **Versionamento independente por repo:** plugin (`@voolulabs/*`) e app (`medusa-pos`) não
    sincronizam números — a compatibilidade app ↔ plugin ↔ Medusa é documentada (matriz no plano
    §2), não acoplada por versionamento. `store-b2c-boilerplate` segue o upstream (master+staging,

@@ -32,7 +32,8 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
    `prepublishOnly` = `medusa plugin:build`; `typecheck` = `tsc --noEmit`; `test` = `vitest run`.
 4. **Versões:** devDeps `@medusajs/{cli,framework,medusa,test-utils}` **`^2.19`** (compila contra a
    versão do backend-alvo) + `@swc/core`, `typescript`, `vitest`; peerDeps
-   `@medusajs/framework` + `@medusajs/medusa` **`>=2.15`** (política narisolutions).
+   `@medusajs/framework` + `@medusajs/medusa` **`>=2.15 <3`** (ADR 0006 §5: dropar minor do
+   range = MINOR; suportada e quebrada = MAJOR).
 5. **Layout de código:**
    - `src/index.ts` — factory do plugin retornando `{ resolve, options }` (padrão narisolutions).
    - `src/api/` — rotas (`route.ts` + `validators.ts` via zod quando útil) e
@@ -79,10 +80,12 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
    Build fica `medusa plugin:build` puro. Se aliases forem adotados no futuro, portar o fix-aliases.
 8. **tsconfig (estilo casa):** CommonJS, target ES2021, `strict`, `rootDir: "."` (preserva o
    prefixo `src/` no output `.medusa/server`), `include: ["src"]`, mais
-   `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` + `noImplicitOverride` +
-   `verbatimModuleSyntax` (código de dinheiro — [engenharia.md](../engenharia.md) §2). Lint/format:
-   **Biome único** (`recommended` + `noDefaultExport: "error"`, overrides para os default exports
-   exigidos pelo Medusa).
+   `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` + `noImplicitOverride`
+   (código de dinheiro — [engenharia.md](../engenharia.md) §2). **Errata (2026-09-30):
+   `verbatimModuleSyntax` não entra** — proibido em output CommonJS (TS1287/TS1295, confirmado
+   no build real); a disciplina de type-only imports fica no Biome (`style.useImportType`).
+   Lint/format: **Biome único** (`recommended` + `noDefaultExport: "error"`, overrides para os
+   default exports exigidos pelo Medusa).
 9. **Testes:** vitest unitário para adapters e utilitários, specs colocation
    `__tests__/*.unit.spec.ts`; **HTTP das adquirentes mockado com MSW** interceptando o serviço
    real (padrão paystack — inclui teste de assinatura de webhook e de retry); um suite
@@ -103,19 +106,22 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
    timestampadas (`connection`, `credential`, `oauth_state`, `audit_event` —
    [onboarding.md](../onboarding.md) §5.2); migrations de plugin executam via **`medusa
    db:migrate` explícito** (não rodam no `start`/`develop` — verificado no fonte v2.19.0).
-10. **Fluxo de desenvolvimento:** backend consome via dep `file:` (ver plano §6.4) — a cada mudança,
-    `medusa plugin:build` + restart; alternativa em watch: `medusa plugin:develop`. Publicação:
-    `prepublishOnly` garante build; workflow idempotente com **provenance** (`id-token: write`,
-    npm 11) que compara a versão local com `npm view` e só publica se inédita — padrão
-    lambda-curry (mais simples que changesets para 1–3 pacotes).
+10. **Fluxo de desenvolvimento:** backend de dev (WSL) consome via **symlink** do pacote em
+    `node_modules` + **cópia pós-build para `.medusa/server`** (plano §6.4 — `file:` externo
+    quebra o postBuild; errata 2026-09-30); a cada mudança, `medusa plugin:build` + restart;
+    alternativa em watch: `medusa plugin:develop`. Publicação ([ADR 0006](0006-branching-e-versionamento.md)):
+    `prepublishOnly` garante build; tag `v*` na `main` dispara o workflow com **provenance**
+    (`id-token: write`) e **guards** — tag ancestral de `main`, tag = `package.json` version,
+    dist-tag `next`/`latest` derivado da versão. Os guards tornam o publish idempotente (tag é
+    única por versão), dispensando a comparação com `npm view`.
 
 ## Consequências
 
 - **Positivas:** convenções idênticas às do ecossistema (wishlist-plugin/narisolutions) → qualquer
   dev Medusa reconhece o layout; registro duplo evita a surpresa "provider carrega mas rotas não";
   ausência de aliases remove pós-processamento de build.
-- **Custos aceitos:** imports relativos em imports profundos; `file:` + build manual no dev loop
-  (watch opcional disponível).
+- **Custos aceitos:** imports relativos em imports profundos; symlink + cópia pós-build no dev
+  loop (watch opcional disponível).
 - **Reversibilidade:** nenhum lock-in — a estrutura é a padrão; mover para `src/provider` singular
   (convenção de scaffold mais recente) seria rename + ajuste no exports map.
 
