@@ -1,4 +1,4 @@
-# CI do plugin — padrão da casa (engenharia.md §4.1) + gates ADLC + opcore.
+# CI do plugin — gates locais do pipeline da casa + ADLC + opcore.
 # Pino de versões: oficial actions/* em major tag; opcore/adlc pinados por versão exata.
 name: CI
 
@@ -41,9 +41,21 @@ jobs:
         working-directory: plugins/pos-payments
         run: pnpm exec medusa plugin:build
 
-      - name: Unit tests (vitest)
+      - name: Unit tests (vitest) — thresholds de coverage são gate (90/95)
         working-directory: plugins/pos-payments
-        run: pnpm exec vitest run
+        run: pnpm test:coverage
+
+      - name: Upload coverage to Codecov
+        # Pin por SHA (padrão da casa); v7.1.1. `files` é relativo à RAIZ do
+        # repo, não ao working-directory dos steps de teste. Sem o secret
+        # CODECOV_TOKEN o upload falha sem pintar o CI — endurecer para true
+        # depois do secret + primeiro upload (baseline).
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: plugins/pos-payments/coverage/lcov.info
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
       - name: Typecheck (strict)
         working-directory: plugins/pos-payments

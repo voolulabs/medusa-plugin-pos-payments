@@ -1,0 +1,22 @@
+# Codecov — espelha a régua do vitest (money paths ≥95%, global ≥90%): os
+# thresholds locais do CI e os status de PR aqui são gates independentes.
+# Validar mudanças deste arquivo antes do push:
+#   curl -X POST --data-binary @codecov.yml https://codecov.io/validate
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+      money-paths:
+        target: 95%
+        paths:
+          - "plugins/pos-payments/src/providers/"
+    patch:
+      default:
+        target: 90%
+
+comment:
+  layout: "reach, diff, flags, files"
