@@ -78,14 +78,14 @@ jobs:
 
       - name: FOSSA (licenças + segurança — CI/CD scan do lockfile pnpm)
         # Pin por SHA (padrão da casa); v2.0.0. CLI 3.20.0 (provado com o nosso
-        # pnpm-lock no ensaio manual). Em PR, fossa test --diff base: só issues
-        # NOVAS falham — o baseline existente não bloqueia.
+        # pnpm-lock no ensaio manual). Analyze+upload: é o scan que dá ao projeto
+        # o grafo real de produção. `fossa test --diff` (só issues novas) volta
+        # depois que o BASELINE existir no FOSSA — o diff exige a revisão base
+        # já analisada (o 1º run do projeto não a tem).
         uses: fossas/fossa-action@29693cc50323968e039056be419b32989fc5880c # v2.0.0
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           pinned-cli-version: 3.20.0
-          run-tests: ${{ github.event_name == 'pull_request' }}
-          test-diff-revision: ${{ github.event.pull_request.base.sha }}
 
       - name: Snyk (SAST + dependências)
         env:
