@@ -40,11 +40,10 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    **Errata 2026-10-01 — bootstrap da estreia:** o stage exige o pacote pré-existente no
    registry (doc npm verbatim: "you cannot stage a brand-new package") — o run de tag da
    `v0.0.1` falhou com E404 no `/-/stage/package/` exatamente por isso. O publish de estreia
-   usa bootstrap direto **local, com OTP do mantenedor** (runbook §4; token de CI é stage-only
-   e não serve), placeholder `0.0.0-stage.0` sob dist-tag `next`, deprecado logo após o
+   usa bootstrap direto **local, com OTP do mantenedor** (procedimento: login npm interativo com OTP do mantenedor no terminal; o token de CI é stage-only e não serve), placeholder `0.0.0-stage.0` sob dist-tag `next`, deprecado logo após o
    approve da versão real. Da segunda versão em diante o fluxo stage-only vale integral.
    Sem semantic-release e sem changesets: repo **single-package** não justifica changesets
-   (ferramenta de monorepo — adotar só se o fatiamento do ADR 0002 §3.4 acontecer), e o
+   (ferramenta de monorepo — adotar só se o fatiamento do monorepo acontecer), e o
    semantic-release do boilerplate conflita com o fluxo tag-triggered da casa. O workflow de
    publish **só roda se a tag bate com o `version` do package.json** e publica com
    `--provenance` a partir da `main`. CHANGELOG em Keep-a-Changelog, gerado dos commits
