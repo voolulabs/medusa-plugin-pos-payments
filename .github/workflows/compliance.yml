@@ -30,6 +30,9 @@ jobs:
         with:
           oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
+          # exigido pelo action com OAuth: sem `tags` o check "Auth Info Empty"
+          # falha ("OAuth identity empty") mesmo com os secrets preenchidos
+          tags: tag:ci
 
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
