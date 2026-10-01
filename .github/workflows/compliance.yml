@@ -48,6 +48,9 @@ jobs:
         env:
           PROBO_HOST: ${{ secrets.PROBO_HOST }}
           PROBO_TOKEN: ${{ secrets.PROBO_TOKEN }}
+        # auth via env (PROBO_HOST/PROBO_TOKEN) é o mecanismo não-interativo do
+        # prb (config.go DefaultHost); o "not logged in" do auth status refere-se
+        # só ao config file. framework list sem --json — a flag não existe na 0.299.0.
         run: |
           prb auth status --no-interactive --no-color
-          prb framework list --json --no-interactive --no-color
+          prb framework list --limit 5 --no-interactive --no-color
