@@ -28,7 +28,9 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    `latest` = produção); `main`, a produção.
 2. **Conventional Commits enforçados por CI** (commitlint no push/PR), com scopes dos adapters
    (`feat(mercadopago):`, `fix(cielo):`) — resolve a inconsistência do histórico sem mudar o
-   mecanismo de release da casa.
+   mecanismo de release da casa. Exceção única, posta por evidência: commits de bots de badge
+   (`fossabot`, assinados no corpo) são isentos — não seguem conventional e não passam por
+   review; o gate mordeu de verdade no PR de promoção #20 antes da isenção entrar.
 3. **Versionamento = bump manual em PR `chore(release): vX.Y.Z` + tag `v*` → publish com
    aprovação humana (staged publishing).** A tag dispara `npm stage publish` (`--provenance`,
    dist-tag `latest`/`next` derivado da versão); a versão fica em **stage** e só vai ao ar com
