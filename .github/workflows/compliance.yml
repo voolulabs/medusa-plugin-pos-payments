@@ -44,6 +44,15 @@ jobs:
           git clone --depth 1 --branch probod/v0.299.0 https://github.com/getprobo/probo.git /tmp/probo-src
           cd /tmp/probo-src && go build -o /usr/local/bin/prb ./cmd/prb
 
+      - name: Diagnóstico de rede (falha rápido, sinal claro)
+        env:
+          PROBO_HOST: ${{ secrets.PROBO_HOST }}
+        run: |
+          IP="${PROBO_HOST#http://}"; IP="${IP%%:*}"
+          tailscale status --peers | grep -v offline | head -8 || true
+          tailscale ping --c 2 "$IP" || true
+          curl -sS -o /dev/null -w "GET http://${PROBO_HOST#http://}/ -> %{http_code}\n" --max-time 15 "http://${PROBO_HOST#http://}/" || true
+
       - name: Smoke — conectividade e autenticação na instância
         env:
           PROBO_HOST: ${{ secrets.PROBO_HOST }}
