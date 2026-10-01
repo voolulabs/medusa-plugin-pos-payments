@@ -170,7 +170,7 @@ campos desconhecidos: compatível). Na ativação da conexão, card/pix **trocam
 genéricos e o health marca `disconnected`. Regra de dados: **um adquirente ativo por instrumento**.
 Parcelas são escolhidas no dialog do caixa só para crédito payload-driven (Stone/Cielo);
 MP/SumUp decidem no terminal e o total cobrado nunca muda com parcelamento.
-**Terminais por caixa ([onboarding.md §5.4](onboarding.md)):** o espelho ganha
+**Terminais por caixa:** o espelho ganha
 `registers = {register_id: {label, terminal: {acquirer → serial}}}` — binding caixa↔terminal por
 adquirente (multi-caixa); resolução no charge: register → default global → erro fail-closed.
 
