@@ -45,7 +45,17 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    **`0.x`** — breaking pode entrar em MINOR (semver §4) e o backend consome **versão exata**
    (em `0.x`, caret só pega patch). **`1.0.0` congela o contrato público** (gatilho: primeiro
    lojista em produção): a partir daí quebrar exports, provider id/options, payload de webhook,
-   rotas ou faixa de peerDep = MAJOR.
+   rotas ou faixa de peerDep = MAJOR. **Âncoras de versão (errata
+   2026-09-30):** `0.0.1` = camada base manual; `0.1.0` = primeiro adapter (Mercado Pago) em
+   sandbox; `0.2.0` = onboarding/OAuth/Admin (primeiras migrations); um MINOR por adapter na
+   Fase 3. **Critérios de prontidão do `1.0.0`** (além do gatilho de negócio): (1) ≥1 adapter
+   com transação real completa (charge+refund); (2) auditoria do contrato público documentada;
+   (3) blob `data` da session com `data_version` e política de migração de blobs antigos;
+   (4) upgrade real de instância com dados via `medusa db:migrate` testado; (5) matriz de
+   minors do Medusa documentada; (6) política de deprecação/backport publicada. O congelamento
+   **não** exige todos os adapters — a camada base congela com o adapter piloto certificado;
+   os demais entram como MINOR. Options de adapter são superfície pública: **aditivas por
+   design**.
 5. **Compatibilidade Medusa = política de versão:** peer range **`>=2.15 <3`**; a matriz de CI
    roda contra as minors suportadas (a que produzimos + a última 2.2x). **Dropar uma minor do
    range = MINOR; suportada e quebrada = MAJOR.** Nunca peer pinado exato (anti-padrão
