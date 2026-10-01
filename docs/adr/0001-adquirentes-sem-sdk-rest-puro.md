@@ -2,7 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Escopo:** `@voolulabs/medusajs-plugin-pos-payments` (especificado em [plano-pos-br.md](../plano-pos-br.md) §3)
+- **Escopo:** `@voolulabs/medusajs-plugin-pos-payments` Fase 1 (provider manual e integração)
 - **Nota de localização:** este ADR vive na raiz do workspace até a Fase 1 criar o repo do plugin;
   então migra para `medusajs-plugin-pos-payments/docs/adr/0001-…`.
 
@@ -77,7 +77,7 @@ não podem ser fonte de verdade.
    um SDK que de fato cobre nossa superfície (SumUp).
 3. **REST puro por padrão + exceção criteriosa por adapter** — **escolhida**.
    Contra-argumentos a favor de SDK, respondidos: *tipos oficiais de graça* — a fronteira do
-   adapter é validada por zod de qualquer forma (engenharia.md §1.5); os tipos do SDK duplicam a
+   adapter é validada por zod de qualquer forma; os tipos do SDK duplicam a
    camada. *Menos drift quando o adquirente muda* — o mercado mostra o oposto: o MP migrou
    Payment Intents → Orders e o client `point` do próprio SDK ficou preso no legado. *SDK
    parcialmente (orders no SDK, terminais em REST)* — rejeitada: dois estilos de HTTP/erro/retry
@@ -116,7 +116,7 @@ não podem ser fonte de verdade.
    SDK **não aceita `poi_payment_settings`** e o schema embutido + campos obrigatórios
    (`payments[]`, `code`) conflitam com o fluxo Direto (pedido sem `payments`). O SDK v7 poderia
    servir rotas genéricas da v5, mas não justifica a dependência
-   ([stone.md](../stone.md) §3/§9).
+   (portal Connect — corpus de 43 páginas).
 5a. **OAuth de onboarding (Fase 2b) não requer SDK** — redirect + troca de código (e refresh token)
     são HTTP puro nas adquirentes com OAuth.
 6. **Requisitos obrigatórios de qualquer adapter** (independem da via):
@@ -155,7 +155,7 @@ Tabela-resumo por adquirente (verificada na fonte, 2026-09-26):
 | Mercado Pago | Point Orders API (`/v1/orders`, `/terminals/v1`) | **Parcial** — SDK 3.6.1 cobre o ciclo Orders v1 com idempotência, mas **não tipa `config.point.terminal_id`**, não tem terminais (list/setup) nem simulação; client `point` é o legado Payment Intents | **REST puro** (Decisão §4) |
 | SumUp | Cloud API (terminal checkout em reader) | **Sim** — `@sumup/sdk` 0.2.0 (escopo **oficial** da SumUp: mesmo repo `sumup/sumup-ts` adotado; cobre readers/OAuth/webhooks; usado no plugin oficial SumUp↔Medusa) | SDK (exceção, Fase 3, pinado) |
 | Stone | Connect 2.0 — portal próprio (corpus 43 pág.); pedido = `POST api.pagar.me/core/v5/orders` (Basic Auth SK) | **Conflita** — SDK 7.0.2 não tem `poi_payment_settings`, schema embutido rejeita campos extras e exige `payments[]`/`code` (o fluxo Direto cria pedido **sem** payments) | **REST puro — SDK descartado** para o fluxo Connect (Decisão §5) |
-| Cielo | Portal Conecta (docs.cielo.com.br, `.md` via `llms.txt`) — REST `physicalSales`; captura de cartão **no balcão** (Pin Pad homologado; bridge no app) | **Não** — sem SDK oficial Node p/ Conecta (community = e-commerce 3.0, outra superfície) | **REST puro** (Fase 3, com gate de arquitetura — [cielo.md](../cielo.md) §14); captura local não é via REST e não entra no plugin |
+| Cielo | Portal Conecta (docs.cielo.com.br, `.md` via `llms.txt`) — REST `physicalSales`; captura de cartão **no balcão** (Pin Pad homologado; bridge no app) | **Não** — sem SDK oficial Node p/ Conecta (community = e-commerce 3.0, outra superfície) | **REST puro** (Fase 3, com gate de arquitetura); captura local não é via REST e não entra no plugin |
 
 **Evidência de cada linha (onde foi verificado, 2026-09-26):**
 
@@ -163,7 +163,7 @@ Tabela-resumo por adquirente (verificada na fonte, 2026-09-26):
 - SumUp: código gerado em github.com/sumup/sumup-ts (`sdk/src/resources/readers/index.ts`, cabeçalho codegen) + uso no plugin oficial `sumup/sumup-plugin-medusa`.
 - Stone: tarball npm `@pagarme/pagarme-nodejs-sdk@7.0.2` (`dist/cjs/types/models/createOrderRequest.d.ts` — sem `poi_payment_settings`, schema APIMATIC).
 - Cielo: ausência confirmada por busca (registries + docs.cielo.com.br); community = e-commerce 3.0.
-- Contrato das superfícies: specs/corpora citados em [mercado-pago.md](../mercado-pago.md), [sumup.md](../sumup.md), [stone.md](../stone.md), [cielo.md](../cielo.md).
+- Contrato das superfícies: especificações verificadas por adquirente na pesquisa interna (MP Point, SumUp, Stone Connect, Cielo Conecta).
 
 ## Consequências
 
@@ -205,8 +205,6 @@ adapter.
 
 ## Referências
 
-- Plano do projeto: [plano-pos-br.md](../plano-pos-br.md) (§3 arquitetura, §7 piloto MP, §7.1 onboarding)
-- Superfícies por adquirente (verificadas): [adquirentes-br.md](../adquirentes-br.md)
 - Mercado Pago: [Point — API reference](https://www.mercadopago.com.br/developers/en/reference/in-person-payments/point/overview) ·
   [migração Payment Intents → Orders API](https://www.mercadopago.com.mx/developers/en/docs/mp-point/migrate-payment-intent-to-orders)
   (`X-Idempotency-Key` obrigatório; `idempotency_key_already_used`) ·

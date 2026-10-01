@@ -2,7 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Escopo:** Fase 1 do [plano-pos-br.md](../plano-pos-br.md) (scaffold e integração do plugin)
+- **Escopo:** Fase 1 — scaffold e integração do plugin
 - **Localização:** migra para `medusajs-plugin-pos-payments/docs/adr/0002-…` junto com o ADR 0001.
 
 ## Contexto
@@ -104,7 +104,7 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
    widget `order.details`.
    Modelos próprios (Fase 2b): `src/modules/<nome>` com models + migrations MikroORM
    timestampadas (`connection`, `credential`, `oauth_state`, `audit_event` —
-   [onboarding.md](../onboarding.md) §5.2); migrations de plugin executam via **`medusa
+   ADR 0004); migrations de plugin executam via **`medusa
    db:migrate` explícito** (não rodam no `start`/`develop` — verificado no fonte v2.19.0).
 10. **Fluxo de desenvolvimento:** backend de dev (WSL) consome via **symlink** do pacote em
     `node_modules` + **cópia pós-build para `.medusa/server`** (plano §6.4 — `file:` externo

@@ -4,7 +4,7 @@
 - **Data:** 2026-09-26
 - **Escopo:** rotas e autenticação do `@voolulabs/medusajs-plugin-pos-payments`
   (estrutura: [ADR 0002](0002-estrutura-convencoes-plugin-medusa-v2.md); contratos:
-  [onboarding.md](../onboarding.md) §5.1, plano §6.3)
+  contratos definidos nas decisões abaixo)
 - **Base:** fonte `medusajs/medusa` tag **v2.19.0** (clone local `.cache-medusa-src/`), caminhos
   citados por arquivo/linha.
 
@@ -66,7 +66,7 @@ o webhook responde 200 e o erro explode no subscriber com re-tentativa (3x).
    para essas rotas (o core já autenticou); apenas validadores/rate-limit próprio, se necessário.
 2. **Callback OAuth público: `GET /pos-payments/callback/:acquirer`** — inalterado; namespace
    fora de `/pos/*` (sem colisão: `/pos-payments` ≠ `/pos/…`) e sem auth (protegido por `state`,
-   [onboarding.md](../onboarding.md) §7).
+   fluxo OAuth da Fase 2b).
 3. **Webhooks: rota nativa do core com segmento sem `pp_`** —
    `https://<backend>/hooks/payment/pos-terminal_<id>` (ex.: `pos-terminal_mercadopago`). O
    provider resolve pelo id completo `pp_pos-terminal_<id>` internamente.
@@ -95,4 +95,4 @@ o webhook responde 200 e o erro explode no subscriber com re-tentativa (3x).
   monitorar tentativas repetidas de provider inexistente como sinal de URL mal configurada.
 
 > **Comportamento do event bus nessa superfície** (fila, subscriber do core, retry,
-> durabilidade): [event-bus.md](../event-bus.md) — verificado no fonte v2.19.0 (2026-09-27).
+> durabilidade): verificado no fonte v2.19.0 (2026-09-27).

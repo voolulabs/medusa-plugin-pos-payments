@@ -30,7 +30,7 @@ type InjectedDependencies = {
 /**
  * Configuração por registro do provider (options no medusa-config). Fase 1 é
  * manual/terminal-presente: nada de credenciais. Adapters de adquirente entram
- * atrás desta opção nas fases seguintes (plano-pos-br.md §6.2).
+ * atrás desta opção nas fases seguintes (ADR 0002 §9).
  */
 export type PosTerminalOptions = {
   /** Fase 1: "manual". Fases 2-3: "mercadopago" | "sumup" | "stone" | "cielo". */
@@ -51,7 +51,7 @@ function mapStatus(data: SessionData): GetPaymentStatusOutput {
 }
 
 /**
- * Provider "terminal-presente" (plano-pos-br.md §6.2): a cobrança acontece
+ * Provider "terminal-presente" (ADR 0002 §9): a cobrança acontece
  * fisicamente na maquininha operada pelo caixa; o backend registra o estado.
  * Nenhuma chamada externa na Fase 1.
  *
@@ -185,7 +185,7 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
     input: UpdatePaymentInput
   ): Promise<UpdatePaymentOutput> {
     // O data é replayado pelo cliente — valida na fronteira antes de ecoar
-    // (engenharia.md §1.5/§3.6; rejeita __proto__/constructor/prototype).
+    // (defesas na fronteira; rejeita __proto__/constructor/prototype).
     assertSafeSessionKeys(input.data as Record<string, unknown> | undefined)
     const parsed = posTerminalSessionSchema.safeParse(input.data ?? {})
     if (!parsed.success) {

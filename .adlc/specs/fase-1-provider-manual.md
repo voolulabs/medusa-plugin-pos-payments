@@ -1,6 +1,6 @@
 # Spec: Fase 1 — provider pos-terminal manual
 
-Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
+Extraído para os gates ADLC.
 
 ## 6. Fase 1 — Plugin @voolulabs com provider genérico (sem adquirente)
 
@@ -90,8 +90,7 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
 
 - `GET /admin/pos-payments/health` → `{ status: "ok" }` (Fase 1).
 - **Contrato de rotas do plugin** (substantivos genéricos, agnósticos de adquirente — cada
-  adapter faz o mapa para a API dele; detalhado em [mercado-pago.md](mercado-pago.md) §7 (item 5)
-  e [sumup.md](sumup.md) §9 (item 5)). **Autenticadas, sob `/admin/pos-payments/*`** (auth do
+  adapter faz o mapa para a API dele). **Autenticadas, sob `/admin/pos-payments/*`** (auth do
   core — [ADR 0005](../../docs/adr/0005-superficies-api-auth-plugin.md)): `POST /admin/pos-payments/charges`
   (criar cobrança no terminal) · `GET /admin/pos-payments/charges/:id` (estado autoritativo —
   poll do POS) · `POST /admin/pos-payments/charges/:id/cancel` ·
@@ -100,7 +99,7 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
   `GET /admin/pos-payments/terminals` + `GET /admin/pos-payments/terminals/:id/status`
   (lista/health) · `POST /admin/pos-payments/terminals/:id/select` (terminal do caixa) ·
   `GET|POST|DELETE /admin/pos-payments/connections/:acquirer` (+ `/start`, `/test` —
-  onboarding.md §5.1) · `GET /admin/pos-payments/health` (Fase 1). **Pública, sob
+  Fase 2b) · `GET /admin/pos-payments/health` (Fase 1). **Pública, sob
   `/pos-payments/*`**: `GET /pos-payments/callback/:acquirer` (OAuth §7.1).
   **Webhooks usam a rota NATIVA do core** — `POST /hooks/payment/{provider}` (pública, verificada
   no fonte v2.19.0 `packages/medusa/src/api/hooks/payment/[provider]/route.ts`): responde **200
@@ -153,7 +152,7 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
 - **Migrations**: o `pnpm ib` (seedOnce) **pula o `db:migrate` em banco já inicializado** (§1.3) —
   quando o plugin ganhar módulo com migrations (Fase 2b), o deploy precisa rodar
   **`medusa db:migrate` explícito** (migrations de plugin não executam no `start`/`develop` —
-  verificado no fonte; [onboarding.md](onboarding.md) §5.2).
+  verificado no fonte).
 
 ### 6.5 Metadata do app (seed idempotente)
 

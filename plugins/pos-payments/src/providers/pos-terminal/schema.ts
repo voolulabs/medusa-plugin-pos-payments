@@ -2,7 +2,7 @@ import { z } from "@medusajs/framework/zod"
 import { MedusaError } from "@medusajs/framework/utils"
 
 /**
- * Contrato do `data` da session (ADR 0002 §9 / engenharia.md §3.6): o módulo
+ * Contrato do `data` da session (ADR 0002 §9): o módulo
  * payment faz merge/replay do `data` vindo do cliente — validação zod na
  * fronteira, uma vez só; record plano; chaves de prototype rejeitadas;
  * merge depth-1 com own-properties.
