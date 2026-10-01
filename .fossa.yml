@@ -1,0 +1,8 @@
+# FOSSA — alvo único: o lockfile pnpm do workspace.
+# O Quick Import (GitHub App) não resolve pnpm (tabela oficial: N/A) — a análise
+# autoritativa é o CI/CD scan do CLI sobre o pnpm-lock.yaml (workspaces e
+# lockfileVersion 9 suportados; devDependencies ignoradas por default).
+version: 3
+targets:
+  only:
+    - type: pnpm
