@@ -9,3 +9,6 @@ export default function PosPaymentsPlugin(options: PosPaymentsPluginOptions = {}
 }
 
 export type { PosPaymentsPluginOptions }
+// Contrato público do provider (options por registro + session data — ADR 0002/§12 do plano)
+export type { PosTerminalOptions } from "./providers/pos-terminal/service"
+export type { PosTerminalSessionData } from "./providers/pos-terminal/schema"
