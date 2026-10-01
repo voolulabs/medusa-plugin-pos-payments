@@ -37,11 +37,18 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    **approve de um mantenedor com 2FA** (aba "Staged Packages" do npmjs.com ou
    `npm stage approve <id> --otp`). Requer npm ≥11.15/Node ≥22.14 no runner; o npm remove o
    publish direto por token em janeiro de 2027 — errata 2026-09-30.
-   **Errata 2026-10-01 — bootstrap da estreia:** o stage exige o pacote pré-existente no
-   registry (doc npm verbatim: "you cannot stage a brand-new package") — o run de tag da
-   `v0.0.1` falhou com E404 no `/-/stage/package/` exatamente por isso. O publish de estreia
-   usa bootstrap direto **local, com OTP do mantenedor** (procedimento: login npm interativo com OTP do mantenedor no terminal; o token de CI é stage-only e não serve), placeholder `0.0.0-stage.0` sob dist-tag `next`, deprecado logo após o
-   approve da versão real. Da segunda versão em diante o fluxo stage-only vale integral.
+   **Errata 2026-10-01 — bootstrap da estreia:** a doc do npm
+   ([staged-publishing](https://docs.npmjs.com/staged-publishing), verificada em 2026-10-01)
+   permite stage de **pacote novo** ("You can use staged publishing for both new and existing
+   packages"), com placeholder público `0.0.0-stage` até o approve do mantenedor. O run de tag
+   da `v0.0.1` falhou mesmo assim com **E404** no `/-/stage/package/` — causa não isolada
+   (hipóteses: token de CI granular stage-only sem permissão de publicar pacote novo; npm do
+   runner < 11.15). Versão anterior desta errata atribuía à doc a frase "you cannot stage a
+   brand-new package" — **não consta na página atual**. A estreia foi concluída com publish
+   direto **local**, com OTP do mantenedor (placeholder `0.0.0-stage.0` sob dist-tag `next`,
+   deprecado logo após o approve da versão real). **Gatilho:** provar stage-from-zero (pacote
+   novo) com o token de CI antes de confiar o fluxo; da segunda versão em diante o stage-only
+   vale integral.
    Sem semantic-release e sem changesets: repo **single-package** não justifica changesets
    (ferramenta de monorepo — adotar só se o fatiamento do monorepo acontecer), e o
    semantic-release do boilerplate conflita com o fluxo tag-triggered da casa. O workflow de
