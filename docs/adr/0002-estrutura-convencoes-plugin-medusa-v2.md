@@ -214,3 +214,22 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
 - `medusa-plugins/plugins/medusa-plugin-pos` (local) — `src/api/middlewares.ts`,
   `src/utils/plugin-options.ts`, `tsconfig.json`, `scripts/fix-aliases.js`
 - `store-b2c-boilerplate/backend/medusa-config.js` — registro duplo (plugin + provider) do meilisearch
+
+## Erratas 2026-10-01 (review adversarial do workspace)
+
+1. **peerDependencies**: o pacote 0.0.1 declara **três** peers — `@medusajs/framework`,
+   `@medusajs/medusa` e **`@medusajs/utils`**, todos `>=2.15 <3` (helpers importados em runtime,
+   ex. `ContainerRegistrationKeys` em `src/utils/plugin-options.ts`). Superfície semver do
+   contrato de 1.0.0 (ADR 0006 §4) — este §4 fica atualizado por esta errata.
+2. **Adapters = diretório por adquirente** (`src/adapters/<acquirer>/{client,types,validation,…}`
+   + `types.ts` da interface comum em `src/adapters/`), functional core/imperative shell
+   (engenharia.md §1.4–§1.5), budget ≤100 linhas/arquivo (opcore) — não "um arquivo por
+   adquirente" (§5).
+3. **Subscribers entram na Fase 2** para reconciliação de refund/cancel originados no terminal
+   (`refundPaymentWorkflow`, nunca serviço do módulo — event-bus.md §2.3; ADR 0007 em preparo).
+   O §9 passa a valer a workflows/subscribers de negócio próprios; jobs/links continuam fora.
+4. **`middlewares.ts` é condicional** (nasce com o primeiro validador/rate-limit próprio —
+   ADR 0005); na Fase 1 o arquivo não existe e a auth é toda do core.
+5. **`module`/`moduleResolution: node16`** no tsconfig (necessário para resolver o exports map
+   do `@medusajs/framework` no typecheck); `verbatimModuleSyntax` continua fora
+   (errata 2026-09-30).
