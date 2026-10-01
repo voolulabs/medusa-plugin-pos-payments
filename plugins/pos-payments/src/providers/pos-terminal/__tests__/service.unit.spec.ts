@@ -20,7 +20,7 @@ describe("PosTerminalProviderService", () => {
     ).toThrow(/manual/)
   })
 
-  it("initiatePayment é no-op e devolve id opaco público (§6.2)", async () => {
+  it("initiatePayment é no-op e devolve id opaco público", async () => {
     const out = await service.initiatePayment({
       amount: 100,
       currency_code: "brl",
@@ -37,7 +37,7 @@ describe("PosTerminalProviderService", () => {
     expect(second.data!["mode"]).toBe("manual")
   })
 
-  it("métodos devolvem o blob completo (§1.11: sem clobber)", async () => {
+  it("métodos devolvem o blob completo (sem clobber)", async () => {
     const auth = await service.authorizePayment({
       data: { external_id: "x1" },
     } as never)
@@ -57,12 +57,12 @@ describe("PosTerminalProviderService", () => {
     expect((await service.getPaymentStatus(undefined as never)).status).toBe("pending")
   })
 
-  it("deletePayment limpa o estado (§6.2)", async () => {
+  it("deletePayment limpa o estado", async () => {
     const out = await service.deletePayment({ data: { captured_at: "t" } } as never)
     expect(out.data).toEqual({})
   })
 
-  it("updatePayment rejeita chave de prototype (engenharia §3.6)", async () => {
+  it("updatePayment rejeita chave de prototype", async () => {
     await expect(
       service.updatePayment({
         amount: 100,

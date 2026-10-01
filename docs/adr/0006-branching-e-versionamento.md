@@ -13,7 +13,7 @@ enforçados** (histórico tem `docs:` e `Docs:` misturados). O core Medusa usa *
 `store-b2c-boilerplate` segue o upstream FUNKYTON (`master` + `staging`, sem tags). No
 ecossistema, plugins convivem com minors rápidas do Medusa (2.19 → 2.21): o plugin oficial SumUp
 usa peer `^2.15.5`; plugin comunitário pinado em `2.12.4` quebrou a compatibilidade — anti-padrão.
-Nossas regras de release já fixadas (engenharia.md §4): semver aplicado à superfície (exports,
+Regras de release já fixadas na família: semver aplicado à superfície (exports,
 provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, provenance +
 `npm audit signatures`.
 
@@ -28,7 +28,9 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    `latest` = produção); `main`, a produção.
 2. **Conventional Commits enforçados por CI** (commitlint no push/PR), com scopes dos adapters
    (`feat(mercadopago):`, `fix(cielo):`) — resolve a inconsistência do histórico sem mudar o
-   mecanismo de release da casa.
+   mecanismo de release da casa. Exceção única, posta por evidência: commits de bots de badge
+   (`fossabot`, assinados no corpo) são isentos — não seguem conventional e não passam por
+   review; o gate mordeu de verdade no PR de promoção #20 antes da isenção entrar.
 3. **Versionamento = bump manual em PR `chore(release): vX.Y.Z` + tag `v*` → publish com
    aprovação humana (staged publishing).** A tag dispara `npm stage publish` (`--provenance`,
    dist-tag `latest`/`next` derivado da versão); a versão fica em **stage** e só vai ao ar com
@@ -45,7 +47,17 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    **`0.x`** — breaking pode entrar em MINOR (semver §4) e o backend consome **versão exata**
    (em `0.x`, caret só pega patch). **`1.0.0` congela o contrato público** (gatilho: primeiro
    lojista em produção): a partir daí quebrar exports, provider id/options, payload de webhook,
-   rotas ou faixa de peerDep = MAJOR (engenharia.md §4).
+   rotas ou faixa de peerDep = MAJOR. **Âncoras de versão (errata
+   2026-09-30):** `0.0.1` = camada base manual; `0.1.0` = primeiro adapter (Mercado Pago) em
+   sandbox; `0.2.0` = onboarding/OAuth/Admin (primeiras migrations); um MINOR por adapter na
+   Fase 3. **Critérios de prontidão do `1.0.0`** (além do gatilho de negócio): (1) ≥1 adapter
+   com transação real completa (charge+refund); (2) auditoria do contrato público documentada;
+   (3) blob `data` da session com `data_version` e política de migração de blobs antigos;
+   (4) upgrade real de instância com dados via `medusa db:migrate` testado; (5) matriz de
+   minors do Medusa documentada; (6) política de deprecação/backport publicada. O congelamento
+   **não** exige todos os adapters — a camada base congela com o adapter piloto certificado;
+   os demais entram como MINOR. Options de adapter são superfície pública: **aditivas por
+   design**.
 5. **Compatibilidade Medusa = política de versão:** peer range **`>=2.15 <3`**; a matriz de CI
    roda contra as minors suportadas (a que produzimos + a última 2.2x). **Dropar uma minor do
    range = MINOR; suportada e quebrada = MAJOR.** Nunca peer pinado exato (anti-padrão
@@ -55,8 +67,8 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    publish a partir da `staging`). Dist-tag derivado da versão no workflow: prerelease →
    **`next`**; estável → `latest`. Backend de homologação consome `next`; produção, `latest`.
 7. **Versionamento independente por repo:** plugin (`@voolulabs/*`) e app (`medusa-pos`) não
-   sincronizam números — a compatibilidade app ↔ plugin ↔ Medusa é documentada (matriz no plano
-   §2), não acoplada por versionamento. `store-b2c-boilerplate` segue o upstream (master+staging,
+   sincronizam números — a compatibilidade app ↔ plugin ↔ Medusa é documentada em matriz própria,
+   não acoplada por versionamento. `store-b2c-boilerplate` segue o upstream (master+staging,
    sem semver próprio) enquanto o boilerplate comandar.
 8. **Gate de release da família: o E2E.** A publicação estável (`latest`) exige o E2E de vendas
    (`scripts/e2e-pos.mjs`) verde contra um backend real executando a versão candidata. A candidata

@@ -2,7 +2,7 @@ import { z } from "@medusajs/framework/zod"
 import { MedusaError } from "@medusajs/framework/utils"
 
 /**
- * Contrato do `data` da session (ADR 0002 §9 / engenharia.md §3.6): o módulo
+ * Contrato do `data` da session (ADR 0002 §9): o módulo
  * payment faz merge/replay do `data` vindo do cliente — validação zod na
  * fronteira, uma vez só; record plano; chaves de prototype rejeitadas;
  * merge depth-1 com own-properties.
@@ -11,7 +11,7 @@ const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"])
 
 /**
  * Guard no input CRU, antes do zod reconstruir o record (zod silencia chaves
- * de prototype ao reassinar; o plano §3.6 exige REJEITAR, não descartar).
+ * de prototype ao reassinar; a fronteira exige REJEITAR, não descartar).
  */
 export function assertSafeSessionKeys(data: Record<string, unknown> | undefined): void {
   const forbidden = Object.keys(data ?? {}).filter((k) => FORBIDDEN_KEYS.has(k))

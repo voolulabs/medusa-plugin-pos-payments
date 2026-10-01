@@ -3,8 +3,7 @@
 - **Status:** Aceito
 - **Data:** 2026-09-26
 - **Escopo:** UI de admin e estado de onboarding do `@voolulabs/medusajs-plugin-pos-payments`
-  (spec do processo: [onboarding.md](../onboarding.md)); Fase 2b do
-  [plano-pos-br.md](../plano-pos-br.md) §7.1
+  (Fase 2b)
 
 ## Contexto
 
@@ -53,16 +52,16 @@ desenho:
 1. **Superfície única de onboarding/config: rota `settings/pos-payments`**
    (`src/admin/routes/settings/pos-payments/page.tsx` → `/app/settings/pos-payments`, área
    Settings). Anatomia: estado geral das conexões, cards por adquirente com `StatusBadge` do
-   estado da conexão ([onboarding.md](../onboarding.md) §4), wizards em `FocusModal` por modelo de
+   estado da conexão (máquina própria do plugin), wizards em `FocusModal` por modelo de
    conexão (OAuth, credencial colada, pareamento SumUp, painel de recebedores Stone, ISV Cielo),
    tabela de terminais (`DataTable`) com health e seleção. Estado do onboarding é **do plugin**
-   (tabelas `pos_payments_*` com migrations na Fase 2b — [onboarding.md](../onboarding.md) §5.2),
+   (tabelas `pos_payments_*` com migrations na Fase 2b),
    precedido no primeiro uso por um estado de "setup" na própria página.
 2. **OAuth por full-page redirect com callback no backend**: a página navega para `authorize_url`
    devolvida por `POST /connections/:acquirer/start`; a adquirente retorna para a rota pública
    `/pos-payments/callback/:acquirer`, que valida `state` (durável, uso único), troca o código e
    redireciona de volta para a página com `result=ok|error`. Sem popup/iframe.
-3. **Widgets de suporte**: conciliação em `order.details` (ui-ux-admin.md §3) e, opcional,
+3. **Widgets de suporte**: conciliação em `order.details` e, opcional,
    indicador de setup incompleto em `topbar`/`store.details` com deep-link para a página.
 4. **Componentes**: `@medusajs/ui` + `@medusajs/icons` + `react-hook-form` + zod, dados via
    `sdk.client.fetch` (auth de sessão do dashboard) com React Query **do host** (não instalar
@@ -86,12 +85,12 @@ desenho:
 
 **Positivas**
 - Onboarding inteiro do lojista em um lugar (Admin), com audit e estados explícitos; o app de
-  caixa só consome (onboarding.md §10).
+  caixa só consome.
 - Plugin permanece publicável por npm com a mecânica padrão (`files`/`exports` + `plugin:build`);
   o lojista-host não configura nada além do array `plugins`.
 
 **Negativas / riscos aceitos**
-- **Migrations a partir da Fase 2b** — o "sem migrations" fica escopado ao v1/Fase 1 (plano §2.6);
+- **Migrations a partir da Fase 2b** — o "sem migrations" fica escopado ao v1/Fase 1;
   host que atualizar o plugin roda migrations do plugin.
 - **UI é superfície a manter** no monorepo do plugin (React/Vite + peerDeps `react`, `react-dom`,
   `@medusajs/ui`, `@medusajs/icons`, `@medusajs/admin-sdk`) — bundle maior e contrato visual
@@ -100,6 +99,6 @@ desenho:
 - **Full-page redirect tira o operador do dashboard** por alguns segundos (fluxo do adquirente);
   mitigação: retorno sempre para a página com `result` e re-fetch automático.
 
-**Compliance (checklist ADR 0001/engenharia):** segredos de lojista só em `pos_payments_credential`
-criptografado (AES-256-GCM envelope — engenharia.md §3.4); `state` OAuth durável e de uso único;
+**Compliance (checklist):** segredos de lojista só em `pos_payments_credential`
+criptografado (AES-256-GCM envelope); `state` OAuth durável e de uso único;
 audit de todos os eventos de conexão; rotas de onboarding admin-only com teste de escopo no CI.

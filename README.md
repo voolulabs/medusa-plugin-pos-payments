@@ -1,4 +1,6 @@
 # Medusa POS Payments
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments?ref=badge_shield)
+
 
 _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 
@@ -91,3 +93,7 @@ _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 - [Medusa Payment Provider Reference](https://docs.medusajs.com/resources/references/payment/provider)
 - [Creating a Plugin](https://docs.medusajs.com/learn/fundamentals/plugins/create)
 - Acquirer adapter roadmap and architecture decisions: `docs/adr/` in this repository
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments?ref=badge_large)

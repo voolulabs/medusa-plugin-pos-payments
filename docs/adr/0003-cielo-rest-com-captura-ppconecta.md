@@ -3,7 +3,7 @@
 - **Status:** Aceito
 - **Data:** 2026-09-26
 - **Escopo:** adapter `cielo` do `@voolulabs/medusajs-plugin-pos-payments`
-  (spec: [cielo.md](../cielo.md)); Fase 3 do [plano-pos-br.md](../plano-pos-br.md) §8
+  (Fase 3)
 
 ## Contexto
 
@@ -34,10 +34,10 @@ app de caixa via biblioteca nativa (via 2).
 ## Decisão
 
 - **Autorização é do plugin, por REST** (`POST /1/physicalSales/` + confirmação + desfazimento +
-  voids + consultas — [cielo.md](../cielo.md) §4–§8): o backend é a **fonte de verdade
+  voids + consultas — documentação oficial do portal Conecta): o backend é a **fonte de verdade
   financeira**, com estado da cobrança, idempotência (`MerchantOrderId` N15 derivado), retry e
   conciliação centralizados — mesmas propriedades dos adapters MP/SumUp/Stone.
-- **Captura é do app, pela PPCONECTA** (bridge nativa no Tauri por FFI — §13 do spec): a bridge é
+- **Captura é do app, pela PPCONECTA** (bridge nativa no Tauri por FFI): a bridge é
   **capture-only e sem estado de dinheiro** — lê cartão/tabelas EMV e devolve os blobs
   criptografados (`EmvData`, `TrackTwoData`, `PinBlock`, KSN) para o plugin autorizar.
 - **A via Client Conecta DLL fica fora do escopo do produto**; o toolkit de IA oficial da Cielo
@@ -47,11 +47,11 @@ app de caixa via biblioteca nativa (via 2).
 
 - **Fonte de verdade financeira:** com REST, toda transição de estado (autorizar, confirmar,
   desfazer, void) passa pelo plugin — auditoria, conciliação e a máquina de estados
-  `ChargeStatus` (engenharia.md §1.2) valem igual às outras adquirentes. Com a DLL, o app
+  `ChargeStatus` da camada do adapter valem igual às outras adquirentes. Com a DLL, o app
   autorizaria e o backend só ouviria — quebra o contrato do provider `AbstractPaymentProvider`
   (o Medusa espera capturar/estornar pelo provider) e fragmenta a conciliação.
 - **Contrato uniforme entre adapters:** as rotas genéricas do plugin
-  (`/admin/pos-payments/charges|terminals|connections`, plano §6.3) e o poll do POS funcionam
+  (`/admin/pos-payments/charges|terminals|connections`) e o poll do POS funcionam
   idênticos a MP/SumUp/Stone; a via DLL criaria um quarto fluxo exclusivo.
 - **Testabilidade:** a via REST tem **sandbox real com simulação por centavos** para todas as
   operações — a bridge do app pode ser testada contra contrato gravado (MSW) e o fluxo E2E segue
@@ -72,8 +72,8 @@ app de caixa via biblioteca nativa (via 2).
 - A PPCONECTA mantém estado local (tabelas EMV no pin pad) — rotina de verificação/carga
   (`TAB_VER`/`TAB_LOAD` com a Baixa de Parâmetros) entra na inicialização do app.
 - Sem a via DLL, não há alternativa se a PPCONECTA não cobrir algum pin pad do parque do lojista —
-  mitigação: exigir pin pads homologados (§2 do spec) na qualificação do cliente.
+  mitigação: exigir pin pads homologados na qualificação do cliente.
 
 **Compliance (checklist ADR 0001):** via REST no plugin; captura (PPCONECTA) é componente do app e
-não entra no pacote npm; idempotência por `MerchantOrderId` derivado (engenharia.md §1.8);
+não entra no pacote npm; idempotência por `MerchantOrderId` derivado;
 dinheiro em minor units sem conversão; sem webhook — `getWebhookActionAndData` → `not_supported`.
