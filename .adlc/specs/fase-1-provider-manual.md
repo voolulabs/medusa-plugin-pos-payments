@@ -1,10 +1,10 @@
 # Spec: Fase 1 — provider pos-terminal manual
 
-Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
+Extraído para os gates ADLC.
 
 ## 6. Fase 1 — Plugin @voolulabs com provider genérico (sem adquirente)
 
-### 6.1 Estrutura e convenções (detalhadas no [ADR 0002](adr/0002-estrutura-convencoes-plugin-medusa-v2.md))
+### 6.1 Estrutura e convenções (detalhadas no [ADR 0002](../../docs/adr/0002-estrutura-convencoes-plugin-medusa-v2.md))
 
 - Monorepo **pnpm** (`medusajs-plugin-pos-payments/`, workspaces), pacote `plugins/pos-payments` com
   `name: @voolulabs/medusajs-plugin-pos-payments`; `files: [".medusa/server"]`; exports: `.` (entry do
@@ -18,13 +18,16 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
 - Layout: `src/index.ts` (factory), `src/api/` (rotas + `middlewares.ts` `export default` —
   rotas autenticadas sob `/admin/pos-payments/*` cobertas pela auth do core, **sem
   authenticate próprio**; a rota pública de callback OAuth usa o namespace
-  `/pos-payments/*` — §2.1/[ADR 0005](adr/0005-superficies-api-auth-plugin.md); **webhooks são
-  da rota NATIVA do core**, ver §6.3),
+  `/pos-payments/*` — §2.1/[ADR 0005](../../docs/adr/0005-superficies-api-auth-plugin.md); **webhooks são
+  da rota NATIVA do core**),
   `src/providers/pos-terminal/` (`index.ts` com `ModuleProvider(Modules.PAYMENT, { services })`,
   `service.ts` com o `AbstractPaymentProvider` — options no 2º argumento do construtor,
   padrão do [paypal-integration](https://github.com/medusajs/examples) oficial),
-  `src/adapters/`, `src/utils/plugin-options.ts` (padrão `getPluginOptions` via `CONFIG_MODULE`
-  — uso restrito a opções de rota, como o rate limit; as opções de provider são as do construtor).
+  `src/adapters/` (**Fase 2** — entra com o primeiro adapter real; na Fase 1 o modo manual
+  vive inline no provider, decisão da review 2026-09-29: sem seam sem segundo caso —
+  evitar Speculative Generality), `src/utils/plugin-options.ts` (padrão `getPluginOptions` via
+  `CONFIG_MODULE` — uso restrito a opções de rota, como o rate limit; as opções de provider
+  são as do construtor).
 - tsconfig estilo casa: CommonJS, ES2021, strict, `rootDir: "."`, `include: ["src"]`.
 
 ### 6.2 Provider `pos-terminal`
@@ -78,17 +81,17 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
 - `src/providers/pos-terminal/index.ts`:
   `export default ModuleProvider(Modules.PAYMENT, { services: [PosTerminalProviderService] })`.
 - Opções por registro: `{ acquirer: "manual" | "mercadopago" | ..., ...credenciais }`; adapter
-  resolvido por `options.acquirer` via registro em `src/adapters/` (interface comum em
-  `src/adapters/types.ts`); v1 inclui só o adapter `manual`.
+  resolvido por `options.acquirer` — **na Fase 1 o modo manual vive inline no service**; o
+  registro em `src/adapters/` (interface comum em `src/adapters/types.ts`) entra na Fase 2
+  com o primeiro adapter real.
 - Estado da cobrança em `payment.metadata` (sem DB próprio no v1, sem migrations).
 
 ### 6.3 Rotas do plugin
 
 - `GET /admin/pos-payments/health` → `{ status: "ok" }` (Fase 1).
 - **Contrato de rotas do plugin** (substantivos genéricos, agnósticos de adquirente — cada
-  adapter faz o mapa para a API dele; detalhado em [mercado-pago.md](mercado-pago.md) §7 (item 5)
-  e [sumup.md](sumup.md) §9 (item 5)). **Autenticadas, sob `/admin/pos-payments/*`** (auth do
-  core — [ADR 0005](adr/0005-superficies-api-auth-plugin.md)): `POST /admin/pos-payments/charges`
+  adapter faz o mapa para a API dele). **Autenticadas, sob `/admin/pos-payments/*`** (auth do
+  core — [ADR 0005](../../docs/adr/0005-superficies-api-auth-plugin.md)): `POST /admin/pos-payments/charges`
   (criar cobrança no terminal) · `GET /admin/pos-payments/charges/:id` (estado autoritativo —
   poll do POS) · `POST /admin/pos-payments/charges/:id/cancel` ·
   `POST /admin/pos-payments/charges/:id/refund` ·
@@ -96,8 +99,8 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
   `GET /admin/pos-payments/terminals` + `GET /admin/pos-payments/terminals/:id/status`
   (lista/health) · `POST /admin/pos-payments/terminals/:id/select` (terminal do caixa) ·
   `GET|POST|DELETE /admin/pos-payments/connections/:acquirer` (+ `/start`, `/test` —
-  onboarding.md §5.1) · `GET /admin/pos-payments/health` (Fase 1). **Pública, sob
-  `/pos-payments/*`**: `GET /pos-payments/callback/:acquirer` (OAuth §7.1).
+  Fase 2b) · `GET /admin/pos-payments/health` (Fase 1). **Pública, sob
+  `/pos-payments/*`**: `GET /pos-payments/callback/:acquirer` (fluxo OAuth).
   **Webhooks usam a rota NATIVA do core** — `POST /hooks/payment/{provider}` (pública, verificada
   no fonte v2.19.0 `packages/medusa/src/api/hooks/payment/[provider]/route.ts`): responde **200
   imediato** e despacha via event bus (delay padrão **5s**, 3 tentativas — `webhook_delay` /
@@ -105,15 +108,15 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
   com `{data, rawData (Buffer do body bruto), headers}`. **O URL configurado no adquirente é
   `https://<backend>/hooks/payment/pos-terminal_<id>` — sem o prefixo `pp_`**: o módulo monta
   `pp_${segmento}` para resolver o provider (`payment-module.ts:1455-1465`); provider
-  desconhecido → 200 na rota e erro no subscriber com retry ([ADR 0005](adr/0005-superficies-api-auth-plugin.md)).
+  desconhecido → 200 na rota e erro no subscriber com retry ([ADR 0005](../../docs/adr/0005-superficies-api-auth-plugin.md)).
   Ações que movem estado: **`authorized` e `captured`**, com `data.session_id` obrigatório (enum
   completo no core: `authorized, captured, failed, pending, requires_more, canceled,
   not_supported, pending_authorization`). A rota é do core — o plugin não registra nenhuma rota
   pública de webhook (o namespace `/pos-payments/*` fica só para o callback OAuth). O
-  processamento assíncrono depende do event bus (local no dev; Redis em prod — §1.3). O poll do
+  processamento assíncrono depende do event bus (local no dev; Redis em prod). O poll do
   POS continua sendo o caminho primário (o webhook adianta estado — ADR 0001).
   **Por adquirente:** MP/SumUp/Stone configuram o URL nativo no adquirente; **Cielo não tem
-  webhook** ([cielo.md](cielo.md) §9) — fluxo síncrono, estado só por poll/consulta
+  webhook** (sem webhook — fluxo síncrono, estado só por poll/consulta
   (`getWebhookActionAndData` devolve `not_supported`).
 
 ### 6.4 Integração no backend store-b2c
@@ -146,10 +149,10 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
   da Store API — o storefront serve "Europe"/EUR (Stripe), então os `pp_pos-terminal_*` da
   região Brasil não vazam no checkout do webshop; se um dia o webshop servir Brasil, filtrar
   providers POS no storefront (skills de storefront: listagem por `region_id`).
-- **Migrations**: o `pnpm ib` (seedOnce) **pula o `db:migrate` em banco já inicializado** (§1.3) —
+- **Migrations**: o `pnpm ib` (seedOnce) **pula o `db:migrate` em banco já inicializado** —
   quando o plugin ganhar módulo com migrations (Fase 2b), o deploy precisa rodar
   **`medusa db:migrate` explícito** (migrations de plugin não executam no `start`/`develop` —
-  verificado no fonte; [onboarding.md](onboarding.md) §5.2).
+  verificado no fonte).
 
 ### 6.5 Metadata do app (seed idempotente)
 
@@ -159,7 +162,7 @@ Fonte: plano-pos-br.md §6 (estado-alvo). Extraído para os gates ADLC.
   v1; o app só tem cash|card|transfer), transfer → `pp_pos-terminal_transfer` (`type:"transfer"`);
 - `guest_customer_email` (necessário para venda sem cliente).
 
-**Instrumento e parcelas (Fases 2–3; §12):** as
+**Instrumento e parcelas (Fases 2–3):** as
 entradas ganham campos opcionais `instrument` (`debit`/`credit`/`voucher`/`pix`) e
 `installments_max` — débito e crédito viram **métodos separados** no tender (o app atual ignora
 campos desconhecidos: compatível). Na ativação da conexão, card/pix **trocam** para
@@ -167,24 +170,27 @@ campos desconhecidos: compatível). Na ativação da conexão, card/pix **trocam
 genéricos e o health marca `disconnected`. Regra de dados: **um adquirente ativo por instrumento**.
 Parcelas são escolhidas no dialog do caixa só para crédito payload-driven (Stone/Cielo);
 MP/SumUp decidem no terminal e o total cobrado nunca muda com parcelamento.
-**Terminais por caixa ([onboarding.md §5.4](onboarding.md)):** o espelho ganha
+**Terminais por caixa:** o espelho ganha
 `registers = {register_id: {label, terminal: {acquirer → serial}}}` — binding caixa↔terminal por
 adquirente (multi-caixa); resolução no charge: register → default global → erro fail-closed.
 
 ### 6.6 Critérios de aceite
 
-- `GET /admin/payment-providers` lista `pp_system_default` + os 4 `pp_pos-terminal_*`.
+- Os 5 providers (`pp_system_default` + os 4 `pp_pos-terminal_*`) habilitados na região
+  Brasil — a listagem vive na Store API (`GET /store/payment-providers?region_id=` com
+  publishable key; a rota `GET /admin/payment-providers` não existe no Medusa 2.19,
+  verificado em 2026-09-29).
 - Venda E2E com cada método grava `payments[0].provider_id` = id do método (sem queda para
-  `pp_system_default`) — **fecha o débito §1.1 do handoff doc** (conciliação por `provider_id`).
+  `pp_system_default`) — **fecha o débito de conciliação por `provider_id`.
 - **Zero mudanças no app medusa-pos.**
 
-## Acceptance Criteria (§6.6)
+## Acceptance Criteria
 
-- [ ] MUST: `GET /admin/payment-providers` lista `pp_system_default` + os 4 `pp_pos-terminal_*` — verify: `node scripts/e2e-pos.mjs` (step providers registrados)
+- [ ] MUST: os 5 providers habilitados na região Brasil — verify: `node scripts/e2e-pos.mjs` (step providers registrados, via `/store/payment-providers`)
 - [ ] MUST: venda E2E grava `payments[0].provider_id` = id do método, sem queda para `pp_system_default` — verify: `node scripts/e2e-pos.mjs` (step provider_id preservado)
 - [ ] MUST: zero mudanças no app medusa-pos — verify: `git -C ../medusa-pos status` sem mudanças de código de fluxo + review
 - [ ] MUST: rotas sob `/admin/pos-payments/*` sem `authenticate` próprio — verify: `grep -rn "authenticate" src/api` retorna vazio
-- [ ] MUST: provider implementa os 10 métodos abstratos; `getPaymentStatus` nunca lança — verify: `pnpm exec vitest run` (10/10) + `pnpm exec tsc --noEmit` (0)
-- [ ] MUST: nenhum segredo de adquirente fora do backend — verify: revisão §3 engenharia + gitleaks no CI
+- [ ] MUST: provider implementa os 10 métodos abstratos; `getPaymentStatus` nunca lança — verify: `pnpm exec vitest run` (16/16) + `pnpm exec tsc --noEmit` (0)
+- [ ] MUST: nenhum segredo de adquirente fora do backend — verify: revisão manual + gitleaks no CI
 - [ ] SHOULD: `metadata.pos` com ids reais + `guest_customer_email` (guard idempotente) — verify: `curl /admin/store` com Bearer após deploy
 - [ ] SHOULD: sem migrations no v1 (estado em data/metadata JSONB) — verify: `find src -path '*migration*'` vazio

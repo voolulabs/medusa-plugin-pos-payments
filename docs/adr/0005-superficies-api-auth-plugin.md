@@ -4,7 +4,7 @@
 - **Data:** 2026-09-26
 - **Escopo:** rotas e autenticação do `@voolulabs/medusajs-plugin-pos-payments`
   (estrutura: [ADR 0002](0002-estrutura-convencoes-plugin-medusa-v2.md); contratos:
-  [onboarding.md](../onboarding.md) §5.1, plano §6.3)
+  contratos definidos nas decisões abaixo)
 - **Base:** fonte `medusajs/medusa` tag **v2.19.0** (clone local `.cache-medusa-src/`), caminhos
   citados por arquivo/linha.
 
@@ -66,13 +66,13 @@ o webhook responde 200 e o erro explode no subscriber com re-tentativa (3x).
    para essas rotas (o core já autenticou); apenas validadores/rate-limit próprio, se necessário.
 2. **Callback OAuth público: `GET /pos-payments/callback/:acquirer`** — inalterado; namespace
    fora de `/pos/*` (sem colisão: `/pos-payments` ≠ `/pos/…`) e sem auth (protegido por `state`,
-   [onboarding.md](../onboarding.md) §7).
+   fluxo OAuth da Fase 2b).
 3. **Webhooks: rota nativa do core com segmento sem `pp_`** —
    `https://<backend>/hooks/payment/pos-terminal_<id>` (ex.: `pos-terminal_mercadopago`). O
    provider resolve pelo id completo `pp_pos-terminal_<id>` internamente.
 4. **Rate limit**: fora do orçamento 429 de `/pos/*` do narisolutions — se as rotas de
    charge/poll precisarem de limite próprio, entra no `middlewares.ts` do plugin por matcher
-   `/admin/pos-payments/*` (plano §2.6).
+   `/admin/pos-payments/*`.
 5. **Cautela de matcher**: nenhum matcher próprio do plugin pode varrer o callback público
    (um `authenticate` em `"/pos-payments*"` casaria `/pos-payments/callback/...` e o 401aria) —
    matchers do plugin ficam restritos a `/admin/pos-payments/*`.
@@ -89,10 +89,10 @@ o webhook responde 200 e o erro explode no subscriber com re-tentativa (3x).
 - Dependência do prefixo de auth `/admin` do core (comportamento estável e publicamente
   documentado; re-verificar em upgrade de versão — gatilho: mudança em
   `framework/src/http/router.ts`).
-- O webhook **sem `pp_`** na URL é contraintuitutivo — registrado aqui e no plano (§6.3);
+- O webhook **sem `pp_`** na URL é contraintuitutivo — registrado aqui;
   config nos portais das adquirentes usa o segmento curto.
 - Provider desconhecido no webhook responde 200 e retry no subscriber (comportamento do core) —
   monitorar tentativas repetidas de provider inexistente como sinal de URL mal configurada.
 
 > **Comportamento do event bus nessa superfície** (fila, subscriber do core, retry,
-> durabilidade): [event-bus.md](../event-bus.md) — verificado no fonte v2.19.0 (2026-09-27).
+> durabilidade): verificado no fonte v2.19.0 (2026-09-27).

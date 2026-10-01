@@ -1,0 +1,72 @@
+# Publish por tag (ADR 0006): tag v* na main → npm stage publish.
+# Guards: a tag aponta para main e bate com o version do package.json;
+# prerelease sai com dist-tag next, estável com latest (ADR 0006 §6).
+# A versão NÃO vai direto ao ar: fica em stage e um mantenedor aprova com
+# 2FA (aba "Staged Packages" do npmjs.com ou `npm stage approve`) — o npm
+# remove o publish direto por token em janeiro de 2027; requires npm >=11.15.
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write # provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # guard precisa do histórico de main
+
+      - name: Guard — tag aponta para main (ADR 0006 §1)
+        run: |
+          git fetch origin main --no-tags --quiet
+          TAG_SHA=$(git rev-parse "${GITHUB_REF}^{commit}")
+          git merge-base --is-ancestor "$TAG_SHA" origin/main || {
+            echo "::error::tag ${GITHUB_REF_NAME} não aponta para main — release só sai de main (ADR 0006 §1)"
+            exit 1
+          }
+
+      - name: Guard — tag bate com package.json (ADR 0006 §3)
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./plugins/pos-payments/package.json').version")
+          [ "$TAG" = "$PKG" ] || { echo "tag v$TAG != package.json $PKG"; exit 1; }
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+
+      - name: pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.10.0 --activate
+
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (medusa plugin:build)
+        working-directory: plugins/pos-payments
+        run: pnpm exec medusa plugin:build
+
+      - name: npm 11 (staged publishing exige >=11.15 — Node 22 traz npm 10.x)
+        run: npm install -g npm@11
+
+      - name: Publish (stage — aprovação humana com 2FA; ADR 0006 §3/§6)
+        working-directory: plugins/pos-payments
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          # Prerelease (-rc.N) vai para next; estável sobrescreve latest.
+          # Tag é imutável no stage: mudou o tag, reject + re-stage.
+          if [[ "$PKG" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi
+          echo "stage v$PKG com dist-tag $DIST_TAG — aguarda approve com 2FA"
+          npm stage publish --provenance --access public --tag "$DIST_TAG"

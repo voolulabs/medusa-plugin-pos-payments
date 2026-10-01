@@ -1,6 +1,7 @@
 node_modules/
 .medusa/
 dist/
+coverage/
 *.log
 .env
 .env.*

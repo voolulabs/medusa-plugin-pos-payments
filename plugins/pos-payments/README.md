@@ -1,12 +1,12 @@
 # Medusa POS Payments
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments?ref=badge_shield)
 
+[![Codecov](https://codecov.io/github/voolulabs/medusa-plugin-pos-payments/graph/badge.svg)](https://codecov.io/github/voolulabs/medusa-plugin-pos-payments)
 
 _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 
 `@voolulabs/medusajs-plugin-pos-payments` adds a `pos-terminal` payment provider family to Medusa so a point-of-sale front end can take BRL payments made on physical card terminals (cash, card, Pix, bank transfer). Phase 1 ships the manual / terminal-present flow: the cashier confirms the charge made on the terminal, and the backend records the payment state. Acquirer adapters (Mercado Pago Point, SumUp, Stone, Cielo) plug into the same provider in later phases.
 
-[Documentation](./docs) | [Medusa Website](https://www.medusajs.com) | [Medusa Repository](https://github.com/medusajs/medusa)
+[Documentation](https://github.com/voolulabs/medusajs-pos-payments/tree/main/docs) | [Medusa Website](https://www.medusajs.com) | [Medusa Repository](https://github.com/medusajs/medusa)
 
 ## Features
 
@@ -78,13 +78,15 @@ _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 ## Test the Plugin
 
 1. Run your Medusa backend (`pnpm dev` / `pnpm start`).
-2. Log in to the admin API and check `GET /admin/payment-providers` — the `pp_pos-terminal_*` providers must be listed.
-3. Place a test order with the provider `pp_pos-terminal_card` (draft order → payment collection → payment session → mark as paid) and confirm `payment_status` is `captured` with the provider id preserved.
-4. Or run the E2E script shipped with the FUNKYTON backend template this plugin was built against:
+2. Log in and list the providers enabled on your POS region — on Medusa 2.19 the listing lives on the Store API:
 
    ```bash
-   BACKEND_URL=http://localhost:9000 ADMIN_EMAIL=… ADMIN_PASSWORD=… node scripts/e2e-pos.mjs
+   curl "http://<backend>:9000/store/payment-providers?region_id=<region>" \
+     -H "x-publishable-api-key: pk_..."
    ```
+
+   The `pp_pos-terminal_*` providers must be listed (the admin API does not expose this route on 2.19).
+3. Place a test order with the provider `pp_pos-terminal_card` (draft order → payment collection → payment session → mark as paid) and confirm `payment_status` is `captured` with the provider id preserved.
 
 ---
 
@@ -93,7 +95,3 @@ _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 - [Medusa Payment Provider Reference](https://docs.medusajs.com/resources/references/payment/provider)
 - [Creating a Plugin](https://docs.medusajs.com/learn/fundamentals/plugins/create)
 - Acquirer adapter roadmap and architecture decisions: `docs/adr/` in this repository
-
-
-## License
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fvoolulabs%2Fmedusajs-plugin-pos-payments?ref=badge_large)
