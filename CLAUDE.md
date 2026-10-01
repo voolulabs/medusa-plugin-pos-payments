@@ -32,7 +32,7 @@ em `node_modules/` raiz do backend. Produção = `npm publish` + versão fixa.
 - `middlewares.ts` não existe aqui: rotas em `/admin/pos-payments/*` usam a auth do core
   (ADR 0005). Imports relativos, sem aliases `@/` (ADR 0002 §7).
 - Dinheiro: minor units + MathBN; `getPaymentStatus` nunca lança; todo método devolve o
-  blob `data` completo (ADR 0001 — merge/replay do módulo payment).
+  blob `data` completo (contrato do módulo payment do core — verificado no fonte 2.21.1).
 - Gates ADLC: `adlc spec-lint .adlc/specs/fase-1-provider-manual.md` (8/8) antes de abrir mão
   da spec; pós-commit: `hollow-test`, `rails-guard`, `gate-manifest`, `prosecute`.
 - **CodeRabbit CLI** (0.8.2, `~/.local/bin/coderabbit`): `coderabbit review --agent --base main`

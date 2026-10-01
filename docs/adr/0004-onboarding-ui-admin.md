@@ -90,7 +90,7 @@ desenho:
   o lojista-host não configura nada além do array `plugins`.
 
 **Negativas / riscos aceitos**
-- **Migrations a partir da Fase 2b** — o "sem migrations" fica escopado ao v1/Fase 1 (plano §2.6);
+- **Migrations a partir da Fase 2b** — o "sem migrations" fica escopado ao v1/Fase 1;
   host que atualizar o plugin roda migrations do plugin.
 - **UI é superfície a manter** no monorepo do plugin (React/Vite + peerDeps `react`, `react-dom`,
   `@medusajs/ui`, `@medusajs/icons`, `@medusajs/admin-sdk`) — bundle maior e contrato visual
@@ -99,6 +99,6 @@ desenho:
 - **Full-page redirect tira o operador do dashboard** por alguns segundos (fluxo do adquirente);
   mitigação: retorno sempre para a página com `result` e re-fetch automático.
 
-**Compliance (checklist ADR 0001/engenharia):** segredos de lojista só em `pos_payments_credential`
+**Compliance (checklist):** segredos de lojista só em `pos_payments_credential`
 criptografado (AES-256-GCM envelope); `state` OAuth durável e de uso único;
 audit de todos os eventos de conexão; rotas de onboarding admin-only com teste de escopo no CI.

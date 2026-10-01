@@ -11,7 +11,7 @@ const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"])
 
 /**
  * Guard no input CRU, antes do zod reconstruir o record (zod silencia chaves
- * de prototype ao reassinar; o plano §3.6 exige REJEITAR, não descartar).
+ * de prototype ao reassinar; a fronteira exige REJEITAR, não descartar).
  */
 export function assertSafeSessionKeys(data: Record<string, unknown> | undefined): void {
   const forbidden = Object.keys(data ?? {}).filter((k) => FORBIDDEN_KEYS.has(k))

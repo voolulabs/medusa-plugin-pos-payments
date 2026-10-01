@@ -55,8 +55,8 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    publish a partir da `staging`). Dist-tag derivado da versão no workflow: prerelease →
    **`next`**; estável → `latest`. Backend de homologação consome `next`; produção, `latest`.
 7. **Versionamento independente por repo:** plugin (`@voolulabs/*`) e app (`medusa-pos`) não
-   sincronizam números — a compatibilidade app ↔ plugin ↔ Medusa é documentada (matriz no plano
-   §2), não acoplada por versionamento. `store-b2c-boilerplate` segue o upstream (master+staging,
+   sincronizam números — a compatibilidade app ↔ plugin ↔ Medusa é documentada em matriz própria,
+   não acoplada por versionamento. `store-b2c-boilerplate` segue o upstream (master+staging,
    sem semver próprio) enquanto o boilerplate comandar.
 8. **Gate de release da família: o E2E.** A publicação estável (`latest`) exige o E2E de vendas
    (`scripts/e2e-pos.mjs`) verde contra um backend real executando a versão candidata. A candidata

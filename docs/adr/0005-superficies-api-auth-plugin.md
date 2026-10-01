@@ -72,7 +72,7 @@ o webhook responde 200 e o erro explode no subscriber com re-tentativa (3x).
    provider resolve pelo id completo `pp_pos-terminal_<id>` internamente.
 4. **Rate limit**: fora do orçamento 429 de `/pos/*` do narisolutions — se as rotas de
    charge/poll precisarem de limite próprio, entra no `middlewares.ts` do plugin por matcher
-   `/admin/pos-payments/*` (plano §2.6).
+   `/admin/pos-payments/*`.
 5. **Cautela de matcher**: nenhum matcher próprio do plugin pode varrer o callback público
    (um `authenticate` em `"/pos-payments*"` casaria `/pos-payments/callback/...` e o 401aria) —
    matchers do plugin ficam restritos a `/admin/pos-payments/*`.
@@ -89,7 +89,7 @@ o webhook responde 200 e o erro explode no subscriber com re-tentativa (3x).
 - Dependência do prefixo de auth `/admin` do core (comportamento estável e publicamente
   documentado; re-verificar em upgrade de versão — gatilho: mudança em
   `framework/src/http/router.ts`).
-- O webhook **sem `pp_`** na URL é contraintuitutivo — registrado aqui e no plano (§6.3);
+- O webhook **sem `pp_`** na URL é contraintuitutivo — registrado aqui;
   config nos portais das adquirentes usa o segmento curto.
 - Provider desconhecido no webhook responde 200 e retry no subscriber (comportamento do core) —
   monitorar tentativas repetidas de provider inexistente como sinal de URL mal configurada.
