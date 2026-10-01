@@ -1,0 +1,50 @@
+# Compliance — coleta de evidência para o Probo (GRC self-hosted no WSL).
+# ESCOPO DA ENGENHARIA: somente coleta/smoke via CLI prb. Políticas, controles
+# e conteúdo do programa são do time de plataforma e controladoria.
+#
+# A instância vive na tailnet (100.109.66.40:18080 — docker probo-probo-1):
+# o runner entra no tailnet via Tailscale Action. Segredos necessários:
+#   PROBO_HOST  (ex.: http://100.109.66.40:18080)
+#   PROBO_TOKEN (token de automação gerado na instância)
+#   TAILSCALE_OAUTH_CLIENT_ID / TAILSCALE_OAUTH_CLIENT_SECRET (client ACL-tagged)
+name: Compliance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * 1" # segundas 08:00 UTC — evidência semanal
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    # Rollout: informativo até o primeiro verde com secrets preenchidos
+    # (endurecer removendo o continue-on-error).
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Tailscale (runner entra na tailnet para alcançar a instância)
+        uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: "stable"
+
+      - name: prb (CLI da Probo)
+        # O projeto não publica binário do prb em releases (só o probod) —
+        # instalação via Go. Pin de versão após o primeiro run validar o tag.
+        run: go install github.com/getprobo/probo/cmd/prb@latest
+
+      - name: Smoke — conectividade e autenticação na instância
+        env:
+          PROBO_HOST: ${{ secrets.PROBO_HOST }}
+          PROBO_TOKEN: ${{ secrets.PROBO_TOKEN }}
+        run: |
+          prb auth status --no-interactive --no-color
+          prb framework list --json --no-interactive --no-color
