@@ -2,9 +2,8 @@
 # ESCOPO DA ENGENHARIA: somente coleta/smoke via CLI prb. Políticas, controles
 # e conteúdo do programa são do time de plataforma e controladoria.
 #
-# A instância vive na tailnet (100.109.66.40:18080 — docker probo-probo-1):
+# A instância Probo vive na tailnet (host/porta no secret PROBO_HOST):
 # o runner entra no tailnet via Tailscale Action. Segredos necessários:
-#   PROBO_HOST  (ex.: http://100.109.66.40:18080)
 #   PROBO_TOKEN (token de automação gerado na instância)
 #   TAILSCALE_OAUTH_CLIENT_ID / TAILSCALE_OAUTH_CLIENT_SECRET (client ACL-tagged)
 name: Compliance
