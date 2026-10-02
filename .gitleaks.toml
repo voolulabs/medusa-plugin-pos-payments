@@ -8,4 +8,4 @@ useDefault = true
 
 [allowlist]
 description = "Ledger ADLC: hashes SHA-256 de evidência, não credenciais"
-paths = ['''\.adlc/manifest\.jsonl$''']
+paths = ['''^\.adlc/manifest\.jsonl$''']
