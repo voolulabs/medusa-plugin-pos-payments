@@ -20,8 +20,12 @@ import type {
   RetrievePaymentOutput,
   UpdatePaymentInput,
   UpdatePaymentOutput,
-} from "@medusajs/types"
-import { mergeSessionData, posTerminalSessionSchema, assertSafeSessionKeys } from "./schema"
+} from "@medusajs/framework/types"
+import {
+  mergeSessionData,
+  posTerminalSessionSchema,
+  assertSafeSessionKeys,
+} from "./schema"
 
 type InjectedDependencies = {
   logger?: Logger

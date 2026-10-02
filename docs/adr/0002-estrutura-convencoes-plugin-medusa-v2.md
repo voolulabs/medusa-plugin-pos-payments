@@ -83,9 +83,17 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
    `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` + `noImplicitOverride`
    (código de dinheiro — [engenharia.md](../engenharia.md) §2). **Errata (2026-09-30):
    `verbatimModuleSyntax` não entra** — proibido em output CommonJS (TS1287/TS1295, confirmado
-   no build real); a disciplina de type-only imports fica no Biome (`style.useImportType`).
-   Lint/format: **Biome único** (`recommended` + `noDefaultExport: "error"`, overrides para os
-   default exports exigidos pelo Medusa).
+   no build real). **Errata (2026-10-02) — lint/format: de "Biome único" para ESLint +
+   `@medusajs/eslint-plugin` (preset `recommended`) + Prettier** (PR #33): o plugin oficial
+   de lint do Medusa (v2.16+) codifica convenções do framework que o Biome não cobre (rotas,
+   middlewares, subscribers, workflows, imports de pacotes internos deprecados) e é o padrão
+   da comunidade (docs resources/lint, medusa-starter-plugin); regras de export por tipo de
+   arquivo (subscriber/route/jobs) substituem o `noDefaultExport` + overrides do Biome, que
+   brigava com os default exports exigidos pelo Medusa. A disciplina de type-only imports
+   migra para `consistent-type-imports` (typescript-eslint); acréscimo da casa:
+   `no-floating-promises` type-aware em `plugins/pos-payments/src` (código de dinheiro).
+   Formatação com o `.prettierrc` do monorepo medusajs/medusa (`semi: false`, aspas duplas).
+   Gate na CI logo após o install, `--max-warnings 0`, provado por mutação.
 9. **Testes:** vitest unitário para adapters e utilitários, specs colocation
    `__tests__/*.unit.spec.ts`; **HTTP das adquirentes mockado com MSW** interceptando o serviço
    real (padrão paystack — inclui teste de assinatura de webhook e de retry); um suite

@@ -8,13 +8,20 @@
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
-    "knip": "knip"
+    "knip": "knip",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "engines": {
     "node": ">=20"
   },
   "packageManager": "pnpm@9.10.0",
   "devDependencies": {
-    "knip": "5"
+    "@medusajs/eslint-plugin": "^2.19.0",
+    "eslint": "^10.11.0",
+    "knip": "5",
+    "prettier": "^3.9.9",
+    "typescript-eslint": "^8.71.0"
   }
 }

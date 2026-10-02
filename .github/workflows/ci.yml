@@ -37,6 +37,14 @@ jobs:
       - name: Install (frozen)
         run: pnpm install --frozen-lockfile
 
+      # Falha rápido e barato antes de build/testes: convenções Medusa
+      # (@medusajs/eslint-plugin, preset recommended da comunidade) + estilo
+      # Prettier do monorepo Medusa. O script `lint` já roda --max-warnings 0.
+      - name: Lint (ESLint Medusa + Prettier)
+        run: |
+          pnpm lint
+          pnpm format:check
+
       - name: Build (medusa plugin:build)
         working-directory: plugins/pos-payments
         run: pnpm exec medusa plugin:build
