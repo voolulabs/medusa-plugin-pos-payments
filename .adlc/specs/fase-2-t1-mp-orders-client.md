@@ -12,14 +12,10 @@ regra de negócio de estado (o mapeamento de status é o ticket seguinte, T2). P
 functional core / imperative shell: construção de body e conversões puras e testadas; `fetch`
 na casca com headers de idempotência.
 
-- `src/adapters/mercadopago/client.ts` — criar ordem no terminal (`POST /v1/orders`),
-  consultar (`GET /v1/orders/{id}`), cancelar (`POST /v1/orders/{id}/cancel`),
-  reembolsar (`POST /v1/orders/{id}/refund`).
-- `src/adapters/mercadopago/terminals.ts` — listar terminais (`GET /terminals/v1/list`) e
-  setup de modo de operação (PDV).
-- `src/adapters/mercadopago/types.ts` — formas normalizadas do adapter.
-- `src/adapters/mercadopago/validation.ts` — zod de `@medusajs/framework/zod` na fronteira
-  (parse, don't validate; `.passthrough()` preserva o raw da adquirente).
+- `client.ts` (transporte + create/get), `orders.ts` (cancel/refund), `payload.ts` (builders
+  puros), `schema.ts` (parse zod fail-closed das respostas), `money.ts` (conversão única de
+  dinheiro), `terminals.ts` (listagem e setup), `validation.ts` (asserts) e `types.ts`.
+
 
 ## 2. Requisitos obrigatórios (ADR 0001 §6)
 
@@ -34,18 +30,27 @@ na casca com headers de idempotência.
   cancelamento com `X-Allow-Cancelable-Status`.
 - **Rede**: base URL fixa; token por options (presence-gated); `Authorization` nunca em log.
 - **Falhar fechado**: resposta 2xx não é dinheiro — payload parseado com zod; fora do
-  contrato → erro tipado, sem mutação de estado.
+  contrato → `MpContractError`, sem mutação de estado. Colisão de idempotência (409
+  `idempotency_key_already_used`) vira `MpIdempotencyConflictError` para o wiring re-consultar.
+- **Cancelamento**: header condicional `x-allow-cancelable-status` com o ÚNICO valor
+  documentado (`at_terminal`); sem o header, só ordem em `created` é cancelável.
+- **Setup**: `PATCH /terminals/v1/setup` com UM terminal por request
+  (`{terminals: [{id, operating_mode}]}`), sem idempotency key (contrato).
+- **Tempo**: timeout duro por chamada via `AbortSignal` (padrão 15s — orçamento do app).
 
 ## Acceptance Criteria
 
-- [ ] MUST: create/get/cancel/refund e terminais falando o contrato oficial, HTTP mockado com
-      MSW — verify: `pnpm exec vitest run` (specs de `client`, `client.mutations`, `terminals`)
-- [ ] MUST: idempotência em toda operação monetária — mesma chave no retry; colisão re-consulta
-      em vez de recriar — verify: spec de mutações (`client.mutations.spec.ts`)
-- [ ] MUST: conversão minor units → string decimal com teste do caso de drift — verify: spec
-      de conversão
-- [ ] MUST: payload sem `default_installments`; `external_reference`, terminal e amount
-      validados ANTES do fetch (fail-closed) — verify: specs de validação
+- [ ] MUST: create/get/cancel/refund, setup e terminais falando o contrato oficial, HTTP
+      mockado via `fetchImpl` injetado (o MSW fica para a casca de integração do provider, T3+)
+      — verify: `pnpm exec vitest run`
+- [ ] MUST: idempotência em toda operação monetária — chave recebida por parâmetro (estável,
+      persistida pelo wiring no T3), mesma chave no retry; colisão 409 exposta como
+      `MpIdempotencyConflictError` — verify: specs de mutações/erros
+- [ ] MUST: conversão minor units → string decimal (`money.ts`, MathBN) com teste do caso de
+      drift — verify: `money.spec.ts`
+- [ ] MUST: payload sem `default_installments`; `external_reference`, terminal (formato
+      `{tipo}__{serial}`), `expiration_time` (PT30S–PT3H) e amount (> 0) validados ANTES do
+      fetch (fail-closed) — verify: specs de validação
 - [ ] MUST: orçamento de ≤100 linhas por arquivo — verify: `opcore check --repo . --all` (CI)
 - [ ] MUST: lint/format/typecheck/knip verdes — verify: bateria local + steps do CI
 - [ ] MUST: cobertura nas réguas do pacote (global ≥90%, money paths ≥95%) — verify:
