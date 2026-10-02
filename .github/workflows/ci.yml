@@ -90,7 +90,13 @@ jobs:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           pinned-cli-version: 3.20.0
 
+      # Cota de terceiro (free: 200 testes Open Source/mês + 100 Code/mês; doc
+      # "what counts as a test": cada manifest no escopo = 1 teste — são 2/run
+      # com a raiz do workspace). Fora dos PRs: o mesmo lockfile é escaneado no
+      # push de develop/main e no cron semanal. Regra de ouro: serviço metered
+      # não é gate em toda a superfície de trigger (custos-ferramentas-ci.md §7).
       - name: Snyk (SAST + dependências)
+        if: github.event_name != 'pull_request'
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
