@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `CONSTRAINTS.md` — non-negotiable engineering constraints for payment-path
   changes (money/units, charge state transitions, `data_version`, additive
-  adapter options, fail-closed, no new runtime dependency without an ADR).
+  adapter options, fail-closed, no new declared dependency — runtime, dev,
+  peer or optional — without an ADR).
 - `CLAUDE.md` now documents the full ADLC development cycle (per-phase commands,
   rails, evidence-ledger discipline), the engineering standards in executable
   summary form, and the verification gates with explicit tool attribution

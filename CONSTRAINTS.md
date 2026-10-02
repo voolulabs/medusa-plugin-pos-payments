@@ -16,6 +16,12 @@ Valem entre sessões e sobre qualquer diff. Mudar uma barreira exige errata data
 6. **`data_version` no blob `data` desde o primeiro estado novo gravado por
    adapter** — o `data` é o contrato invisível que sobrevive a upgrades; sem
    versionamento nele, o 1.0.0 fica cego sobre o que há em produção.
-7. **Nenhuma dependência nova em `dependencies` sem ADR que a justifique** (ADR 0001 §6).
-8. **Credencial de adquirente nunca no repo/app/terminal** — env/constants no
-   backend; gitleaks no CI é o filete de segurança, não a política.
+7. **Nenhuma dependência nova declarada sem ADR que a justifique** — ADR 0001 §6
+   cobre `dependencies` (runtime); esta barreira estende a exigência a
+   `devDependencies`, `peerDependencies` e `optionalDependencies` (as peerDeps
+   previstas da Fase 2b já têm justificativa na ADR 0004).
+8. **Credencial de adquirente nunca no repo/app/terminal** — credenciais de
+   plataforma via env/constants no backend; credenciais dinâmicas por lojista
+   (ADR 0004) só no armazenamento criptografado próprio do plugin (AES-256-GCM
+   envelope), nunca em `store.metadata`; gitleaks no CI é o filete de
+   segurança, não a política.

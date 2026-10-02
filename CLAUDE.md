@@ -103,7 +103,10 @@ no P5. Requer auth (agentic key ou `coderabbit auth login`).
   `tsc --noEmit` · `pnpm knip` · `opcore check --repo . --all` · `adlc spec-lint` +
   `gate-manifest verify` · commitlint (invocação idêntica à do CI). Gate que nunca falhou não
   está provado — provar por mutation.
-- Credenciais de adquirente NUNCA no app/terminal — env/constants no backend.
+- Credenciais de adquirente NUNCA no app/terminal — credenciais de plataforma via
+  env/constants no backend; credenciais dinâmicas por lojista só no armazenamento
+  criptografado próprio do plugin (AES-256-GCM envelope, ADR 0004), nunca
+  `store.metadata`.
 - Rotas em `/admin/pos-payments/*` usam a auth do core (ADR 0005) — sem `authenticate` próprio;
   callback público em `/pos-payments/*`; webhook na rota nativa do core
   (`/hooks/payment/pos-terminal_<id>`, segmento sem `pp_`).
