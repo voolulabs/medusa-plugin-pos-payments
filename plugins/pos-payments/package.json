@@ -49,6 +49,7 @@
   },
   "peerDependencies": {
     "@medusajs/framework": ">=2.15.0 <3",
+    "@medusajs/medusa": ">=2.15.0 <3",
     "@medusajs/utils": ">=2.15.0 <3"
   },
   "engines": {
