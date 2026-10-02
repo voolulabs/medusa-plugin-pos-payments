@@ -94,7 +94,7 @@ jobs:
       # "what counts as a test": cada manifest no escopo = 1 teste — são 2/run
       # com a raiz do workspace). Fora dos PRs: o mesmo lockfile é escaneado no
       # push de develop/main e no cron semanal. Regra de ouro: serviço metered
-      # não é gate em toda a superfície de trigger (custos-ferramentas-ci.md §7).
+      # não é gate em toda a superfície de trigger (decisão 2026-10-02).
       - name: Snyk (SAST + dependências)
         if: github.event_name != 'pull_request'
         env:
