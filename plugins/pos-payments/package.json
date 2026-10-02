@@ -12,6 +12,7 @@
   },
   "exports": {
     ".": {
+      "types": "./.medusa/server/src/index.d.ts",
       "require": "./.medusa/server/src/index.js",
       "default": "./.medusa/server/src/index.js"
     },
@@ -40,9 +41,9 @@
     "voolulabs"
   ],
   "scripts": {
-    "build": "medusa plugin:build",
+    "build": "medusa plugin:build && tsc --declaration --emitDeclarationOnly --outDir .medusa/server",
     "dev": "medusa plugin:develop",
-    "prepublishOnly": "medusa plugin:build",
+    "prepublishOnly": "medusa plugin:build && tsc --declaration --emitDeclarationOnly --outDir .medusa/server",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
