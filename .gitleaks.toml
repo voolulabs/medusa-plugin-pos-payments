@@ -1,0 +1,11 @@
+# Config do Gitleaks (CI — step "Gitleaks" no ci.yml). Extende as regras
+# default e allowlista o ledger ADLC: o manifest carrega hashes SHA-256 de
+# evidência (chain + rail files) que a regra generic-api-key interpretaria
+# como segredos. Nenhum segredo real vive no repo — o scan continua valendo
+# para todo o resto da árvore e do histórico.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ledger ADLC: hashes SHA-256 de evidência, não credenciais"
+paths = ['''^\.adlc/manifest\.jsonl$''']
