@@ -8,11 +8,14 @@ describe("MercadoPagoOrdersClient — createPointOrder (contrato)", () => {
   })
 
   it("POST /v1/orders com payload mínimo, headers de auth e idempotency", async () => {
-    await ctx.client.createPointOrder({
-      amount: "10.00",
-      externalReference: "pos-charge-1",
-      terminalId: "NEWLAND_N950__SBX0000001",
-    })
+    await ctx.client.createPointOrder(
+      {
+        amount: "10.00",
+        externalReference: "pos-charge-1",
+        terminalId: "NEWLAND_N950__SBX0000001",
+      },
+      ctx.fixedKey
+    )
 
     expect(ctx.calls).toHaveLength(1)
     const { url, init } = ctx.calls[0]!
@@ -31,22 +34,28 @@ describe("MercadoPagoOrdersClient — createPointOrder (contrato)", () => {
   })
 
   it("campos opcionais entram só quando fornecidos", async () => {
-    await ctx.client.createPointOrder({
-      amount: "1.50",
-      externalReference: "pos-charge-2",
-      terminalId: "t",
-      expirationTime: "PT5M",
-      printOnTerminal: "seller_ticket",
-      paymentMethodDefaultType: "qr",
-      description: "Venda balcão",
-    })
+    await ctx.client.createPointOrder(
+      {
+        amount: "1.50",
+        externalReference: "pos-charge-2",
+        terminalId: "NEWLAND_N950__SBX0000001",
+        expirationTime: "PT5M",
+        printOnTerminal: "seller_ticket",
+        paymentMethodDefaultType: "qr",
+        description: "Venda balcão",
+      },
+      ctx.fixedKey
+    )
     expect(JSON.parse(String(ctx.calls[0]!.init.body))).toEqual({
       type: "point",
       external_reference: "pos-charge-2",
       expiration_time: "PT5M",
       transactions: { payments: [{ amount: "1.50" }] },
       config: {
-        point: { terminal_id: "t", print_on_terminal: "seller_ticket" },
+        point: {
+          terminal_id: "NEWLAND_N950__SBX0000001",
+          print_on_terminal: "seller_ticket",
+        },
         payment_method: { default_type: "qr" },
       },
       description: "Venda balcão",

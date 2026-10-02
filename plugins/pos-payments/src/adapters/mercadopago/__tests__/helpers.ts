@@ -3,7 +3,11 @@ import { MercadoPagoOrdersClient } from "../client"
 
 type FetchCall = { url: string; init: RequestInit }
 
-export function makeClient(): {
+/**
+ * O mock grava toda chamada em `calls` e responde da `queue` em ordem;
+ * esgotada a fila, cai na resposta-padrão de ordem (ORD-1/created).
+ */
+export function makeClient(queue: unknown[] = []): {
   client: MercadoPagoOrdersClient
   calls: FetchCall[]
   fetchImpl: Mock
@@ -13,19 +17,19 @@ export function makeClient(): {
   const fixedKey = "idem-0001"
   const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
     calls.push({ url: String(url), init: init ?? {} })
-    return new Response(
-      JSON.stringify({ id: "ORD-1", status: "created", type: "point" }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    )
+    const body =
+      queue.length > 0
+        ? queue.shift()
+        : { id: "ORD-1", status: "created", type: "point" }
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
   })
   const client = new MercadoPagoOrdersClient({
     accessToken: "APP_USR-test",
     baseUrl: "https://api.test",
     fetchImpl: fetchImpl as unknown as typeof fetch,
-    idempotencyKeyFactory: () => fixedKey,
   })
   return { client, calls, fetchImpl, fixedKey }
 }
@@ -35,4 +39,23 @@ export function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json" },
   })
+}
+
+export const TERMINALS_PAGE = {
+  data: {
+    terminals: [
+      {
+        id: "NEWLAND_N950__SBX0000001",
+        pos_id: "47792476",
+        store_id: "47792478",
+        external_pos_id: "SUC0101POS",
+        operating_mode: "PDV",
+      },
+    ],
+  },
+  paging: { total: 1, offset: 0, limit: 50 },
+}
+
+export const SETUP_RESPONSE = {
+  terminals: [{ id: "NEWLAND_N950__SBX0000001", operating_mode: "PDV" }],
 }

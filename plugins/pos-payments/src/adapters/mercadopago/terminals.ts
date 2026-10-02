@@ -1,22 +1,8 @@
 import type { MercadoPagoOrdersClient } from "./client"
+import { parseSetupResponse, parseTerminalsPage } from "./schema"
+import { buildSetupBody, type SetupTerminalItem } from "./payload"
 
-type MpOperatingMode = "PDV" | "STANDALONE" | "UNDEFINED"
-
-/** Terminal da conta (GET /terminals/v1/list — reference in-person-payments/point). */
-interface MpTerminal {
-  id: string
-  pos_id?: number | string
-  store_id?: number | string
-  external_pos_id?: string
-  operating_mode: MpOperatingMode
-}
-
-interface MpTerminalsPage {
-  data: { terminals: MpTerminal[] }
-  paging: { total: number; offset: number; limit: number }
-}
-
-interface ListTerminalsQuery {
+interface TerminalsQuery {
   /** 1–50 (default 50 na API). */
   limit?: number
   offset?: number
@@ -24,19 +10,35 @@ interface ListTerminalsQuery {
   posId?: string
 }
 
-/** GET /terminals/v1/list — terminais ativos na conta, com POS/store e modo. */
-export async function listTerminals(
-  client: MercadoPagoOrdersClient,
-  query: ListTerminalsQuery = {}
-): Promise<MpTerminalsPage> {
+/** Pura — serialização na ordem esperada (testada sem rede). */
+export function terminalsQueryString(query: TerminalsQuery): string {
   const params = new URLSearchParams()
   if (query.limit !== undefined) params.set("limit", String(query.limit))
   if (query.offset !== undefined) params.set("offset", String(query.offset))
-  if (query.storeId) params.set("store_id", query.storeId)
-  if (query.posId) params.set("pos_id", query.posId)
-  const qs = params.toString()
-  return client.request(
-    "GET",
-    `/terminals/v1/list${qs ? `?${qs}` : ""}`
-  ) as unknown as Promise<MpTerminalsPage>
+  if (query.storeId !== undefined) params.set("store_id", query.storeId)
+  if (query.posId !== undefined) params.set("pos_id", query.posId)
+  return params.toString()
+}
+
+/** GET /terminals/v1/list — terminais ativos na conta, com POS/store e modo. */
+export async function listTerminals(
+  client: MercadoPagoOrdersClient,
+  query: TerminalsQuery = {}
+) {
+  const qs = terminalsQueryString(query)
+  return parseTerminalsPage(
+    await client.request("GET", `/terminals/v1/list${qs ? `?${qs}` : ""}`)
+  )
+}
+
+/** PATCH /terminals/v1/setup — modo de operação; a API aceita UM terminal por request. */
+export async function setupTerminal(
+  client: MercadoPagoOrdersClient,
+  item: SetupTerminalItem
+) {
+  return parseSetupResponse(
+    await client.request("PATCH", "/terminals/v1/setup", {
+      body: buildSetupBody(item),
+    })
+  )
 }
