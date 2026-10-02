@@ -29,6 +29,9 @@ export default defineConfig([
     },
     plugins: { "@typescript-eslint": tseslint.plugin },
     rules: {
+      // Herda a disciplina de type-only imports que a ADR 0002 atribuía ao
+      // Biome (style.useImportType) antes da errata 2026-10-02.
+      "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/no-floating-promises": "error",
     },
   },
