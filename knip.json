@@ -2,7 +2,9 @@
   "$schema": "./node_modules/knip/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["commitlint.config.js"]
+      "entry": [
+        "commitlint.config.js"
+      ]
     },
     "plugins/pos-payments": {
       "entry": [
@@ -15,7 +17,8 @@
         "@medusajs/medusa",
         "@medusajs/admin-shared",
         "@swc/core",
-        "ts-node"
+        "ts-node",
+        "@medusajs/test-utils"
       ]
     },
     "packages/*": {}

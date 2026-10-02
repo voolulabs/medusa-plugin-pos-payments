@@ -60,6 +60,7 @@
     "@medusajs/cli": "^2.19.0",
     "@medusajs/framework": "^2.19.0",
     "@medusajs/medusa": "^2.19.0",
+    "@medusajs/test-utils": "^2.19.0",
     "@medusajs/types": "^2.19.0",
     "@medusajs/utils": "^2.19.0",
     "@swc/core": "^1.10.0",
