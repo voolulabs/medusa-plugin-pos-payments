@@ -7,3 +7,6 @@ export type PosPaymentsPluginOptions = {
   /** Ambientes sandbox por adquirente (futuro). */
   sandbox?: boolean
 }
+
+// Contrato do session data do provider (ADR 0002: contrato sai por ./types)
+export type { PosTerminalSessionData } from "../providers/pos-terminal/schema"
