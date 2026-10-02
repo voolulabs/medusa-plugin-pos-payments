@@ -14,15 +14,18 @@ describe("PosTerminalProviderService (métodos de estado)", () => {
     expect(out.data).toEqual({})
   })
 
-  it("updatePayment rejeita chave de prototype", async () => {
-    await expect(
-      service.updatePayment({
-        amount: 100,
-        currency_code: "brl",
-        data: { a: 1, ["__proto__"]: { x: 1 } },
-      } as never)
-    ).rejects.toThrow(/proibida/)
-  })
+  it.each(["__proto__", "constructor", "prototype"] as const)(
+    "updatePayment rejeita chave proibida (%s)",
+    async (key) => {
+      await expect(
+        service.updatePayment({
+          amount: 100,
+          currency_code: "brl",
+          data: { a: 1, [key]: { x: 1 } },
+        } as never)
+      ).rejects.toThrow(`proibida no data: ${key}`)
+    }
+  )
 
   it("updatePayment ecoa o data válido", async () => {
     const out = await service.updatePayment({
@@ -36,6 +39,11 @@ describe("PosTerminalProviderService (métodos de estado)", () => {
   it("mergeSessionData é depth-1 por own-properties", () => {
     const merged = { ...mergeSessionData({ a: 1 }, { b: 2 }) }
     expect(merged).toEqual({ a: 1, b: 2 })
+  })
+
+  it("mergeSessionData: chave duplicada — o patch vence", () => {
+    const merged = { ...mergeSessionData({ a: 1, b: 1 }, { a: 2 }) }
+    expect(merged).toEqual({ a: 2, b: 1 })
   })
 
   it("getWebhookActionAndData devolve not_supported (Fase 1)", async () => {
