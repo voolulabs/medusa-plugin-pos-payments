@@ -1,4 +1,7 @@
-import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework"
 
 // ADR 0005: rotas do plugin vivem sob /admin/pos-payments/* e usam a auth
 // do core - SEM middleware próprio (middlewares.ts nao existe neste plugin).
