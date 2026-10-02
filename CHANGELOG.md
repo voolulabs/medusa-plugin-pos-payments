@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `CONSTRAINTS.md` — non-negotiable engineering constraints for payment-path
+  changes (money/units, charge state transitions, `data_version`, additive
+  adapter options, fail-closed, no new runtime dependency without an ADR).
+- `CLAUDE.md` now documents the full ADLC development cycle (per-phase commands,
+  rails, evidence-ledger discipline), the engineering standards in executable
+  summary form, and the verification gates with explicit tool attribution
+  (opcore = code hygiene, the-open-engine; ADLC = development lifecycle with
+  evidence, voodootikigod) — the repository is self-contained for any
+  contributor.
+
+### Changed
+
+- CI: the ADLC step now also runs `adlc gate-manifest verify` (tamper-evidence
+  over the append-only evidence ledger) and installs the toolkit with
+  `--ignore-scripts`. Workflow comments now attribute the two toolchains
+  explicitly: opcore (code hygiene, the-open-engine) is a distinct project from
+  the ADLC toolkit (voodootikigod).
+
 ## [0.0.1] - 2026-09-30
 
 First release — Phase 1: manual / terminal-present payments for Brazilian card
