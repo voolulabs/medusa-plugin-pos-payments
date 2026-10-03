@@ -41,8 +41,13 @@ credencial de ambiente (T6).
   "verifique o terminal").
 - **Cancelamento em `awaiting_terminal`** envia o header condicional
   `x-allow-cancelable-status: at_terminal` (contrato oficial; sem ele só `created` cancela).
-- **Reembolso**: `amount` do Medusa JÁ é minor units — comparação verbatim com o
-  `amount_minor` do blob (diferente = recusa ANTES da adquirerente; ausente = falha alto).
+- **Reembolso** (ERRATA da rodada 2): o core passa `refund.raw_amount` — objeto
+  `BigNumberRawValue { value }` em unidades MAIORES (@medusajs/payment 2.21.2) — normalizado
+  para minor e comparado com o `amount_minor` do blob (diferente = recusa ANTES da
+  adquirente; ausente = falha alto).
+- **Cancelamento**: header `x-allow-cancelable-status: at_terminal` INCONDICIONAL — a MP
+  carrega a ordem no terminal em segundos e o blob local chega atrasado (o header é
+  concessão, sem efeito adverso documentado em `created`).
 
 ## 2. Decisões de desenho
 
