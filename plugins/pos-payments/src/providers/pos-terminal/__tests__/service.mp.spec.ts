@@ -5,7 +5,8 @@ import type {
 } from "../../../adapters/types"
 import type { Logger } from "@medusajs/framework/types"
 import { POLL_WINDOW, mpPoll } from "../mp-status"
-import { mpCancel, mpCapture, mpRefund } from "../service-mp-ops"
+import { mpCancel, mpCapture } from "../service-mp-ops"
+import { mpRefund } from "../service-mp-refund"
 import PosTerminalProviderService from "../service"
 
 // Logger parcial: o service só usa info/warn no caminho MP.
@@ -53,7 +54,11 @@ describe("provider mercadopago (wiring T3)", () => {
       amount: 19.99,
       currency_code: "brl",
       context: {},
-      data: { terminal_id: "NEWLAND_N950__S1" },
+      data: {
+        terminal_id: "NEWLAND_N950__S1",
+        state: "paid",
+        observacao: "mesa 7",
+      },
     } as never)
     expect(out.id).toBe("ORD-9")
     expect(out.data).toMatchObject({
@@ -64,6 +69,10 @@ describe("provider mercadopago (wiring T3)", () => {
       amount_minor: 1999,
       idempotency_key: "pos-terminal:pay_01H:charge",
     })
+    // replay do cliente não forja estado; dados próprios da sessão preservados
+    expect(out.data?.state).toBe("pending")
+    expect(out.data?.terminal_id).toBe("NEWLAND_N950__S1")
+    expect(out.data?.observacao).toBe("mesa 7")
   })
 
   it("initiate sem terminal_id falha alta", async () => {

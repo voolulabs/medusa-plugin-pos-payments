@@ -29,7 +29,8 @@ import {
 import { resolveAdapter } from "../../adapters"
 import type { PosPaymentsAdapter } from "../../adapters/types"
 import { mpInitiate } from "./service-mp"
-import { mpCancel, mpCapture, mpRefund } from "./service-mp-ops"
+import { mpCancel, mpCapture } from "./service-mp-ops"
+import { mpRefund } from "./service-mp-refund"
 import { mpPoll } from "./mp-status"
 
 type InjectedDependencies = {

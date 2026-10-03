@@ -10,6 +10,16 @@ import type { StructuredLogger } from "./mp-status"
 
 export const PROVIDER_LOG_ID = "pp_pos-terminal_mercadopago"
 
+/** Chaves que SÓ o provider grava — replay do cliente não as forja. */
+const RESERVADAS = new Set([
+  "charge_id",
+  "acquirer",
+  "idempotency_key",
+  "amount_minor",
+  "state",
+  "data_version",
+])
+
 /** Semente determinística de idempotência — sem id, falha alta (nunca aleatória). */
 function sessionSeed(input: {
   id?: string
@@ -58,8 +68,13 @@ export async function mpInitiate(
     terminalId: assertTerminalId(input),
   }
   const { chargeId, view } = await adapter.createCharge(createInput, key)
+  // Blob COMPLETO: preserva o data da sessão, exceto as chaves reservadas do
+  // charge — state/data_version nunca são forjados pelo replay do cliente.
   const data = applyTransition(
     {
+      ...Object.fromEntries(
+        Object.entries(input.data ?? {}).filter(([k]) => !RESERVADAS.has(k))
+      ),
       charge_id: chargeId,
       acquirer: adapter.acquirer,
       idempotency_key: key,
