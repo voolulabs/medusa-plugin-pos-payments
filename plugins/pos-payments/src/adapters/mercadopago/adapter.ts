@@ -61,6 +61,18 @@ export class MercadoPagoAdapter implements PosPaymentsAdapter {
         `ordem ${order.id} retornou amount ${String(returnedAmount)} ≠ ${minorUnitsToDecimalString(input.amountMinor)} (sessão reutilizada com valor diferente)`
       )
     }
+    // Mesma sessão em OUTRO terminal: a chave recuperaria a ordem antiga.
+    const config = (order as { config?: { point?: { terminal_id?: string } } })
+      .config
+    const returnedTerminal = config?.point?.terminal_id
+    if (
+      returnedTerminal !== undefined &&
+      returnedTerminal !== input.terminalId
+    ) {
+      throw new MpContractError(
+        `ordem ${order.id} pertence ao terminal ${returnedTerminal} ≠ ${input.terminalId} (sessão reutilizada em terminal diferente)`
+      )
+    }
     return { chargeId: order.id, view: mapOrderStatus(order) }
   }
 

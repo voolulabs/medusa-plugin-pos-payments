@@ -47,7 +47,15 @@ export function toMinor(amount: unknown): number {
     "value" in (amount as object)
       ? (amount as { value: string | number }).value
       : (amount as string | number)
-  const minor = MathBN.mult(String(value), 100).toNumber()
+  const bn = MathBN.mult(String(value), 100)
+  // Fração de centavo rejeitada ANTES do toNumber (toNumber arredondaria calado).
+  if (String(bn).includes(".")) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "pos-terminal: valor monetário fora do domínio de minor units"
+    )
+  }
+  const minor = bn.toNumber()
   if (!Number.isSafeInteger(minor)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,

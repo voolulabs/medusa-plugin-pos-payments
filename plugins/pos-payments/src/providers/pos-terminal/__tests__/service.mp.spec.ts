@@ -368,15 +368,25 @@ describe("refund e validações de sessão do provider mercadopago", () => {
       { logger },
       { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
     )
+    const fetchSpy = vi.fn(fetchImpl)
+    const service2 = new PosTerminalProviderService(
+      { logger },
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        fetchImpl: fetchSpy as unknown as typeof fetch,
+      }
+    )
     await expect(
-      service.initiatePayment({
+      service2.initiatePayment({
         id: "pay_01H",
         amount: 10.005,
         currency_code: "brl",
         context: {},
-        data: { terminal_id: "T1" },
+        data: { terminal_id: "NEWLAND_N950__S1" },
       } as never)
     ).rejects.toThrow(/minor units/)
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it("amount como BigNumberRawValue do core é aceito (objeto com value)", async () => {
@@ -386,8 +396,11 @@ describe("refund e validações de sessão do provider mercadopago", () => {
       type: "point",
       transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
     }
-    const fetchImpl = (async () =>
-      new Response(JSON.stringify(order), { status: 201 })) as typeof fetch
+    const calls: Array<{ url: string; init: RequestInit }> = []
+    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} })
+      return new Response(JSON.stringify(order), { status: 201 })
+    }) as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
       { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
@@ -400,6 +413,11 @@ describe("refund e validações de sessão do provider mercadopago", () => {
       data: { terminal_id: "NEWLAND_N950__S1" },
     } as never)
     expect(out.data?.amount_minor).toBe(1999)
+    const body = JSON.parse(String(calls[0]!.init.body))
+    expect(body.transactions.payments[0].amount).toBe("19.99")
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-terminal:pay_01H:charge",
+    })
   })
 
   it("seed fora do alfabeto da external_reference falha alto", async () => {
