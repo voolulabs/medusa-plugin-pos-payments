@@ -28,9 +28,15 @@ function idempotencyKey(seed: string, purpose: string): string {
   return `pos-terminal:${seed}:${purpose}`
 }
 
-/** External reference: <=64 chars [A-Za-z0-9-_], sem PII (contrato Orders). */
-function externalReference(seed: string): string {
-  return seed.replace(/[^A-Za-z0-9-_]/g, "").slice(0, 64)
+/** External reference: <=64 chars [A-Za-z0-9-_], sem PII — fail-closed. */
+function assertExternalReference(seed: string): string {
+  if (!/^[A-Za-z0-9-_]{1,64}$/.test(seed)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "pos-terminal: id de sessão fora do alfabeto da external_reference"
+    )
+  }
+  return seed
 }
 
 /** Minor units via MathBN (CONSTRAINTS 1) — BRL tem 2 casas. */
@@ -68,7 +74,7 @@ export async function mpInitiate(
   const key = idempotencyKey(seed, "charge")
   const createInput: CreateChargeInput = {
     amountMinor: toMinor(input.amount),
-    externalReference: externalReference(seed),
+    externalReference: assertExternalReference(seed),
     terminalId: assertTerminalId(input),
   }
   const { chargeId, view } = await adapter.createCharge(createInput, key)

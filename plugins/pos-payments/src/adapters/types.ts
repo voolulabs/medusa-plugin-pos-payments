@@ -46,9 +46,11 @@ export interface PosPaymentsAdapter {
     idempotencyKey: string
   ): Promise<{ chargeId: string; view: ChargeStatusView }>
   getCharge(chargeId: string): Promise<ChargeStatusView>
+  /** opts.allowAtTerminal = header condicional do contrato (cancel em at_terminal). */
   cancelCharge(
     chargeId: string,
-    idempotencyKey: string
+    idempotencyKey: string,
+    opts?: { allowAtTerminal?: boolean }
   ): Promise<ChargeStatusView>
   /** Estorno TOTAL do charge (contrato Point); recusas parciais falham no provider. */
   refundCharge(

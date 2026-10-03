@@ -61,10 +61,11 @@ export class MercadoPagoAdapter implements PosPaymentsAdapter {
 
   async cancelCharge(
     chargeId: string,
-    idempotencyKey: string
+    idempotencyKey: string,
+    opts?: { allowAtTerminal?: boolean }
   ): Promise<ChargeStatusView> {
     return mapOrderStatus(
-      await cancelOrder(this.client, chargeId, idempotencyKey)
+      await cancelOrder(this.client, chargeId, idempotencyKey, opts)
     )
   }
 

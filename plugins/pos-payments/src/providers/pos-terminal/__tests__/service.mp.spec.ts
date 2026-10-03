@@ -116,6 +116,16 @@ describe("poll do provider mercadopago (janelas 10s/40s)", () => {
     }
   })
 
+  it("poll sem charge_id não chama a adquirente", async () => {
+    const adapter = fakeAdapter(
+      async () =>
+        ({ state: "paid", rawStatus: "processed" }) as ChargeStatusView
+    )
+    const out = await mpPoll(adapter, { state: "pending" }, logger as never)
+    expect(out.status).toBe("pending")
+    expect(adapter.getCharge).not.toHaveBeenCalled()
+  })
+
   it("erro do poll degrada pending (não desiste na janela de 40s)", async () => {
     const out = await mpPoll(
       fakeAdapter(async () => {
@@ -327,6 +337,23 @@ describe("refund do provider mercadopago", () => {
 })
 
 describe("refund do provider mercadopago", () => {
+  it("seed fora do alfabeto da external_reference falha alto", async () => {
+    const fetchImpl = (async () =>
+      new Response("{}", { status: 201 })) as typeof fetch
+    const service = new PosTerminalProviderService(
+      { logger },
+      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+    )
+    await expect(
+      service.initiatePayment({
+        id: "pay com espaço!",
+        amount: 10,
+        context: {},
+        data: { terminal_id: "T1" },
+      } as never)
+    ).rejects.toThrow(/alfabeto/)
+  })
+
   it("refund parcial é recusado ANTES da adquirente (Point só total)", async () => {
     await expect(
       mpRefund(

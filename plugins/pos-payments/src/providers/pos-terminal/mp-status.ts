@@ -5,7 +5,7 @@ import type {
   ChargeStatusView,
   PosPaymentsAdapter,
 } from "../../adapters/types"
-import { applyTransition } from "./charge-state"
+import { CHARGE_DATA_VERSION, applyTransition } from "./charge-state"
 
 /** Logger do core aceita meta winston em runtime; o tipo do framework é estreito. */
 export type StructuredLogger = Logger & {
@@ -45,6 +45,9 @@ export async function mpPoll(
   data: Record<string, unknown>,
   logger: StructuredLogger
 ): Promise<GetPaymentStatusOutput> {
+  if (typeof data.charge_id !== "string" || !data.charge_id) {
+    return { status: "pending", data }
+  }
   try {
     const chargeId = data.charge_id as string
     const before = (data.state as string) ?? "pending"
@@ -54,7 +57,7 @@ export async function mpPoll(
       next = applyTransition(data, view.state)
     } catch {
       // Origem-terminal fora da máquina local: a MP é a fonte de verdade.
-      next = { ...data, state: view.state, data_version: 1 }
+      next = { ...data, state: view.state, data_version: CHARGE_DATA_VERSION }
       logger.warn("pos-terminal: reconvergência fora da máquina local", {
         provider_id: "pp_pos-terminal_mercadopago",
         charge_id: chargeId,
@@ -72,8 +75,13 @@ export async function mpPoll(
       })
     }
     return { status: medusaStatus(view), data: next }
-  } catch {
+  } catch (error) {
     // D2: erro de consulta degrada para pending — o poll não desiste (40s).
+    logger.warn("pos-terminal: consulta da adquirente falhou no poll", {
+      provider_id: "pp_pos-terminal_mercadopago",
+      charge_id: data.charge_id,
+      detail: String(error).slice(0, 120),
+    })
     return { status: "pending", data }
   }
 }

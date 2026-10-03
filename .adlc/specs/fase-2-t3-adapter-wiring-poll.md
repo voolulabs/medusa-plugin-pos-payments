@@ -33,7 +33,16 @@ credencial de ambiente (T6).
 - **`fetchImpl` entra como option aditiva** (CONSTRAINTS 5) — seam de teste; produção usa o
   fetch global.
 - **Idempotência determinística**: chave = `pos-terminal:<session_id>:<propósito>`; sem id de
-  sessão o initiate FALHA ALTO (nunca chave aleatória = nunca ordem duplicada).
+  sessão o initiate FALHA ALTO (nunca chave aleatória = nunca ordem duplicada); id de sessão
+  fora do alfabeto da external_reference também falha alto (sem sanitização silenciosa).
+- **`action_required` é ABSORVENTE no nível da order** (doc oficial: "will not change") —
+  quem confirma o resultado é a TRANSAÇÃO: `payments[].status = "processed"` ou
+  `status_detail = "accredited"` promove o charge para `paid` (senão permanece com copy de
+  "verifique o terminal").
+- **Cancelamento em `awaiting_terminal`** envia o header condicional
+  `x-allow-cancelable-status: at_terminal` (contrato oficial; sem ele só `created` cancela).
+- **Reembolso**: `amount` do Medusa JÁ é minor units — comparação verbatim com o
+  `amount_minor` do blob (diferente = recusa ANTES da adquirerente; ausente = falha alto).
 
 ## 2. Decisões de desenho
 

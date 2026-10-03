@@ -67,6 +67,14 @@ describe("MpAdapter na interface comum", () => {
     expect(view.paymentId).toBe("PAY-1")
   })
 
+  it("cancel em awaiting_terminal manda o header condicional do contrato", async () => {
+    const { adapter, calls } = makeAdapter()
+    await adapter.cancelCharge("ORD-77", "k-cancel", { allowAtTerminal: true })
+    expect(calls[0]!.init.headers).toMatchObject({
+      "x-allow-cancelable-status": "at_terminal",
+    })
+  })
+
   it("cancel/refund expõem os estados da adquirente com key própria", async () => {
     const { adapter, calls } = makeAdapter()
     const cancel = await adapter.cancelCharge("ORD-77", "k-cancel")
