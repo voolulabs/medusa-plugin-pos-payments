@@ -1,5 +1,9 @@
 # Spec: Fase 2 — T1 cliente Orders API do Mercado Pago
 
+> **Registro histórico** — T1 implementada, mergeada no #36 e embarcada no ciclo em desenvolvimento (2026-10-03).
+Este arquivo é o registro do ciclo concluído, não documento vivo (padrão de
+`fase-1-provider-manual.md`). ACs ticados com as verificações do merge.
+
 Extraída para o gate P1 do ADLC (ticket `T1`). Fontes do contrato: Orders API oficial do
 Mercado Pago (`POST /v1/orders`, `GET /v1/orders/{id}`, cancel/refund, `GET /terminals/v1`),
 política de adapters em REST puro com idempotência e fail-closed (ADR 0001 §6), pirâmide de
@@ -40,20 +44,20 @@ na casca com headers de idempotência.
 
 ## Acceptance Criteria
 
-- [ ] MUST: create/get/cancel/refund, setup e terminais falando o contrato oficial, HTTP
+- [x] MUST: create/get/cancel/refund, setup e terminais falando o contrato oficial, HTTP
       mockado via `fetchImpl` injetado (o MSW fica para a casca de integração do provider, T3+)
       — verify: `pnpm exec vitest run`
-- [ ] MUST: idempotência em toda operação monetária — chave recebida por parâmetro (estável,
+- [x] MUST: idempotência em toda operação monetária — chave recebida por parâmetro (estável,
       persistida pelo wiring no T3), mesma chave no retry; colisão 409 exposta como
       `MpIdempotencyConflictError` — verify: specs de mutações/erros
-- [ ] MUST: conversão minor units → string decimal (`money.ts`, MathBN) com teste do caso de
+- [x] MUST: conversão minor units → string decimal (`money.ts`, MathBN) com teste do caso de
       drift — verify: `money.spec.ts`
-- [ ] MUST: payload sem `default_installments`; `external_reference`, terminal (formato
+- [x] MUST: payload sem `default_installments`; `external_reference`, terminal (formato
       `{tipo}__{serial}`), `expiration_time` (PT30S–PT3H) e amount (> 0) validados ANTES do
       fetch (fail-closed) — verify: specs de validação
-- [ ] MUST: orçamento de ≤100 linhas por arquivo — verify: `opcore check --repo . --all` (CI)
-- [ ] MUST: lint/format/typecheck/knip verdes — verify: bateria local + steps do CI
-- [ ] MUST: cobertura nas réguas do pacote (global ≥90%, money paths ≥95%) — verify:
+- [x] MUST: orçamento de ≤100 linhas por arquivo — verify: `opcore check --repo . --all` (CI)
+- [x] MUST: lint/format/typecheck/knip verdes — verify: bateria local + steps do CI
+- [x] MUST: cobertura nas réguas do pacote (global ≥90%, money paths ≥95%) — verify:
       `pnpm test:coverage`
-- [ ] SHOULD: nenhuma dependência nova em `dependencies` — verify: diff de
+- [x] SHOULD: nenhuma dependência nova em `dependencies` — verify: diff de
       `plugins/pos-payments/package.json` contra a base

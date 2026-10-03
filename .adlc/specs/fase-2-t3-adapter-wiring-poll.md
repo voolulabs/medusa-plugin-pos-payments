@@ -1,5 +1,9 @@
 # Spec: Fase 2 — T3 adapter na interface comum + wiring no provider + poll 10s/40s
 
+> **Registro histórico** — T3 implementada, mergeada no #43 (a1908e1, 2026-10-03) e fechada no ticket-complete do ledger (seq 55). Módulos finais incluem `reuse-guard.ts`, `charge-input.ts`, `search.ts` e `service-mp-refund.ts` (emendas das revisões registradas abaixo).
+Este arquivo é o registro do ciclo concluído, não documento vivo (padrão de
+`fase-1-provider-manual.md`). ACs ticados com as verificações do merge.
+
 Extraída para o gate P1 do ADLC (ticket `T3`). Fontes: contrato oficial Orders API (poll do
 plugin), CONSTRAINTS 2/4/6 (máquina de transições com mutator único; falhar alto; data_version),
 logs D1/D2 (logger estruturado com correlação; info=transição, warn=409 fila/4xx, error=5xx) e
@@ -79,22 +83,24 @@ credencial de ambiente (T6).
 
 ## Acceptance Criteria
 
-- [ ] MUST: `resolveAdapter` para manual/mercadopago/desconhecida (falha alta na desconhecida)
+- [x] MUST: `resolveAdapter` para manual/mercadopago/desconhecida (falha alta na desconhecida)
       — verify: `pnpm exec vitest run` (`__tests__/adapters.spec.ts`)
-- [ ] MUST: MpAdapter create/get/cancel/refund no contrato, idempotency key por parâmetro,
+- [x] MUST: MpAdapter create/get/cancel/refund no contrato, idempotency key por parâmetro,
       dinheiro minor→decimal pela `money.ts` — verify: `__tests__/adapter.mercadopago.spec.ts`
-- [ ] MUST: `ALLOWED_TRANSITIONS` + `transition(from,to)` com teste de TODAS as transições
+- [x] MUST: `ALLOWED_TRANSITIONS` + `transition(from,to)` com teste de TODAS as transições
       válidas e rejeição das proibidas — verify: `__tests__/charge-state.spec.ts`
-- [ ] MUST: provider mercadopago persistindo `charge_id`/`acquirer`/`state`/`data_version` no
+- [x] MUST: provider mercadopago persistindo `charge_id`/`acquirer`/`state`/`data_version` no
       initiate e `getPaymentStatus` mapeando os 7 estados sem lançar — verify:
       `__tests__/service.mp.spec.ts`
-- [ ] MUST: poll não reporta timeout como falha (`awaiting_terminal`→`pending`;
-      `action_required`→`requires_action`) — verify: `__tests__/service.mp.spec.ts`
-- [ ] MUST: logs D1/D2 nas transições com campos de correlação e sem credencial (spy do
-      `logger_`) — verify: `__tests__/service.mp.spec.ts`
-- [ ] MUST: `validateOptions` manual|mercadopago, com falha no boot sem credencial — verify:
+- [x] MUST: poll não reporta timeout como falha (`awaiting_terminal` e
+      `action_required` → `pending_authorization` na união real do
+      `PaymentSessionStatus` — ver Emendas do build) — verify:
       `__tests__/service.mp.spec.ts`
-- [ ] MUST: arquivos ≤100 linhas — verify: `opcore check --repo . --all`
-- [ ] MUST: lint/format/typecheck/knip verdes — verify: bateria local + steps do CI
-- [ ] MUST: cobertura global ≥90% e money paths ≥95% — verify: `pnpm test:coverage`
-- [ ] SHOULD: nenhuma dependência nova em `dependencies` — verify: diff do package.json
+- [x] MUST: logs D1/D2 nas transições com campos de correlação e sem credencial (spy do
+      `logger_`) — verify: `__tests__/service.mp.spec.ts`
+- [x] MUST: `validateOptions` manual|mercadopago, com falha no boot sem credencial — verify:
+      `__tests__/service.mp.spec.ts`
+- [x] MUST: arquivos ≤100 linhas — verify: `opcore check --repo . --all`
+- [x] MUST: lint/format/typecheck/knip verdes — verify: bateria local + steps do CI
+- [x] MUST: cobertura global ≥90% e money paths ≥95% — verify: `pnpm test:coverage`
+- [x] SHOULD: nenhuma dependência nova em `dependencies` — verify: diff do package.json

@@ -1,5 +1,9 @@
 # Spec: Fase 2 — T2 taxonomia de status (mapStatus) do Mercado Pago
 
+> **Registro histórico** — T2 implementada, mergeada no #42 (3cf2b0d, 2026-10-03) e fechada no ticket-complete do ledger. Erratas registradas na seção de decisões. Nota do T3: os tipos `RetryClass`/`ChargeState`/`ChargeStatusView` migraram para `src/adapters/types.ts` (re-exportados aqui).
+Este arquivo é o registro do ciclo concluído, não documento vivo (padrão de
+`fase-1-provider-manual.md`). ACs ticados com as verificações do merge.
+
 Extraída para o gate P1 do ADLC (ticket `T2`). Fontes do contrato: máquina de estados oficial
 da Orders API (Point e QR — status-order-transaction, verificação 2026-10-01), política de
 adapters fail-closed (ADR 0001 §6) e erros tipados (ADR 0002). O cliente HTTP existe (T1);
@@ -71,28 +75,28 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
 
 ## Acceptance Criteria
 
-- [ ] MUST: mapeamento total dos 8 estados point e dos 5 válidos qr, sensível ao `type`
+- [x] MUST: mapeamento total dos 8 estados point e dos 5 válidos qr, sensível ao `type`
       — verify: `pnpm exec vitest run` (`__tests__/status.spec.ts`)
-- [ ] MUST: fail-closed — status fora do enum e estado proibido na máquina qr lançam
+- [x] MUST: fail-closed — status fora do enum e estado proibido na máquina qr lançam
       `MpContractError` — verify: `__tests__/status.spec.ts`
-- [ ] MUST: taxonomia normativa completa (11 status_details → 4 classes) com copy pt-BR não
+- [x] MUST: taxonomia normativa completa (11 status_details → 4 classes) com copy pt-BR não
       vazia por entrada — verify: `__tests__/status-taxonomy.spec.ts`
-- [ ] MUST: `status_detail` desconhecido degrada para `not_retryable` preservando o
+- [x] MUST: `status_detail` desconhecido degrada para `not_retryable` preservando o
       `reasonCode`, sem lançar — verify: `__tests__/status.spec.ts`
-- [ ] MUST: cancelamento expõe origem api/terminal; `refunded` expõe estado próprio
+- [x] MUST: cancelamento expõe origem api/terminal; `refunded` expõe estado próprio
       — verify: `__tests__/status.spec.ts`
-- [ ] MUST: arquivos ≤100 linhas — verify: `opcore check --repo . --all`
-- [ ] MUST: lint/format/typecheck/knip verdes — verify: bateria local + steps do CI
-- [ ] MUST: cobertura global ≥90% e money paths ≥95% — verify: `pnpm test:coverage`
-- [ ] SHOULD: nenhuma dependência nova em `dependencies` — verify: diff do package.json
+- [x] MUST: arquivos ≤100 linhas — verify: `opcore check --repo . --all`
+- [x] MUST: lint/format/typecheck/knip verdes — verify: bateria local + steps do CI
+- [x] MUST: cobertura global ≥90% e money paths ≥95% — verify: `pnpm test:coverage`
+- [x] SHOULD: nenhuma dependência nova em `dependencies` — verify: diff do package.json
       contra a base
-- [ ] MUST: valores hostis não viram estado — chaves herdadas de protótipo (status/detail),
+- [x] MUST: valores hostis não viram estado — chaves herdadas de protótipo (status/detail),
       `type` presente fora do escopo e ordem com múltiplos pagamentos falham fechado; origem do
       cancelamento lida do `status_detail` da transação
       — verify: `__tests__/status.spec.ts` + `__tests__/status.failures.spec.ts`
-- [ ] MUST: `action_required` carrega copy de orientação ao operador; details genéricos
+- [x] MUST: `action_required` carrega copy de orientação ao operador; details genéricos
       `failed`/`canceled` têm entradas próprias na taxonomia
       — verify: `__tests__/status.spec.ts` + `__tests__/status-taxonomy.spec.ts`
-- [ ] MUST: `high_risk` classificado `not_retryable` (antifraude) e cardinalidade de
+- [x] MUST: `high_risk` classificado `not_retryable` (antifraude) e cardinalidade de
       pagamentos validada antes da seleção do ramo do estado
       — verify: `__tests__/status-taxonomy.spec.ts` + `__tests__/status.failures.spec.ts`
