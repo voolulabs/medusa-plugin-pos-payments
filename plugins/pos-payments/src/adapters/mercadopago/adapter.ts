@@ -5,10 +5,12 @@ import type {
   PosPaymentsAdapter,
 } from "../types"
 import { assertReusedOrder } from "./reuse-guard"
+import { MpContractError, MpIdempotencyConflictError } from "./types"
 import { MercadoPagoOrdersClient } from "./client"
 import { minorUnitsToDecimalString } from "./money"
 import { cancelOrder, refundOrder } from "./orders"
 import { mapOrderStatus } from "./status"
+import { searchOrdersByExternalReference } from "./search"
 
 interface MpAdapterOptions {
   accessToken: string
@@ -38,21 +40,37 @@ export class MercadoPagoAdapter implements PosPaymentsAdapter {
     input: CreateChargeInput,
     idempotencyKey: string
   ): Promise<{ chargeId: string; view: ChargeStatusView }> {
-    const order = await this.client.createPointOrder(
-      {
-        amount: minorUnitsToDecimalString(input.amountMinor),
-        externalReference: input.externalReference,
-        terminalId: input.terminalId,
-        ...(input.expirationTime
-          ? { expirationTime: input.expirationTime }
-          : {}),
-        ...(input.description ? { description: input.description } : {}),
-        ...(input.paymentMethodDefaultType
-          ? { paymentMethodDefaultType: input.paymentMethodDefaultType }
-          : {}),
-      },
-      idempotencyKey
-    )
+    let order
+    try {
+      order = await this.client.createPointOrder(
+        {
+          amount: minorUnitsToDecimalString(input.amountMinor),
+          externalReference: input.externalReference,
+          terminalId: input.terminalId,
+          ...(input.expirationTime
+            ? { expirationTime: input.expirationTime }
+            : {}),
+          ...(input.description ? { description: input.description } : {}),
+          ...(input.paymentMethodDefaultType
+            ? { paymentMethodDefaultType: input.paymentMethodDefaultType }
+            : {}),
+        },
+        idempotencyKey
+      )
+    } catch (error) {
+      // Colisão de idempotência: a ordem pode existir — reconsulta por
+      // referência, nunca recria (ADR 0001 §6).
+      if (!(error instanceof MpIdempotencyConflictError)) throw error
+      const orders = await searchOrdersByExternalReference(
+        this.client,
+        input.externalReference
+      )
+      const found = orders.find(
+        (candidate) => candidate.external_reference === input.externalReference
+      )
+      if (!found) throw error
+      order = found
+    }
     assertReusedOrder(order, input)
     return { chargeId: order.id, view: mapOrderStatus(order) }
   }

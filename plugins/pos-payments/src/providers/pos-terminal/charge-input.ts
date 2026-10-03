@@ -14,14 +14,14 @@ export function toMinor(amount: unknown): number {
   if (String(bn).includes(".")) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "pos-terminal: valor monetário fora do domínio de minor units"
+      "pos-terminal: valor monetário deve ser inteiro positivo em minor units"
     )
   }
   const minor = bn.toNumber()
-  if (!Number.isSafeInteger(minor)) {
+  if (minor <= 0 || !Number.isSafeInteger(minor)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "pos-terminal: valor monetário fora do domínio de minor units"
+      "pos-terminal: valor monetário deve ser inteiro positivo em minor units"
     )
   }
   return minor

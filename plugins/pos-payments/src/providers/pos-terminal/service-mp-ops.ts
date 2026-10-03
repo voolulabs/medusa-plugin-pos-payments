@@ -56,23 +56,19 @@ export async function mpCancel(
       "captured"
     )
   }
+  let view
   try {
     const chargeId = data.charge_id as string
     // Header INCONDICIONAL: a MP carrega a ordem no terminal em segundos e o
     // blob local chega atrasado; sem o header, created só cancela pré-carga.
-    const view = await adapter.cancelCharge(
-      chargeId,
-      keyFor(chargeId, "cancel"),
-      {
-        allowAtTerminal: true,
-      }
-    )
+    view = await adapter.cancelCharge(chargeId, keyFor(chargeId, "cancel"), {
+      allowAtTerminal: true,
+    })
     logger.info("pos-terminal: cobrança cancelada na adquirente", {
       provider_id: PROVIDER_LOG_ID,
       charge_id: chargeId,
       to: view.state,
     })
-    return { data: applyTransition({ ...data }, view.state) }
   } catch (error) {
     logger.warn("pos-terminal: 4xx/5xx no cancelamento", {
       provider_id: PROVIDER_LOG_ID,
@@ -84,4 +80,5 @@ export async function mpCancel(
       "adquirente recusou"
     )
   }
+  return { data: applyTransition({ ...data }, view.state) }
 }

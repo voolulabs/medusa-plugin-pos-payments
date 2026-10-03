@@ -265,6 +265,19 @@ describe("captura e cancelamento via adapter", () => {
     ).rejects.toThrow(/creditado/)
   })
 
+  it("erro de transição local NÃO vira recusa da adquirente", async () => {
+    await expect(
+      mpCancel(
+        fakeAdapter(
+          async () =>
+            ({ state: "canceled", rawStatus: "canceled" }) as ChargeStatusView
+        ),
+        { charge_id: "ORD-1", state: "failed" },
+        logger as never
+      )
+    ).rejects.toThrow(/transição proibida/)
+  })
+
   it("cancel via adapter grava a transição; capturada recusa", async () => {
     const ok = await mpCancel(
       fakeAdapter(
@@ -370,6 +383,24 @@ describe("refund do provider mercadopago", () => {
 })
 
 describe("refund e validações de sessão do provider mercadopago", () => {
+  it("amount negativo falha alto na conversão pura", async () => {
+    const fetchImpl = (async () =>
+      new Response("{}", { status: 201 })) as typeof fetch
+    const service = new PosTerminalProviderService(
+      { logger },
+      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+    )
+    await expect(
+      service.initiatePayment({
+        id: "pay_01H",
+        amount: -1,
+        currency_code: "brl",
+        context: {},
+        data: { terminal_id: "NEWLAND_N950__S1" },
+      } as never)
+    ).rejects.toThrow(/positivo/)
+  })
+
   it("amount fora do domínio de minor units falha alto (10.005)", async () => {
     const fetchImpl = (async () =>
       new Response("{}", { status: 201 })) as typeof fetch
@@ -428,7 +459,9 @@ describe("refund e validações de sessão do provider mercadopago", () => {
       "X-Idempotency-Key": "pos-terminal:pay_01H:charge",
     })
   })
+})
 
+describe("validações de sessão do provider mercadopago", () => {
   it("seed fora do alfabeto da external_reference falha alto", async () => {
     const fetchImpl = (async () =>
       new Response("{}", { status: 201 })) as typeof fetch

@@ -67,6 +67,40 @@ describe("MpAdapter na interface comum", () => {
     expect(view.paymentId).toBe("PAY-1")
   })
 
+  it("colisão 409 reconsulta por referência e nunca recria a ordem", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = []
+    const ordem = {
+      id: "ORD-77",
+      status: "created",
+      type: "point",
+      external_reference: "pay_01H",
+      transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
+    }
+    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} })
+      if (init?.method === "POST") {
+        return jsonResponse({ error: "idempotency_key_already_used" }, 409)
+      }
+      return jsonResponse({ data: [ordem] })
+    }) as unknown as typeof fetch
+    const adapter = new MercadoPagoAdapter({
+      accessToken: "test-token-fixture",
+      fetchImpl,
+    })
+    const out = await adapter.createCharge(
+      {
+        amountMinor: 1999,
+        externalReference: "pay_01H",
+        terminalId: "NEWLAND_N950__S1",
+      },
+      "pos-terminal:pay_01H:charge"
+    )
+    expect(out.chargeId).toBe("ORD-77")
+    const metodos = calls.map((c) => c.init.method ?? "GET")
+    expect(metodos.filter((m) => m === "POST")).toHaveLength(1)
+    expect(calls[1]!.url).toContain("external_reference=pay_01H")
+  })
+
   it("cancel em awaiting_terminal manda o header condicional do contrato", async () => {
     const { adapter, calls } = makeAdapter()
     await adapter.cancelCharge("ORD-77", "k-cancel", { allowAtTerminal: true })
