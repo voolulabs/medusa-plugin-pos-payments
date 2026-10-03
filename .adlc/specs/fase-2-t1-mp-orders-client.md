@@ -1,0 +1,59 @@
+# Spec: Fase 2 — T1 cliente Orders API do Mercado Pago
+
+Extraída para o gate P1 do ADLC (ticket `T1`). Fontes do contrato: Orders API oficial do
+Mercado Pago (`POST /v1/orders`, `GET /v1/orders/{id}`, cancel/refund, `GET /terminals/v1`),
+política de adapters em REST puro com idempotência e fail-closed (ADR 0001 §6), pirâmide de
+testes e réguas de cobertura do pacote (engenharia §4).
+
+## 1. Escopo do ticket
+
+Cliente HTTP REST puro do adapter `mercadopago` — superfície Orders API + terminais, **sem**
+regra de negócio de estado (o mapeamento de status é o ticket seguinte, T2). Padrão
+functional core / imperative shell: construção de body e conversões puras e testadas; `fetch`
+na casca com headers de idempotência.
+
+- `client.ts` (transporte + create/get), `orders.ts` (cancel/refund), `payload.ts` (builders
+  puros), `schema.ts` (parse zod fail-closed das respostas), `money.ts` (conversão única de
+  dinheiro), `terminals.ts` (listagem e setup), `validation.ts` (asserts) e `types.ts`.
+
+
+## 2. Requisitos obrigatórios (ADR 0001 §6)
+
+- **Idempotência**: `X-Idempotency-Key` obrigatória em create/cancel/refund; chave derivada e
+  persistida antes do primeiro envio (a persistência no provider é o ticket de wiring, T3);
+  retry reutiliza a MESMA chave; `idempotency_key_already_used` → re-consultar o recurso,
+  nunca recriar.
+- **Dinheiro**: minor units (inteiros) no domínio; o `amount` do MP é **string decimal**
+  (minor ÷ 100) — conversão única via `MathBN` com teste do caso de drift.
+- **Contrato de criação**: `external_reference` (≤64 chars), `config.point.terminal_id`
+  (serial), `expiration_time` ISO-8601; **`default_installments` NUNCA vai no payload**;
+  cancelamento com `X-Allow-Cancelable-Status`.
+- **Rede**: base URL fixa; token por options (presence-gated); `Authorization` nunca em log.
+- **Falhar fechado**: resposta 2xx não é dinheiro — payload parseado com zod; fora do
+  contrato → `MpContractError`, sem mutação de estado. Colisão de idempotência (409
+  `idempotency_key_already_used`) vira `MpIdempotencyConflictError` para o wiring re-consultar.
+- **Cancelamento**: header condicional `x-allow-cancelable-status` com o ÚNICO valor
+  documentado (`at_terminal`); sem o header, só ordem em `created` é cancelável.
+- **Setup**: `PATCH /terminals/v1/setup` com UM terminal por request
+  (`{terminals: [{id, operating_mode}]}`), sem idempotency key (contrato).
+- **Tempo**: timeout duro por chamada via `AbortSignal` (padrão 15s — orçamento do app).
+
+## Acceptance Criteria
+
+- [ ] MUST: create/get/cancel/refund, setup e terminais falando o contrato oficial, HTTP
+      mockado via `fetchImpl` injetado (o MSW fica para a casca de integração do provider, T3+)
+      — verify: `pnpm exec vitest run`
+- [ ] MUST: idempotência em toda operação monetária — chave recebida por parâmetro (estável,
+      persistida pelo wiring no T3), mesma chave no retry; colisão 409 exposta como
+      `MpIdempotencyConflictError` — verify: specs de mutações/erros
+- [ ] MUST: conversão minor units → string decimal (`money.ts`, MathBN) com teste do caso de
+      drift — verify: `money.spec.ts`
+- [ ] MUST: payload sem `default_installments`; `external_reference`, terminal (formato
+      `{tipo}__{serial}`), `expiration_time` (PT30S–PT3H) e amount (> 0) validados ANTES do
+      fetch (fail-closed) — verify: specs de validação
+- [ ] MUST: orçamento de ≤100 linhas por arquivo — verify: `opcore check --repo . --all` (CI)
+- [ ] MUST: lint/format/typecheck/knip verdes — verify: bateria local + steps do CI
+- [ ] MUST: cobertura nas réguas do pacote (global ≥90%, money paths ≥95%) — verify:
+      `pnpm test:coverage`
+- [ ] SHOULD: nenhuma dependência nova em `dependencies` — verify: diff de
+      `plugins/pos-payments/package.json` contra a base
