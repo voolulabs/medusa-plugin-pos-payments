@@ -8,7 +8,7 @@ import type { ChargeStatusView } from "./status"
 import type { MpOrder, MpOrderPayment } from "./types"
 
 /** Pagamento único da ordem — a cardinalidade é garantida por assertMappable (status.ts). */
-function singlePayment(order: MpOrder): MpOrderPayment | undefined {
+export function singlePayment(order: MpOrder): MpOrderPayment | undefined {
   return order.transactions?.payments?.[0]
 }
 

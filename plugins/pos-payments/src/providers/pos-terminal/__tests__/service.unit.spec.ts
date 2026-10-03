@@ -12,10 +12,16 @@ describe("PosTerminalProviderService", () => {
     ).toThrow(/acquirer/)
   })
 
-  it("validateOptions rejeita adquirente sem adapter implementado", () => {
+  it("validateOptions: mercadopago sem credencial falha no boot (CONSTRAINTS 4)", () => {
     expect(() =>
       PosTerminalProviderService.validateOptions({ acquirer: "mercadopago" })
-    ).toThrow(/manual/)
+    ).toThrow(/accessToken/)
+  })
+
+  it("validateOptions rejeita adquirente sem adapter implementado", () => {
+    expect(() =>
+      PosTerminalProviderService.validateOptions({ acquirer: "sumup" })
+    ).toThrow(/manual|sumup/)
   })
 
   it("initiatePayment é no-op e devolve id opaco público", async () => {

@@ -1,7 +1,7 @@
 /** Taxonomia normativa de retentabilidade do MP — máquina oficial Point/QR da Orders API. */
+import type { RetryClass } from "../types"
 
-export type RetryClass =
-  "retryable" | "retry_with_change" | "not_retryable" | "escalate"
+export type { RetryClass } from "../types"
 
 export interface TaxonomyEntry {
   readonly retryClass: RetryClass
