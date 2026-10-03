@@ -1,0 +1,34 @@
+/** Construção pura de payloads do contrato Orders API (sem fetch/logger). */
+import type { CreatePointOrderInput } from "./types"
+
+export interface SetupTerminalItem {
+  id: string
+  operatingMode: "PDV" | "STANDALONE"
+}
+
+export function buildCreateOrderBody(input: CreatePointOrderInput): unknown {
+  const paymentMethod = input.paymentMethodDefaultType
+    ? { payment_method: { default_type: input.paymentMethodDefaultType } }
+    : {}
+  return {
+    type: "point",
+    external_reference: input.externalReference,
+    ...(input.expirationTime ? { expiration_time: input.expirationTime } : {}),
+    transactions: { payments: [{ amount: input.amount }] },
+    config: {
+      point: {
+        terminal_id: input.terminalId,
+        ...(input.printOnTerminal
+          ? { print_on_terminal: input.printOnTerminal }
+          : {}),
+      },
+      ...paymentMethod,
+    },
+    ...(input.description ? { description: input.description } : {}),
+  }
+}
+
+/** A API aceita UM terminal por request (doc de migração Payment Intents → Orders). */
+export function buildSetupBody(item: SetupTerminalItem): unknown {
+  return { terminals: [{ id: item.id, operating_mode: item.operatingMode }] }
+}
