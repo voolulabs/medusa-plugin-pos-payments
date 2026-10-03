@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { mapOrderStatus, type ChargeState } from "../status"
+import { mapOrderStatus } from "../status"
 import { MpContractError, type MpOrder, type MpOrderStatus } from "../types"
 
 function order(status: MpOrderStatus, extra?: Partial<MpOrder>): MpOrder {
@@ -17,23 +17,40 @@ describe("máquina point (8 estados)", () => {
     ["failed", "failed"],
     ["refunded", "refunded"],
   ] as const)("%s -> %s", (mp, charge) => {
-    const esperado: ChargeState = charge
-    expect(mapOrderStatus(order(mp)).state).toBe(esperado)
+    expect(mapOrderStatus(order(mp)).state).toBe(charge)
   })
 
-  it("estados neutros não carregam motivo", () => {
-    for (const s of [
-      "created",
-      "at_terminal",
-      "processed",
-      "expired",
-      "action_required",
-      "refunded",
-    ] as const) {
-      const view = mapOrderStatus(order(s))
-      expect("reasonCode" in view).toBe(false)
-      expect("reason" in view).toBe(false)
-    }
+  it("type ausente é tratado como point (decisão da spec)", () => {
+    expect(mapOrderStatus(order("at_terminal")).state).toBe("awaiting_terminal")
+  })
+
+  it("estados neutros não carregam motivo, mas expõem rawStatus", () => {
+    const view = mapOrderStatus(
+      order("expired", {
+        transactions: {
+          payments: [
+            { id: "PAY-1", amount: "1.00", status_detail: "high_risk" },
+          ],
+        },
+      })
+    )
+    expect("reasonCode" in view).toBe(false)
+    expect("reason" in view).toBe(false)
+    expect(view.rawStatus).toBe("expired")
+  })
+
+  it("status da order prevalece sobre detail de recusa na transação", () => {
+    const processado = mapOrderStatus(
+      order("processed", {
+        transactions: {
+          payments: [
+            { id: "PAY-1", amount: "1.00", status_detail: "high_risk" },
+          ],
+        },
+      })
+    )
+    expect(processado.state).toBe("paid")
+    expect("reason" in processado).toBe(false)
   })
 
   it("nenhum estado MP produz processing", () => {
@@ -69,8 +86,26 @@ describe("máquina qr (type-aware)", () => {
     }
   )
 
-  it("status fora do enum falha fechado", () => {
-    const fantasma = "in_dispute" as MpOrderStatus
-    expect(() => mapOrderStatus(order(fantasma))).toThrow(MpContractError)
+  it("type presente fora do escopo falha fechado", () => {
+    expect(() => mapOrderStatus(order("created", { type: "online" }))).toThrow(
+      MpContractError
+    )
+  })
+})
+
+describe("fail-closed contra valores hostis", () => {
+  it("status fora do enum lança", () => {
+    expect(() => mapOrderStatus(order("in_dispute" as MpOrderStatus))).toThrow(
+      MpContractError
+    )
+  })
+
+  it("chaves herdadas de protótipo não passam na guarda", () => {
+    const fantasmas: string[] = ["toString", "__proto__", "constructor"]
+    for (const fantasma of fantasmas) {
+      expect(() => mapOrderStatus(order(fantasma as MpOrderStatus))).toThrow(
+        MpContractError
+      )
+    }
   })
 })

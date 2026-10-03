@@ -37,8 +37,17 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
 - Fail-closed TOTAL: status fora do enum e estado proibido na máquina qr → `MpContractError`
   (nunca default silencioso). `status_detail` desconhecido → degradação conservadora
   (`not_retryable`) com `reasonCode` cru preservado; copy nunca vazia.
-- Cancelamento distingue origem: status da transação `canceled_by_api` | `canceled_on_terminal`
-  vira `reasonCode` com copy própria.
+- Cancelamento distingue origem: pela tabela oficial da TRANSAÇÃO, o status é `canceled` e a
+  origem vive no `status_detail` (`canceled_by_api` | `canceled_on_terminal`) — a origem é lida
+  do `status_detail` (tolerância documentada: também aceita no campo `status`).
+- `type` da order: `point` e `qr` são os valores do escopo presencial; AUSENTE é tratado como
+  `point` (decisão registrada); qualquer outro valor presente (ex.: `online`) → `MpContractError`.
+- O contrato presencial traz UM pagamento por ordem: mais que isso → `MpContractError`.
+- Defesa de protótipo: lookup por `hasOwnProperty` — chaves herdadas (`toString`, `constructor`)
+  não viram estado nem entrada de tabela.
+- `ChargeStatusView` carrega `rawStatus` (sempre) e `paymentId` (quando a ordem traz) para o
+  wiring do T3 (refund/auditoria não reabrem a ordem).
+- Arquivos: `status-taxonomy.ts`, `status.ts`, `status-view.ts` (construtores de view).
 
 ## Acceptance Criteria
 
@@ -57,3 +66,7 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
 - [ ] MUST: cobertura global ≥90% e money paths ≥95% — verify: `pnpm test:coverage`
 - [ ] SHOULD: nenhuma dependência nova em `dependencies` — verify: diff do package.json
       contra a base
+- [ ] MUST: valores hostis não viram estado — chaves herdadas de protótipo (status/detail),
+      `type` presente fora do escopo e ordem com múltiplos pagamentos falham fechado; origem do
+      cancelamento lida do `status_detail` da transação
+      — verify: `__tests__/status.spec.ts` + `__tests__/status.failures.spec.ts`

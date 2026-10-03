@@ -52,6 +52,12 @@ describe("taxonomia de retentabilidade", () => {
     ]) {
       expect(RETRY_TAXONOMY[d]!.retryClass).toBe("retry_with_change")
     }
+    expect(RETRY_TAXONOMY.insufficient_amount!.copy).toContain(
+      "saldo/limite insuficiente"
+    )
+    expect(RETRY_TAXONOMY.bad_filled_card_data!.copy).toContain(
+      "Dados do cartão inválidos"
+    )
   })
 
   it("recusas definitivas do emissor ficam em not_retryable", () => {
@@ -62,6 +68,9 @@ describe("taxonomia de retentabilidade", () => {
     ]) {
       expect(RETRY_TAXONOMY[d]!.retryClass).toBe("not_retryable")
     }
+    expect(RETRY_TAXONOMY.rejected_by_issuer!.copy).toContain(
+      "Recusado pelo emissor"
+    )
   })
 
   it("transitórias são retryable e revisões escalam para humano", () => {

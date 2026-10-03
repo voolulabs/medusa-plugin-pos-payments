@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest"
 import { mapOrderStatus, type ChargeStatusView } from "../status"
 import { RETRY_TAXONOMY, UNKNOWN_DETAIL } from "../status-taxonomy"
-import type { MpOrder, MpOrderPayment } from "../types"
-
-function order(extra: Partial<MpOrder>): MpOrder {
-  return { id: "ORD-1", status: "failed", ...extra }
-}
+import { MpContractError, type MpOrder, type MpOrderPayment } from "../types"
 
 function comTransacao(detail?: string, status?: string): Partial<MpOrder> {
   const payment: MpOrderPayment = { id: "PAY-1", amount: "10.00" }
   if (detail !== undefined) payment.status_detail = detail
   if (status !== undefined) payment.status = status
   return { transactions: { payments: [payment] } }
+}
+
+function falha(extra: Partial<MpOrder>): MpOrder {
+  return { id: "ORD-1", status: "failed", ...extra }
 }
 
 describe("falha com taxonomia da transação", () => {
@@ -21,38 +21,61 @@ describe("falha com taxonomia da transação", () => {
     ["high_risk", "retryable"],
     ["in_review", "escalate"],
   ] as const)("mapea %s para %s com copy", (detail, classe) => {
-    const view: ChargeStatusView = mapOrderStatus(order(comTransacao(detail)))
+    const view: ChargeStatusView = mapOrderStatus(falha(comTransacao(detail)))
     expect(view.state).toBe("failed")
     expect(view.reasonCode).toBe(detail)
     expect(view.retryClass).toBe(classe)
     expect(view.reason).toBe(RETRY_TAXONOMY[detail]!.copy)
   })
 
+  it("expõe rawStatus e o id do pagamento para o wiring", () => {
+    const view = mapOrderStatus(falha(comTransacao("processing_error")))
+    expect(view.rawStatus).toBe("failed")
+    expect(view.paymentId).toBe("PAY-1")
+  })
+
   it("detail desconhecido degrada conservador preservando o código", () => {
-    const view = mapOrderStatus(order(comTransacao("issuer_novo_2077")))
+    const view = mapOrderStatus(falha(comTransacao("issuer_novo_2077")))
     expect(view.retryClass).toBe(UNKNOWN_DETAIL.retryClass)
     expect(view.reasonCode).toBe("issuer_novo_2077")
     expect(view.reason).toBe(UNKNOWN_DETAIL.copy)
   })
 
+  it("detail herdado de protótipo degrada em vez de herdar entrada", () => {
+    const view = mapOrderStatus(falha(comTransacao("constructor")))
+    expect(view.retryClass).toBe(UNKNOWN_DETAIL.retryClass)
+    expect(view.reasonCode).toBe("constructor")
+  })
+
   it("failed sem transações usa o status como código e não quebra", () => {
-    const view = mapOrderStatus(order({}))
-    expect(view.state).toBe("failed")
+    const view = mapOrderStatus(falha({}))
     expect(view.reasonCode).toBe("failed")
     expect(view.retryClass).toBe(UNKNOWN_DETAIL.retryClass)
     expect(view.reason!.length).toBeGreaterThan(0)
   })
+
+  it("mais de um pagamento por ordem é violação de contrato", () => {
+    const pagamentos = [
+      { id: "PAY-1", amount: "5.00" },
+      { id: "PAY-2", amount: "5.00" },
+    ]
+    expect(() =>
+      mapOrderStatus(falha({ transactions: { payments: pagamentos } }))
+    ).toThrow(MpContractError)
+  })
 })
 
 describe("cancelamento e refund", () => {
-  it("distingue origem api/terminal", () => {
+  it("origem vem do status_detail da transação (tabela oficial)", () => {
     const api = mapOrderStatus({
-      ...order(comTransacao(undefined, "canceled_by_api")),
+      id: "ORD-1",
       status: "canceled",
+      ...comTransacao("canceled_by_api"),
     })
     const terminal = mapOrderStatus({
-      ...order(comTransacao(undefined, "canceled_on_terminal")),
+      id: "ORD-1",
       status: "canceled",
+      ...comTransacao("canceled_on_terminal"),
     })
     expect(api.reasonCode).toBe("canceled_by_api")
     expect(api.reason).toContain("cancelada")
@@ -60,8 +83,17 @@ describe("cancelamento e refund", () => {
     expect(terminal.reason).toContain("terminal")
   })
 
+  it("tolera origem informada no status da transação", () => {
+    const view = mapOrderStatus({
+      id: "ORD-1",
+      status: "canceled",
+      ...comTransacao(undefined, "canceled_by_api"),
+    })
+    expect(view.reasonCode).toBe("canceled_by_api")
+  })
+
   it("cancelado antes da tentativa: sem reasonCode, copy genérica", () => {
-    const view = mapOrderStatus({ ...order({}), status: "canceled" })
+    const view = mapOrderStatus({ id: "ORD-1", status: "canceled" })
     expect(view.state).toBe("canceled")
     expect("reasonCode" in view).toBe(false)
     expect(view.reason!.length).toBeGreaterThan(0)
@@ -74,5 +106,6 @@ describe("cancelamento e refund", () => {
       transactions: { payments: [{ id: "PAY-1", amount: "10.00" }] },
     })
     expect(refund.state).toBe("refunded")
+    expect(refund.rawStatus).toBe("refunded")
   })
 })
