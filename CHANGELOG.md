@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Mercado Pago adapter: `mapStatus` — pure order-to-charge-state mapping that is
+  `type`-aware (Point vs QR official state machines), with the normative retry
+  taxonomy over transaction `status_detail` (`retryable` / `retry_with_change` /
+  `not_retryable` / `escalate`) and operator-facing pt-BR reason copy. Fail-closed:
+  unknown order status and QR-forbidden states raise `MpContractError`; unknown
+  refusal details degrade conservatively with the raw code preserved.
 - `CONSTRAINTS.md` — non-negotiable engineering constraints for payment-path
   changes (money/units, charge state transitions, `data_version`, additive
   adapter options, fail-closed, no new declared dependency — runtime, dev,
