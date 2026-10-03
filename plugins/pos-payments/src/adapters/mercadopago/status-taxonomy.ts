@@ -39,6 +39,10 @@ export const RETRY_TAXONOMY: Readonly<Record<string, TaxonomyEntry>> = {
     retryClass: "not_retryable",
     copy: "Máximo de tentativas excedido. Tentar outra forma de pagamento.",
   },
+  failed: {
+    retryClass: "not_retryable",
+    copy: "Recusa sem causa especificada. Tentar outra forma de pagamento ou verificar o terminal.",
+  },
   high_risk: {
     retryClass: "retryable",
     copy: "Recusado por análise de risco. Pode tentar novamente.",
@@ -64,10 +68,11 @@ export const QR_FORBIDDEN_STATUSES: ReadonlySet<string> = new Set([
   "failed",
 ])
 
-/** Status de transação que denotam cancelamento e a origem (api vs terminal). */
+/** Origem do cancelamento (status_detail da transação; "canceled" = genérico sem origem). */
 export const CANCEL_ORIGINS: ReadonlySet<string> = new Set([
   "canceled_by_api",
   "canceled_on_terminal",
+  "canceled",
 ])
 
 /** Degradação conservadora para status_detail fora da tabela — nunca lança, copy nunca vazia. */

@@ -48,6 +48,13 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
 - `ChargeStatusView` carrega `rawStatus` (sempre) e `paymentId` (quando a ordem traz) para o
   wiring do T3 (refund/auditoria não reabrem a ordem).
 - Arquivos: `status-taxonomy.ts`, `status.ts`, `status-view.ts` (construtores de view).
+- `action_required` é estado TERMINAL na doc oficial ("this status will not change") — a view
+  carrega copy de orientação ("Verifique o terminal…") para o operador (risco de dupla cobrança).
+- A taxonomia cobre os 12 `status_detail` de transação failed documentados (11 específicos +
+  o genérico `failed` → not_retryable com copy própria); `CANCEL_ORIGINS` inclui o genérico
+  `canceled` (linha canceled/canceled da tabela oficial).
+- Wiring (T3/T5): capturar `MpContractError` POR ORDEM no poll/reconciliação — registrar e
+  continuar o lote, nunca abortar o loop por violação de contrato de uma ordem.
 
 ## Acceptance Criteria
 
@@ -70,3 +77,6 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
       `type` presente fora do escopo e ordem com múltiplos pagamentos falham fechado; origem do
       cancelamento lida do `status_detail` da transação
       — verify: `__tests__/status.spec.ts` + `__tests__/status.failures.spec.ts`
+- [ ] MUST: `action_required` carrega copy de orientação ao operador; details genéricos
+      `failed`/`canceled` têm entradas próprias na taxonomia
+      — verify: `__tests__/status.spec.ts` + `__tests__/status-taxonomy.spec.ts`

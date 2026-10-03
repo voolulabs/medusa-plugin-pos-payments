@@ -8,22 +8,15 @@ import {
   type TaxonomyEntry,
 } from "../status-taxonomy"
 
-const RECUSAS_DOCUMENTADAS = [
-  "insufficient_amount",
-  "rejected_by_issuer",
-  "high_risk",
-  "bad_filled_card_data",
-  "card_disabled",
-  "max_attempts_exceeded",
-  "amount_limit_exceeded",
-  "processing_error",
-  "invalid_installments",
-  "in_review",
-  "required_call_for_authorize",
-] as const
+const RECUSAS_DOCUMENTADAS = (
+  "insufficient_amount rejected_by_issuer high_risk bad_filled_card_data " +
+  "card_disabled max_attempts_exceeded amount_limit_exceeded " +
+  "processing_error invalid_installments in_review " +
+  "required_call_for_authorize failed"
+).split(" ")
 
 describe("taxonomia de retentabilidade", () => {
-  it("cobre as 11 recusas documentadas com copy não vazia", () => {
+  it("cobre as 12 recusas documentadas (11 + genérica failed) com copy não vazia", () => {
     for (const detail of RECUSAS_DOCUMENTADAS) {
       const entrada: TaxonomyEntry | undefined = RETRY_TAXONOMY[detail]
       expect(entrada, `entrada ausente: ${detail}`).toBeDefined()
@@ -94,6 +87,7 @@ describe("taxonomia de retentabilidade", () => {
       "failed",
     ])
     expect([...CANCEL_ORIGINS].sort()).toEqual([
+      "canceled",
       "canceled_by_api",
       "canceled_on_terminal",
     ])

@@ -63,5 +63,14 @@ export function mapOrderStatus(order: MpOrder): ChargeStatusView {
   const state = STATE_BY_STATUS[order.status]
   if (state === "failed") return failureView(order)
   if (state === "canceled") return cancelView(order)
+  if (state === "action_required") {
+    // Doc oficial: action_required não muda mais — a transação fica em
+    // waiting_payment/check_on_terminal (o dinheiro pode ter passado).
+    return {
+      state,
+      rawStatus: order.status,
+      reason: "Verifique o terminal para confirmar o resultado do pagamento.",
+    }
+  }
   return { state, rawStatus: order.status }
 }
