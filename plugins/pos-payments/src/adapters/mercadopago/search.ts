@@ -1,7 +1,7 @@
 /** GET /v1/orders — busca por external_reference (reconsulta de colisão 409). */
 import type { MercadoPagoOrdersClient } from "./client"
 import { parseOrder } from "./schema"
-import type { MpOrder } from "./types"
+import { MpContractError, type MpOrder } from "./types"
 
 /** Janela padrão: ordem criada nas últimas 24h (expiration máxima é 3h). */
 function janelaPadrao(): { begin_date: string; end_date: string } {
@@ -25,11 +25,13 @@ export async function searchOrdersByExternalReference(
     "GET",
     `/v1/orders?${params.toString()}`
   )
-  const data =
-    typeof response === "object" &&
-    response !== null &&
-    "data" in (response as object)
-      ? (response as { data: unknown[] }).data
-      : []
+  const data = (response as { data?: unknown })?.data
+  // Formato fora do contrato lança MpContractError — silenciar lista vazia
+  // esconderia a causa real atrás do 409 relançado pelo adapter.
+  if (!Array.isArray(data)) {
+    throw new MpContractError(
+      "resposta da busca fora do contrato: data ausente ou não é lista"
+    )
+  }
   return (data as unknown[]).map((item) => parseOrder(item))
 }

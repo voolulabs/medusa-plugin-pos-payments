@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { MercadoPagoAdapter } from "../adapter"
+import { MpContractError } from "../types"
 import { jsonResponse } from "./helpers"
 
 function makeAdapter() {
@@ -31,6 +32,36 @@ function orderBody(status: string) {
     transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
   }
 }
+
+describe("busca na colisão de idempotência", () => {
+  it("resposta da busca fora do contrato lança MpContractError (não o 409)", async () => {
+    for (const corpo of [JSON.stringify({ data: null }), "{}"]) {
+      const calls: Array<{ url: string; init: RequestInit }> = []
+      const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+        calls.push({ url: String(url), init: init ?? {} })
+        if (init?.method === "POST") {
+          return jsonResponse({ error: "idempotency_key_already_used" }, 409)
+        }
+        return jsonResponse(JSON.parse(corpo))
+      }) as unknown as typeof fetch
+      const adapter = new MercadoPagoAdapter({
+        accessToken: "test-token-fixture",
+        fetchImpl,
+      })
+      await expect(
+        adapter.createCharge(
+          {
+            amountMinor: 1999,
+            externalReference: "pay_01H",
+            terminalId: "NEWLAND_N950__S1",
+          },
+          "pos-payments-mercadopago:pay_01H:charge"
+        )
+      ).rejects.toThrow(MpContractError)
+      expect(calls).toHaveLength(2)
+    }
+  })
+})
 
 describe("MpAdapter na interface comum", () => {
   it("createCharge converte minor->decimal e envia a idempotency key", async () => {
