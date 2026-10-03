@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import { MercadoPagoOrdersClient } from "../client"
 import { MpApiError } from "../types"
-import { jsonResponse } from "./helpers"
+import { jsonResponse, TEST_ACCESS_TOKEN } from "./helpers"
 
 type FetchCall = { url: string; init: RequestInit }
 
@@ -19,7 +19,7 @@ function clientWith(
       : jsonResponse({ error: "rate_limited" }, 429, { "Retry-After": "20" })
   })
   const client = new MercadoPagoOrdersClient({
-    accessToken: "APP_USR-test",
+    accessToken: TEST_ACCESS_TOKEN,
     baseUrl: "https://api.test",
     fetchImpl: fetchImpl as unknown as typeof fetch,
     ...(opts.timeoutMs === undefined ? {} : { timeoutMs: opts.timeoutMs }),
@@ -33,7 +33,7 @@ async function getError(promise: Promise<unknown>): Promise<MpApiError> {
 
 function expectCommonHeaders(init: RequestInit): void {
   const headers = init.headers as Record<string, string>
-  expect(headers.Authorization).toBe("Bearer APP_USR-test")
+  expect(headers.Authorization).toBe(`Bearer ${TEST_ACCESS_TOKEN}`)
   expect(headers["Content-Type"]).toBe("application/json")
 }
 
@@ -79,7 +79,7 @@ describe("timeout duro rejeita a promise", () => {
       })
     }) as typeof fetch
     const client = new MercadoPagoOrdersClient({
-      accessToken: "APP_USR-test",
+      accessToken: TEST_ACCESS_TOKEN,
       baseUrl: "https://api.test",
       fetchImpl,
       timeoutMs: 20,

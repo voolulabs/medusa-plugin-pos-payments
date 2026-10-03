@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest"
-import { makeClient } from "./helpers"
+import { makeClient, TEST_ACCESS_TOKEN } from "./helpers"
 
 describe("MercadoPagoOrdersClient — createPointOrder (contrato)", () => {
   let ctx: ReturnType<typeof makeClient>
@@ -22,7 +22,7 @@ describe("MercadoPagoOrdersClient — createPointOrder (contrato)", () => {
     expect(url).toBe("https://api.test/v1/orders")
     expect(init.method).toBe("POST")
     const headers = init.headers as Record<string, string>
-    expect(headers.Authorization).toBe("Bearer APP_USR-test")
+    expect(headers.Authorization).toBe(`Bearer ${TEST_ACCESS_TOKEN}`)
     expect(headers["Content-Type"]).toBe("application/json")
     expect(headers["X-Idempotency-Key"]).toBe(ctx.fixedKey)
     expect(JSON.parse(String(init.body))).toEqual({

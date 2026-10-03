@@ -1,6 +1,9 @@
 import { vi, type Mock } from "vitest"
 import { MercadoPagoOrdersClient } from "../client"
 
+/** Fixture de teste — NÃO é credencial: valor deliberadamente sem formato de token de adquirente. */
+export const TEST_ACCESS_TOKEN = "test-token-fixture"
+
 type FetchCall = { url: string; init: RequestInit }
 
 /**
@@ -27,7 +30,7 @@ export function makeClient(queue: unknown[] = []): {
     })
   })
   const client = new MercadoPagoOrdersClient({
-    accessToken: "APP_USR-test",
+    accessToken: TEST_ACCESS_TOKEN,
     baseUrl: "https://api.test",
     fetchImpl: fetchImpl as unknown as typeof fetch,
   })
