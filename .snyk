@@ -1,0 +1,15 @@
+# Snyk (https://snyk.io) policy file.
+# Ignora achados de codigo revisados como falso positivo — reavaliar no expiry.
+
+version: v1.25.0
+
+ignore:
+  # Fixture de teste: TEST_ACCESS_TOKEN = "test-token-fixture" NAO e credencial.
+  # O detector faz dataflow do const e marca o campo accessToken pelo nome.
+  # (Snyk Code, LOW — scan do develop de 2026-10-03.)
+  "6aa2d766-05b1-4058-975d-a2e66a1bf530":
+    - "plugins/pos-payments/src/adapters/mercadopago/__tests__/helpers.ts":
+        reason: "Fixture de teste, nao e credencial — valor sem formato de token de adquirente"
+        expires: "2027-01-31T00:00:00.000Z"
+
+exclude: {}
