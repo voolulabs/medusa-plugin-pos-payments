@@ -18,7 +18,7 @@ describe("falha com taxonomia da transação", () => {
   it.each([
     ["insufficient_amount", "retry_with_change"],
     ["rejected_by_issuer", "not_retryable"],
-    ["high_risk", "retryable"],
+    ["high_risk", "not_retryable"],
     ["in_review", "escalate"],
   ] as const)("mapea %s para %s com copy", (detail, classe) => {
     const view: ChargeStatusView = mapOrderStatus(falha(comTransacao(detail)))
@@ -62,5 +62,18 @@ describe("falha com taxonomia da transação", () => {
     expect(() =>
       mapOrderStatus(falha({ transactions: { payments: pagamentos } }))
     ).toThrow(MpContractError)
+  })
+
+  it("cardinalidade vale antes do ramo: processed com 2 pagamentos também lança", () => {
+    const pagamentos = [
+      { id: "PAY-1", amount: "5.00" },
+      { id: "PAY-2", amount: "5.00" },
+    ]
+    const ordem: MpOrder = {
+      id: "ORD-1",
+      status: "processed",
+      transactions: { payments: pagamentos },
+    }
+    expect(() => mapOrderStatus(ordem)).toThrow(MpContractError)
   })
 })

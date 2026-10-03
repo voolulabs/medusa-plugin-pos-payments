@@ -44,12 +44,12 @@ export const RETRY_TAXONOMY: Readonly<Record<string, TaxonomyEntry>> = {
     copy: "Recusa sem causa especificada. Tentar outra forma de pagamento ou verificar o terminal.",
   },
   high_risk: {
-    retryClass: "retryable",
-    copy: "Recusado por análise de risco. Pode tentar novamente.",
+    retryClass: "not_retryable",
+    copy: "Recusado por análise de risco. Não repita imediatamente com dados iguais ou semelhantes.",
   },
   processing_error: {
     retryClass: "retryable",
-    copy: "Erro de processamento. Tente novamente.",
+    copy: "Erro de processamento. Tente novamente; se persistir, chame o suporte.",
   },
   in_review: {
     retryClass: "escalate",

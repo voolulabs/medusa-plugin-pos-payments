@@ -28,8 +28,10 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
   - `retry_with_change` (operador ajusta valor/dados): `insufficient_amount`,
     `amount_limit_exceeded`, `bad_filled_card_data`, `invalid_installments`
   - `not_retryable` (recusa igual ao repetir): `rejected_by_issuer`, `card_disabled`,
-    `max_attempts_exceeded`
-  - `retryable` (pode tentar de novo): `high_risk`, `processing_error`
+    `max_attempts_exceeded`, `high_risk` (antifraude — o MP alerta contra tentativas
+    consecutivas semelhantes; sem classificação oficial de reversibilidade, o conservador é
+    não retentar; decisão pós-CodeRabbit #42, 2026-10-03)
+  - `retryable` (pode tentar de novo): `processing_error`
   - `escalate` (escala humana): `in_review`, `required_call_for_authorize`
 - Estado do charge (`ChargeState`): `pending`, `awaiting_terminal`, `action_required`, `paid`,
   `failed`, `expired`, `canceled`, `refunded`. NENHUM estado MP produz `processing` no v1
@@ -42,7 +44,9 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
   do `status_detail` (tolerância documentada: também aceita no campo `status`).
 - `type` da order: `point` e `qr` são os valores do escopo presencial; AUSENTE é tratado como
   `point` (decisão registrada); qualquer outro valor presente (ex.: `online`) → `MpContractError`.
-- O contrato presencial traz UM pagamento por ordem: mais que isso → `MpContractError`.
+- O contrato presencial traz UM pagamento por ordem: mais que isso → `MpContractError`,
+  validado no `mapOrderStatus` ANTES da seleção do ramo (todos os estados, inclusive
+  `processed`/`refunded` — não só os ramos com motivo).
 - Defesa de protótipo: lookup por `hasOwnProperty` — chaves herdadas (`toString`, `constructor`)
   não viram estado nem entrada de tabela.
 - `ChargeStatusView` carrega `rawStatus` (sempre) e `paymentId` (quando a ordem traz) para o
@@ -55,6 +59,15 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
   `canceled` (linha canceled/canceled da tabela oficial).
 - Wiring (T3/T5): capturar `MpContractError` POR ORDEM no poll/reconciliação — registrar e
   continuar o lote, nunca abortar o loop por violação de contrato de uma ordem.
+- A cardinalidade é garantida uma ÚNICA vez, em `assertMappable` (status.ts) — `singlePayment`
+  é leitor puro (sem throw duplicado, sem risco de divergência de mensagem).
+- Ordens `processed`/`refunded` SEM `payments[]` permanecem `paid`/`refunded` sem `paymentId`:
+  semântica oficial ("payment was credited"); o wiring reconcilia/re-consulta. REVISAR com
+  payloads reais na homologação (follow-up T2.1, quando houver credenciais sandbox).
+- `processing_error` (`retryable`) orienta contatar o suporte na copy — a doc oficial manda
+  fornecer o `x-request-id`; expô-lo na view fica para o wiring (T3/T5).
+- Máquina QR oficial inclui o estado `processing` (ausente no v1 point-only): o adapter falha
+  fechado (`MpContractError`) até o ticket de QR (Fase 2b) mapeá-lo.
 
 ## Acceptance Criteria
 
@@ -80,3 +93,6 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
 - [ ] MUST: `action_required` carrega copy de orientação ao operador; details genéricos
       `failed`/`canceled` têm entradas próprias na taxonomia
       — verify: `__tests__/status.spec.ts` + `__tests__/status-taxonomy.spec.ts`
+- [ ] MUST: `high_risk` classificado `not_retryable` (antifraude) e cardinalidade de
+      pagamentos validada antes da seleção do ramo do estado
+      — verify: `__tests__/status-taxonomy.spec.ts` + `__tests__/status.failures.spec.ts`

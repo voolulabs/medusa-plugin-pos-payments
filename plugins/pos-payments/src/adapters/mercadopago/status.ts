@@ -38,7 +38,8 @@ const STATE_BY_STATUS: Record<MpOrderStatus, ChargeState> = {
   refunded: "refunded",
 }
 
-export function mapOrderStatus(order: MpOrder): ChargeStatusView {
+/** Guardas fail-closed pré-mapeamento: status conhecido, type no escopo, 1 pagamento. */
+function assertMappable(order: MpOrder): void {
   // hasOwnProperty e não `in`: chaves herdadas de Object.prototype não passam.
   if (!Object.prototype.hasOwnProperty.call(STATE_BY_STATUS, order.status)) {
     throw new MpContractError(
@@ -60,6 +61,17 @@ export function mapOrderStatus(order: MpOrder): ChargeStatusView {
       `status ${order.status} não existe na máquina qr (ordem ${order.id})`
     )
   }
+  // TODOS os estados exigem o contrato de 1 pagamento.
+  const payments = order.transactions?.payments ?? []
+  if (payments.length > 1) {
+    throw new MpContractError(
+      `ordem ${order.id} tem ${payments.length} pagamentos (contrato: 1)`
+    )
+  }
+}
+
+export function mapOrderStatus(order: MpOrder): ChargeStatusView {
+  assertMappable(order)
   const state = STATE_BY_STATUS[order.status]
   if (state === "failed") return failureView(order)
   if (state === "canceled") return cancelView(order)

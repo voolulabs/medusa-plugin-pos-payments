@@ -5,17 +5,11 @@ import {
   UNKNOWN_DETAIL,
 } from "./status-taxonomy"
 import type { ChargeStatusView } from "./status"
-import { MpContractError, type MpOrder, type MpOrderPayment } from "./types"
+import type { MpOrder, MpOrderPayment } from "./types"
 
-/** O contrato presencial traz UM pagamento por ordem — mais que isso é violação. */
+/** Pagamento único da ordem — a cardinalidade é garantida por assertMappable (status.ts). */
 function singlePayment(order: MpOrder): MpOrderPayment | undefined {
-  const payments = order.transactions?.payments ?? []
-  if (payments.length > 1) {
-    throw new MpContractError(
-      `ordem ${order.id} tem ${payments.length} pagamentos (contrato: 1)`
-    )
-  }
-  return payments[0]
+  return order.transactions?.payments?.[0]
 }
 
 export function failureView(order: MpOrder): ChargeStatusView {

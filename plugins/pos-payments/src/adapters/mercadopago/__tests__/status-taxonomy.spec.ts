@@ -66,9 +66,11 @@ describe("taxonomia de retentabilidade", () => {
     )
   })
 
-  it("transitórias são retryable e revisões escalam para humano", () => {
-    expect(RETRY_TAXONOMY.high_risk!.retryClass).toBe("retryable")
+  it("high_risk (antifraude) não retentável; processing_error retentável", () => {
+    expect(RETRY_TAXONOMY.high_risk!.retryClass).toBe("not_retryable")
+    expect(RETRY_TAXONOMY.high_risk!.copy).toContain("Não repita imediatamente")
     expect(RETRY_TAXONOMY.processing_error!.retryClass).toBe("retryable")
+    expect(RETRY_TAXONOMY.processing_error!.copy).toContain("chame o suporte")
     expect(RETRY_TAXONOMY.in_review!.retryClass).toBe("escalate")
     expect(RETRY_TAXONOMY.required_call_for_authorize!.retryClass).toBe(
       "escalate"
