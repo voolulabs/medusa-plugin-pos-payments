@@ -9,6 +9,9 @@ da Orders API (Point e QR — status-order-transaction, verificação 2026-10-01
 adapters fail-closed (ADR 0001 §6) e erros tipados (ADR 0002). O cliente HTTP existe (T1);
 este ticket adiciona a camada PURA de interpretação de estado.
 
+> **Errata 2 2026-10-03 (auditoria final):** onde o escopo/AC dizem "11 status_details",
+> leia-se **12** (11 específicas + a genérica `failed`) — a tabela já cobre as 12.
+
 ## 1. Escopo do ticket
 
 Mapeamento puro `MpOrder → ChargeStatusView` (estado do charge + motivo legível no caixa), com

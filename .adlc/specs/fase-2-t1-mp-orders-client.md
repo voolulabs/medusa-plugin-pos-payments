@@ -14,6 +14,13 @@ Mercado Pago (`POST /v1/orders`, `GET /v1/orders/{id}`, cancel/refund, `GET /ter
 política de adapters em REST puro com idempotência e fail-closed (ADR 0001 §6), pirâmide de
 testes e réguas de cobertura do pacote (engenharia §4).
 
+> **Erratas 2 2026-10-03 (verificação contra docs oficiais ao vivo + código):** "base URL
+> fixa" vale para a superfície do adapter — `baseUrl`/`timeoutMs` injetáveis no client são
+> seam de teste. `default_installments` EXISTE no contrato oficial (Point Pro 2/3,
+> `credit_card`, com `installments_cost`); a ausência no payload v1 é decisão de produto,
+> não proibição do contrato. `GET /v1/orders/{id}` só retorna ordens com menos de 3 meses;
+> 409 `already_queued_order_for_terminal` (uma ordem em fila por terminal) é recusa conhecida.
+
 ## 1. Escopo do ticket
 
 Cliente HTTP REST puro do adapter `mercadopago` — superfície Orders API + terminais, **sem**

@@ -35,6 +35,25 @@ credencial de ambiente (T6).
 - `mp-status.ts` (105) e `adapter.ts` (101) excedem momentaneamente o orçamento de 100
   linhas — junto com `service.ts` legado no ticket de refactor.
 
+## Erratas 2 2026-10-03 (auditoria final: specs × código × docs oficiais ao vivo)
+
+- A bala "header condicional do cancelamento" está **superseded** pela decisão
+  INCONDICIONAL (última emenda). Conflito documentado na própria MP: a página de
+  referência do cancel-order do Point NÃO documenta o header e diz que só `created`
+  cancela via API (409 `cannot_cancel_order` para `at_terminal` — "do terminal");
+  o header só aparece na doc de migração. Decisão incondicional mantida: sem efeito
+  adverso documentado em `created`, e o 409 tem tratamento próprio (warn +
+  UNEXPECTED_STATE).
+- `POLL_WINDOW` (10s/40s) é **contrato do chamador** (app/core) — o plugin é passivo
+  (1 consulta por `getPaymentStatus`; erro degrada pending); a constante é documental.
+- O `data` da session valida em `providers/pos-terminal/schema.ts` (prototype-polling +
+  zod + merge) antes de persistir — fronteira não listada no escopo original.
+- Busca oficial (`GET /v1/orders`): `begin_date`/`end_date` RFC 3339 **obrigatórios**
+  (enviamos); paginação do request usa `page`/`page_size` (não usamos); refund parcial
+  referencia `transaction_id` (erro `transaction_not_found`); refund individual nasce
+  `processing` antes de `refunded`.
+
+
 ## Emendas do build (rodada de implementação)
 
 - **Estorno do Point é TOTAL** (contrato oficial, sem body/amount): `refundCharge` da interface

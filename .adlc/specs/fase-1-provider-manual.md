@@ -13,6 +13,8 @@
 > construtor; (d) o estado do charge vive no `data` da payment session (não em
 > `payment.metadata`) — ver T3/CONSTRAINTS 6; (e) §6.3 é contrato futuro (T4+): hoje
 > só existe `GET /admin/pos-payments/health`.
+> Layout §6.1: `src/types` (contrato público) e `src/admin` (stub exigido pelo build)
+> entram no inventário.
 
 Extraído para os gates ADLC.
 
