@@ -4,8 +4,9 @@ import type { ChargeState } from "../../adapters/types"
 export const CHARGE_DATA_VERSION = 1
 
 /**
- * Estados terminais: failed/expired/canceled/refunded. refunded sai só de paid
- * (refund do terminal incluído — origem capturada pelo poll/webhook do T5).
+ * Estados terminais: failed/expired/canceled/refunded. refunded pode partir
+ * de qualquer estado não terminal (refund originado no terminal/reconciliação)
+ * e de paid — origem capturada pelo poll/webhook do T5.
  */
 export const ALLOWED_TRANSITIONS: Readonly<
   Record<ChargeState, readonly ChargeState[]>

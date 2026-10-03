@@ -7,6 +7,13 @@
 > backend 2.19 real + CI verde — 16/16 testes). Isso encerra o "reconfirmar contra o
 > backend 2.19" desta seção.
 
+> **Erratas 2026-10-03 (auditoria spec × código):** (a) o layout da Fase 1 NÃO tem
+> `middlewares.ts` — auth 100% do core, sem arquivo do plugin; (b) `initiatePayment`
+> manual devolve `{ id: randomUUID(), data: {} }`; (c) não há merge de defaults no
+> construtor; (d) o estado do charge vive no `data` da payment session (não em
+> `payment.metadata`) — ver T3/CONSTRAINTS 6; (e) §6.3 é contrato futuro (T4+): hoje
+> só existe `GET /admin/pos-payments/health`.
+
 Extraído para os gates ADLC.
 
 ## 6. Fase 1 — Plugin @voolulabs com provider genérico (sem adquirente)

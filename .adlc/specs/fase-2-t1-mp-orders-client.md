@@ -1,4 +1,9 @@
 # Spec: Fase 2 — T1 cliente Orders API do Mercado Pago
+> **Erratas 2026-10-03 (auditoria spec × código):** a chave de idempotência é DERIVADA
+> antes do envio (determinística por sessão) e persistida no blob retornado após a
+> chamada — persistência prévia não se aplica. Inventário final inclui `response.ts` e
+> `terminals-validation.ts`.
+
 
 > **Registro histórico** — T1 implementada, mergeada no #36 e embarcada no ciclo em desenvolvimento (2026-10-03).
 Este arquivo é o registro do ciclo concluído, não documento vivo (padrão de

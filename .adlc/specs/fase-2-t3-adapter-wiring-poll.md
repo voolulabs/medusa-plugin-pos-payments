@@ -26,6 +26,15 @@ política de adapters (ADR 0001). Base: cliente HTTP (T1) e taxonomia de status 
 Fora de escopo: rotas HTTP (T4), webhook/subscriber (T5), registro presence-gated por
 credencial de ambiente (T6).
 
+## Erratas 2026-10-03 (auditoria spec × código)
+
+- Prefixo real da chave de idempotência: `pos-payments-mercadopago:<id>:<propósito>`.
+- `getPaymentStatus` mapeia os **8** estados (não 7).
+- Logs não têm campo `attempt`; `external_reference` só no log de criação; 5xx hoje é
+  `warn` (o nível `error` de D2 fica para o wiring do T5).
+- `mp-status.ts` (105) e `adapter.ts` (101) excedem momentaneamente o orçamento de 100
+  linhas — junto com `service.ts` legado no ticket de refactor.
+
 ## Emendas do build (rodada de implementação)
 
 - **Estorno do Point é TOTAL** (contrato oficial, sem body/amount): `refundCharge` da interface
