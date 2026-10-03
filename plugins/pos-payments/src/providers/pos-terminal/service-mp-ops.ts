@@ -92,7 +92,10 @@ export async function mpRefund(
   logger: StructuredLogger
 ): Promise<{ data: Record<string, unknown> }> {
   // Decisão de produto v1: só total (a MP suporta parcial via transactions[]).
-  // Fail-closed: exige amount_minor no blob e valor IGUAL ao cobrado.
+  // Fail-closed: exige amount E amount_minor, e valor IGUAL ao cobrado.
+  if (amount === undefined) {
+    throw unexpected("reembolso sem amount do core", "fail-closed")
+  }
   if (typeof data.amount_minor !== "number") {
     throw unexpected("blob sem amount_minor", "invariante")
   }
@@ -113,7 +116,10 @@ export async function mpRefund(
     }
   }
   const chargeId = data.charge_id as string
-  const view = await adapter.refundCharge(chargeId, keyFor(chargeId, "refund"))
+  const view = await adapter.refundCharge(
+    chargeId,
+    keyFor(chargeId, `refund:${String(data.amount_minor)}`)
+  )
   logger.info("pos-terminal: reembolso total na adquirente", {
     provider_id: PROVIDER_LOG_ID,
     charge_id: chargeId,

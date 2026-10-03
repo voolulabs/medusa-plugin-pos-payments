@@ -39,9 +39,22 @@ function assertExternalReference(seed: string): string {
   return seed
 }
 
-/** Minor units via MathBN (CONSTRAINTS 1) — BRL tem 2 casas. */
+/** Minor units via MathBN (CONSTRAINTS 1) — BRL tem 2 casas; fail-closed. */
 export function toMinor(amount: unknown): number {
-  return MathBN.mult(String(amount), 100).toNumber()
+  const value =
+    typeof amount === "object" &&
+    amount !== null &&
+    "value" in (amount as object)
+      ? (amount as { value: string | number }).value
+      : (amount as string | number)
+  const minor = MathBN.mult(String(value), 100).toNumber()
+  if (!Number.isSafeInteger(minor)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "pos-terminal: valor monetário fora do domínio de minor units"
+    )
+  }
+  return minor
 }
 
 function assertTerminalId(input: {

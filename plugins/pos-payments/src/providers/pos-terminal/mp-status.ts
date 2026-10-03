@@ -32,6 +32,10 @@ const MEDUSA_STATUS: Record<ChargeState, MedusaSessionStatus> = {
   refunded: "captured",
 }
 
+function medusaStatusByState(state: ChargeState): MedusaSessionStatus {
+  return MEDUSA_STATUS[state]
+}
+
 function medusaStatus(view: ChargeStatusView): MedusaSessionStatus {
   return MEDUSA_STATUS[view.state]
 }
@@ -52,6 +56,20 @@ export async function mpPoll(
     const chargeId = data.charge_id as string
     const before = (data.state as string) ?? "pending"
     const view = await adapter.getCharge(chargeId)
+    // Estado terminal local não é sobrescrito pela adquirente (a máquina não
+    // volta): preserva, loga e devolve o status do estado salvo.
+    if (
+      before !== view.state &&
+      ["failed", "expired", "canceled", "refunded"].includes(before)
+    ) {
+      logger.warn("pos-terminal: estado terminal local diverge da adquirente", {
+        provider_id: "pp_pos-terminal_mercadopago",
+        charge_id: chargeId,
+        local: before,
+        remote: view.state,
+      })
+      return { status: medusaStatusByState(before as ChargeState), data }
+    }
     let next: Record<string, unknown>
     try {
       next = applyTransition(data, view.state)

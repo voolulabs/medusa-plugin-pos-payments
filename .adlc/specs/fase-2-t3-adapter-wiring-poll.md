@@ -45,7 +45,12 @@ credencial de ambiente (T6).
   `BigNumberRawValue { value }` em unidades MAIORES (@medusajs/payment 2.21.2) — normalizado
   para minor e comparado com o `amount_minor` do blob (diferente = recusa ANTES da
   adquirente; ausente = falha alto).
-- **Cancelamento**: header `x-allow-cancelable-status: at_terminal` INCONDICIONAL — a MP
+- **CodeRabbit #43 (7 achados, todos tratados)**: divergência de valor na ordem
+  reutilizada falha alto no create (nunca segue com valor antigo); `toMinor` fail-closed
+  (aceita `BigNumberRawValue`, rejeita não-inteiro); estado terminal local NUNCA é
+  sobrescrito pelo poll (preserva + warn); refund exige `amount` do core, monta a chave
+  com o montante (`refund:<amount_minor>`) e compara pós-normalização; describe renomeado.
+- - **Cancelamento**: header `x-allow-cancelable-status: at_terminal` INCONDICIONAL — a MP
   carrega a ordem no terminal em segundos e o blob local chega atrasado (o header é
   concessão, sem efeito adverso documentado em `created`).
 

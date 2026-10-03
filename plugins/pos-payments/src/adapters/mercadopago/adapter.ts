@@ -4,6 +4,7 @@ import type {
   CreateChargeInput,
   PosPaymentsAdapter,
 } from "../types"
+import { MpContractError } from "./types"
 import { MercadoPagoOrdersClient } from "./client"
 import { minorUnitsToDecimalString } from "./money"
 import { cancelOrder, refundOrder } from "./orders"
@@ -52,6 +53,14 @@ export class MercadoPagoAdapter implements PosPaymentsAdapter {
       },
       idempotencyKey
     )
+    // Sessão reutilizada com outro amount: a MP devolve a ordem ANTIGA da
+    // chave — divergência entre valor local e cobrado falha alto (nunca segue).
+    const returnedAmount = order.transactions?.payments?.[0]?.amount
+    if (returnedAmount !== minorUnitsToDecimalString(input.amountMinor)) {
+      throw new MpContractError(
+        `ordem ${order.id} retornou amount ${String(returnedAmount)} ≠ ${minorUnitsToDecimalString(input.amountMinor)} (sessão reutilizada com valor diferente)`
+      )
+    }
     return { chargeId: order.id, view: mapOrderStatus(order) }
   }
 

@@ -36,7 +36,12 @@ const fakeAdapter = (
 
 describe("provider mercadopago (wiring T3)", () => {
   it("initiate persista charge_id/acquirer/state/data_version/amount_minor", async () => {
-    const order = { id: "ORD-9", status: "created", type: "point" }
+    const order = {
+      id: "ORD-9",
+      status: "created",
+      type: "point",
+      transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
+    }
     const fetchImpl = (async (url: string | URL) =>
       new Response(JSON.stringify(order), { status: 201 })) as typeof fetch
     const service = new PosTerminalProviderService(
@@ -116,6 +121,21 @@ describe("poll do provider mercadopago (janelas 10s/40s)", () => {
     }
   })
 
+  it("divergência não-terminal força reconvergência com warn (paid->canceled)", async () => {
+    const spy = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+    const out = await mpPoll(
+      fakeAdapter(
+        async () =>
+          ({ state: "canceled", rawStatus: "canceled" }) as ChargeStatusView
+      ),
+      { charge_id: "ORD-1", state: "paid" },
+      spy as never
+    )
+    expect(out.data?.state).toBe("canceled")
+    expect(out.status).toBe("canceled")
+    expect(spy.warn).toHaveBeenCalled()
+  })
+
   it("poll sem charge_id não chama a adquirente", async () => {
     const adapter = fakeAdapter(
       async () =>
@@ -139,7 +159,7 @@ describe("poll do provider mercadopago (janelas 10s/40s)", () => {
 })
 
 describe("reconvergência e resiliência do poll", () => {
-  it("reconvergência fora da máquina: MP é a fonte de verdade e loga warn", async () => {
+  it("estado terminal local divergente é PRESERVADO (nunca volta a máquina)", async () => {
     const spy = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
     const out = await mpPoll(
       fakeAdapter(
@@ -149,7 +169,8 @@ describe("reconvergência e resiliência do poll", () => {
       { charge_id: "ORD-1", state: "failed" },
       spy as never
     )
-    expect(out.data?.state).toBe("refunded")
+    expect(out.data?.state).toBe("failed")
+    expect(out.status).toBe("error")
     expect(spy.warn).toHaveBeenCalled()
   })
 
@@ -339,7 +360,48 @@ describe("refund do provider mercadopago", () => {
   })
 })
 
-describe("refund do provider mercadopago", () => {
+describe("refund e validações de sessão do provider mercadopago", () => {
+  it("amount fora do domínio de minor units falha alto (10.005)", async () => {
+    const fetchImpl = (async () =>
+      new Response("{}", { status: 201 })) as typeof fetch
+    const service = new PosTerminalProviderService(
+      { logger },
+      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+    )
+    await expect(
+      service.initiatePayment({
+        id: "pay_01H",
+        amount: 10.005,
+        currency_code: "brl",
+        context: {},
+        data: { terminal_id: "T1" },
+      } as never)
+    ).rejects.toThrow(/minor units/)
+  })
+
+  it("amount como BigNumberRawValue do core é aceito (objeto com value)", async () => {
+    const order = {
+      id: "ORD-9",
+      status: "created",
+      type: "point",
+      transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
+    }
+    const fetchImpl = (async () =>
+      new Response(JSON.stringify(order), { status: 201 })) as typeof fetch
+    const service = new PosTerminalProviderService(
+      { logger },
+      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+    )
+    const out = await service.initiatePayment({
+      id: "pay_01H",
+      amount: { value: "19.99", precision: 2 },
+      currency_code: "brl",
+      context: {},
+      data: { terminal_id: "NEWLAND_N950__S1" },
+    } as never)
+    expect(out.data?.amount_minor).toBe(1999)
+  })
+
   it("seed fora do alfabeto da external_reference falha alto", async () => {
     const fetchImpl = (async () =>
       new Response("{}", { status: 201 })) as typeof fetch
