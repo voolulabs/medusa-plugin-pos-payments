@@ -30,9 +30,9 @@ describe("listTerminals — GET /terminals/v1/list", () => {
 
   it("query vai na URL na ordem esperada", async () => {
     const { client, calls } = makeClient([TERMINALS_PAGE])
-    await listTerminals(client, { limit: 10, storeId: "S1" })
+    await listTerminals(client, { limit: 10, storeId: "47792478" })
     expect(calls[0]!.url).toBe(
-      "https://api.test/terminals/v1/list?limit=10&store_id=S1"
+      "https://api.test/terminals/v1/list?limit=10&store_id=47792478"
     )
   })
 })

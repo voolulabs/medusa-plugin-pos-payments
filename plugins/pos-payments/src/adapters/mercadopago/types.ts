@@ -27,13 +27,17 @@ export interface MpOrder {
 }
 
 export class MpApiError extends Error {
+  /** Presente em 429 — segundos sugeridos pelo server para retry (ADR 0001). */
+  readonly retryAfter?: string
   constructor(
     message: string,
     readonly status: number,
-    readonly body: unknown
+    readonly body: unknown,
+    retryAfter?: string
   ) {
     super(message)
     this.name = "MpApiError"
+    if (retryAfter !== undefined) this.retryAfter = retryAfter
   }
 }
 
@@ -47,28 +51,6 @@ export class MpIdempotencyConflictError extends MpApiError {
     this.name = "MpIdempotencyConflictError"
   }
 }
-/** Mapeia a Response bruta: 409 de colisão tipado, não-2xx → MpApiError, 2xx → payload. */
-export async function parseMpResponse(
-  response: Response,
-  method: string,
-  path: string
-): Promise<unknown> {
-  const parsed: unknown = await response.json().catch(() => ({}))
-  if (response.status === 409 && isIdempotencyConflict(parsed)) {
-    throw new MpIdempotencyConflictError(
-      `Mercado Pago ${method} ${path}: idempotency_key_already_used`,
-      parsed
-    )
-  }
-  if (!response.ok) {
-    throw new MpApiError(
-      `Mercado Pago ${method} ${path}: HTTP ${response.status}`,
-      response.status,
-      parsed
-    )
-  }
-  return parsed
-}
 
 /** Violação de contrato em fronteira do adapter (entrada local ou resposta fora do schema). */
 export class MpContractError extends Error {
@@ -76,14 +58,6 @@ export class MpContractError extends Error {
     super(message)
     this.name = "MpContractError"
   }
-}
-
-function isIdempotencyConflict(body: unknown): boolean {
-  return (
-    typeof body === "object" &&
-    body !== null &&
-    (body as { error?: unknown }).error === "idempotency_key_already_used"
-  )
 }
 
 export interface CreatePointOrderInput {

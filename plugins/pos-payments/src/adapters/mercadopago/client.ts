@@ -1,9 +1,9 @@
 import {
   MpContractError,
-  parseMpResponse,
   type MpOrder,
   type CreatePointOrderInput,
 } from "./types"
+import { parseMpResponse } from "./response"
 import {
   assertAmount,
   assertDescription,

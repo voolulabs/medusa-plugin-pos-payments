@@ -73,4 +73,12 @@ describe("MercadoPagoOrdersClient — getOrder", () => {
       (calls[0]!.init.headers as Record<string, string>)["X-Idempotency-Key"]
     ).toBeUndefined()
   })
+
+  it("estados terminais do contrato (failed, action_required) parseiam sem erro", async () => {
+    for (const status of ["failed", "action_required"] as const) {
+      const { client } = makeClient([{ id: "ORD-1", status, type: "point" }])
+      const order = await client.getOrder("ORD-1")
+      expect(order.status).toBe(status)
+    }
+  })
 })

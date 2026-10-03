@@ -1,6 +1,8 @@
 import type { MercadoPagoOrdersClient } from "./client"
 import { parseSetupResponse, parseTerminalsPage } from "./schema"
 import { buildSetupBody, type SetupTerminalItem } from "./payload"
+import { MpContractError } from "./types"
+import { assertSetupItem, assertTerminalsQuery } from "./terminals-validation"
 
 interface TerminalsQuery {
   /** 1–50 (default 50 na API). */
@@ -25,6 +27,7 @@ export async function listTerminals(
   client: MercadoPagoOrdersClient,
   query: TerminalsQuery = {}
 ) {
+  assertTerminalsQuery(query)
   const qs = terminalsQueryString(query)
   return parseTerminalsPage(
     await client.request("GET", `/terminals/v1/list${qs ? `?${qs}` : ""}`)
@@ -36,9 +39,17 @@ export async function setupTerminal(
   client: MercadoPagoOrdersClient,
   item: SetupTerminalItem
 ) {
-  return parseSetupResponse(
+  assertSetupItem(item)
+  const parsed = parseSetupResponse(
     await client.request("PATCH", "/terminals/v1/setup", {
       body: buildSetupBody(item),
     })
   )
+  const confirmed = parsed.terminals[0]
+  if (confirmed?.id !== item.id) {
+    throw new MpContractError(
+      `setup confirmou terminal diferente: pedido "${item.id}", resposta "${confirmed?.id ?? "nenhum"}"`
+    )
+  }
+  return parsed
 }
