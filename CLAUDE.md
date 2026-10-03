@@ -102,7 +102,19 @@ no P5. Requer auth (agentic key ou `coderabbit auth login`).
 - Bateria completa ANTES de qualquer commit: `pnpm lint` · `format:check` · build · `vitest` ·
   `tsc --noEmit` · `pnpm knip` · `opcore check --repo . --all` · `adlc spec-lint` +
   `gate-manifest verify` · commitlint (invocação idêntica à do CI). Gate que nunca falhou não
-  está provado — provar por mutation.
+  está provado — provar por mutation (controle positivo E negativo).
+- Revisão adversarial local (agente fresco, read-only) antes de TODO push, sem exceção —
+  "trivial" é exatamente o perfil da mudança que mata gate.
+- Um PR, uma natureza: PR de feature (demanda) contém só o produto; artefatos de processo
+  (`.adlc/`, chores de CI/docs de processo) vão em série e PR próprios (`chore/adlc-*`).
+- Specs de ticket são registro histórico por ticket (`.adlc/specs/`): concluído o ciclo,
+  header de status no topo + ACs ticados com as verificações reais; o spec ativo do ticket
+  em curso não se reescreve.
+- Ledger ADLC assinado (HMAC): `ADLC_MANIFEST_KEY` no secret do CI e em
+  `~/.adlc/manifest.key` (chmod 600) no host de dev — registros locais:
+  `ADLC_MANIFEST_KEY=$(cat ~/.adlc/manifest.key) adlc …`. Desde o primeiro rail declarado,
+  o ticket store é trust root: toda escrita exige a chave (ou `--allow-unsigned`
+  explícito e registrado).
 - Credenciais de adquirente NUNCA no app/terminal — credenciais de plataforma via
   env/constants no backend; credenciais dinâmicas por lojista só no armazenamento
   criptografado próprio do plugin (AES-256-GCM envelope, ADR 0004), nunca

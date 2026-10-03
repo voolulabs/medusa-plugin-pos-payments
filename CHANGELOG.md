@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--ignore-scripts`. Workflow comments now attribute the two toolchains
   explicitly: opcore (code hygiene, the-open-engine) is a distinct project from
   the ADLC toolkit (voodootikigod).
+- Evidence ledger signing: the ADLC step receives `ADLC_MANIFEST_KEY`
+  (repo secret, HMAC) so `gate-manifest verify` attests entry authorship
+  instead of internal consistency only. `CLAUDE.md` documents the house
+  conventions decided with this change: adversarial review before every push,
+  one PR = one nature (feature vs process artifacts), specs as per-ticket
+  historical records, and the Phase 1 spec closed as a historical record
+  (acceptance criteria checked against the 0.0.1 deployment evidence).
 
 ## [0.0.1] - 2026-09-30
 
