@@ -26,6 +26,10 @@ Fora de escopo: wiring no provider (T3), rotas (T4), webhook/reconciliação (T5
 - Point: `created → at_terminal → processed | failed | action_required | expired | canceled`;
   `canceled` pode vir do TERMINAL; `refunded` pode ser iniciado no terminal; `created` expira
   em 15 min sem processamento (server-side → `expired`).
+  > **Errata 2026-10-03 (reconciliação com a doc oficial, diagrama status-order-transaction):**
+  > `action_required` é ABSORVENTE — não tem saída no diagrama ("this status will not
+  > change"); o resultado final vem da TRANSAÇÃO (`processed`/`accredited` → paid —
+  > implementado no T3). E `canceled` também alcança `created` via API (não só o terminal).
 - QR: `created → processed` direto; NÃO existem `at_terminal`/`action_required`/`failed` —
   recebê-los numa ordem `type: "qr"` é violação de contrato.
 - O `status_detail` rico vive na TRANSAÇÃO (não na order). Taxonomia normativa:
