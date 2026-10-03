@@ -44,7 +44,7 @@ describe("MpAdapter na interface comum", () => {
         description: "venda balcão",
         paymentMethodDefaultType: "credit_card",
       },
-      "pos-terminal:pay_01H:charge"
+      "pos-payments-mercadopago:pay_01H:charge"
     )
     expect(out.chargeId).toBe("ORD-77")
     expect(out.view.state).toBe("pending")
@@ -55,7 +55,7 @@ describe("MpAdapter na interface comum", () => {
     expect(body.description).toBe("venda balcão")
     expect(body.config.payment_method.default_type).toBe("credit_card")
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-terminal:pay_01H:charge",
+      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01H:charge",
     })
   })
 
@@ -93,7 +93,7 @@ describe("MpAdapter na interface comum", () => {
         externalReference: "pay_01H",
         terminalId: "NEWLAND_N950__S1",
       },
-      "pos-terminal:pay_01H:charge"
+      "pos-payments-mercadopago:pay_01H:charge"
     )
     expect(out.chargeId).toBe("ORD-77")
     const metodos = calls.map((c) => c.init.method ?? "GET")

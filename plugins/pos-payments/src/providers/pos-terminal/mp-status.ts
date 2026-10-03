@@ -62,7 +62,7 @@ export async function mpPoll(
       before !== view.state &&
       ["failed", "expired", "canceled", "refunded"].includes(before)
     ) {
-      logger.warn("pos-terminal: estado terminal local diverge da adquirente", {
+      logger.warn("mercadopago: estado terminal local diverge da adquirente", {
         provider_id: "pp_pos-terminal_mercadopago",
         charge_id: chargeId,
         local: before,
@@ -76,7 +76,7 @@ export async function mpPoll(
     } catch {
       // Origem-terminal fora da máquina local: a MP é a fonte de verdade.
       next = { ...data, state: view.state, data_version: CHARGE_DATA_VERSION }
-      logger.warn("pos-terminal: reconvergência fora da máquina local", {
+      logger.warn("mercadopago: reconvergência fora da máquina local", {
         provider_id: "pp_pos-terminal_mercadopago",
         charge_id: chargeId,
         from: before,
@@ -84,7 +84,7 @@ export async function mpPoll(
       })
     }
     if (next.state !== before) {
-      logger.info("pos-terminal: transição do charge (poll)", {
+      logger.info("mercadopago: transição do charge (poll)", {
         provider_id: "pp_pos-terminal_mercadopago",
         charge_id: chargeId,
         from: before,
@@ -95,7 +95,7 @@ export async function mpPoll(
     return { status: medusaStatus(view), data: next }
   } catch (error) {
     // D2: erro de consulta degrada para pending — o poll não desiste (40s).
-    logger.warn("pos-terminal: consulta da adquirente falhou no poll", {
+    logger.warn("mercadopago: consulta da adquirente falhou no poll", {
       provider_id: "pp_pos-terminal_mercadopago",
       charge_id: data.charge_id,
       detail: String(error).slice(0, 120),

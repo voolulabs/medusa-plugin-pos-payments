@@ -41,7 +41,7 @@ export async function mpRefund(
     chargeId,
     keyFor(chargeId, `refund:${String(data.amount_minor)}`)
   )
-  logger.info("pos-terminal: reembolso total na adquirente", {
+  logger.info("mercadopago: reembolso total na adquirente", {
     provider_id: PROVIDER_LOG_ID,
     charge_id: chargeId,
     to: view.state,

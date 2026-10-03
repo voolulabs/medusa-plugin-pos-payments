@@ -67,7 +67,7 @@ describe("provider mercadopago (wiring T3)", () => {
       state: "pending",
       data_version: 1,
       amount_minor: 1999,
-      idempotency_key: "pos-terminal:pay_01H:charge",
+      idempotency_key: "pos-payments-mercadopago:pay_01H:charge",
     })
     // replay do cliente não forja estado; dados próprios da sessão preservados
     expect(out.data?.state).toBe("pending")
@@ -456,7 +456,7 @@ describe("refund e validações de sessão do provider mercadopago", () => {
     const body = JSON.parse(String(calls[0]!.init.body))
     expect(body.transactions.payments[0].amount).toBe("19.99")
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-terminal:pay_01H:charge",
+      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01H:charge",
     })
   })
 })

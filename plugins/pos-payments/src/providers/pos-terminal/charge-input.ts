@@ -14,14 +14,14 @@ export function toMinor(amount: unknown): number {
   if (String(bn).includes(".")) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "pos-terminal: valor monetário deve ser inteiro positivo em minor units"
+      "mercadopago: valor monetário deve ser inteiro positivo em minor units"
     )
   }
   const minor = bn.toNumber()
   if (minor <= 0 || !Number.isSafeInteger(minor)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "pos-terminal: valor monetário deve ser inteiro positivo em minor units"
+      "mercadopago: valor monetário deve ser inteiro positivo em minor units"
     )
   }
   return minor
@@ -38,7 +38,7 @@ export function assertTerminalId(input: {
   if (!terminalId) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "pos-terminal: terminal_id obrigatório no data/context para cobrar na maquininha"
+      "mercadopago: terminal_id obrigatório no data/context para cobrar na maquininha"
     )
   }
   return terminalId

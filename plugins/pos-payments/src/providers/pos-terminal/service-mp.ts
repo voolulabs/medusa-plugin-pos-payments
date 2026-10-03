@@ -29,14 +29,14 @@ function sessionSeed(input: {
   if (!seed) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "pos-terminal: sem id de sessão não há idempotência determinística"
+      "mercadopago: sem id de sessão não há idempotência determinística"
     )
   }
   return seed
 }
 
 function idempotencyKey(seed: string, purpose: string): string {
-  return `pos-terminal:${seed}:${purpose}`
+  return `pos-payments-mercadopago:${seed}:${purpose}`
 }
 
 /** External reference: <=64 chars [A-Za-z0-9-_], sem PII — fail-closed. */
@@ -44,7 +44,7 @@ function assertExternalReference(seed: string): string {
   if (!/^[A-Za-z0-9-_]{1,64}$/.test(seed)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "pos-terminal: id de sessão fora do alfabeto da external_reference"
+      "mercadopago: id de sessão fora do alfabeto da external_reference"
     )
   }
   return seed
@@ -82,7 +82,7 @@ export async function mpInitiate(
     },
     view.state
   )
-  logger.info("pos-terminal: charge criado na adquirente", {
+  logger.info("mercadopago: charge criado na adquirente", {
     provider_id: PROVIDER_LOG_ID,
     charge_id: chargeId,
     external_reference: createInput.externalReference,

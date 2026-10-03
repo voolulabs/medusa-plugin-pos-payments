@@ -7,11 +7,11 @@ import { PROVIDER_LOG_ID } from "./service-mp"
 import { toMinor } from "./charge-input"
 
 export function keyFor(chargeId: string, purpose: string): string {
-  return `pos-terminal:${chargeId}:${purpose}`
+  return `pos-payments-mercadopago:${chargeId}:${purpose}`
 }
 
 export function unexpected(what: string, detail: string): MedusaError {
-  const msg = `pos-terminal: ${what} (${detail})`
+  const msg = `mercadopago: ${what} (${detail})`
   return new MedusaError(MedusaError.Types.UNEXPECTED_STATE, msg)
 }
 
@@ -25,14 +25,14 @@ export async function mpCapture(
   const chargeId = data.charge_id as string
   const view = await adapter.getCharge(chargeId)
   if (view.state !== "paid") {
-    logger.warn("pos-terminal: captura sem pagamento creditado", {
+    logger.warn("mercadopago: captura sem pagamento creditado", {
       provider_id: PROVIDER_LOG_ID,
       charge_id: chargeId,
       state: view.state,
     })
     throw unexpected("captura sem pagamento creditado", view.state)
   }
-  logger.info("pos-terminal: captura confirmada (local)", {
+  logger.info("mercadopago: captura confirmada (local)", {
     provider_id: PROVIDER_LOG_ID,
     charge_id: chargeId,
     payment_id: view.paymentId,
@@ -64,13 +64,13 @@ export async function mpCancel(
     view = await adapter.cancelCharge(chargeId, keyFor(chargeId, "cancel"), {
       allowAtTerminal: true,
     })
-    logger.info("pos-terminal: cobrança cancelada na adquirente", {
+    logger.info("mercadopago: cobrança cancelada na adquirente", {
       provider_id: PROVIDER_LOG_ID,
       charge_id: chargeId,
       to: view.state,
     })
   } catch (error) {
-    logger.warn("pos-terminal: 4xx/5xx no cancelamento", {
+    logger.warn("mercadopago: 4xx/5xx no cancelamento", {
       provider_id: PROVIDER_LOG_ID,
       charge_id: data.charge_id,
       detail: String(error).slice(0, 120),
