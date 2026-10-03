@@ -89,6 +89,10 @@ jobs:
       # exit 2 = cadeia quebrada (provado por mutation). --ignore-scripts:
       # pacote zero-dependência, higiene de supply-chain.
       - name: ADLC (spec gate + manifest verify)
+        env:
+          # HMAC do ledger: com a chave o verify atesta autoria das entradas;
+          # sem ela prova apenas consistência interna da cadeia.
+          ADLC_MANIFEST_KEY: ${{ secrets.ADLC_MANIFEST_KEY }}
         run: |
           npm i -g --ignore-scripts @adlc/cli@1.11.1
           adlc spec-lint .adlc/specs/fase-1-provider-manual.md
