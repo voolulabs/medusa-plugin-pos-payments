@@ -39,6 +39,18 @@ describe("máquina point (8 estados)", () => {
     expect(view.rawStatus).toBe("expired")
   })
 
+  it("action_required com transação creditada vira paid (order é absorvente)", () => {
+    const view = mapOrderStatus(
+      order("action_required", {
+        transactions: {
+          payments: [{ id: "PAY-1", amount: "1.00", status: "processed" }],
+        },
+      })
+    )
+    expect(view.state).toBe("paid")
+    expect(view.paymentId).toBe("PAY-1")
+  })
+
   it("status da order prevalece sobre detail de recusa na transação", () => {
     const view = mapOrderStatus(order("processed", comDetail("high_risk")))
     expect(view.state).toBe("paid")

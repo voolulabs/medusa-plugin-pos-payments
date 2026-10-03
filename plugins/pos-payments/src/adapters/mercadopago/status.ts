@@ -1,30 +1,10 @@
 /** Mapeamento puro order → estado do charge. Type-aware (point vs qr) e fail-closed. */
 import { QR_FORBIDDEN_STATUSES, type RetryClass } from "./status-taxonomy"
-import { cancelView, failureView } from "./status-view"
+import { cancelView, failureView, singlePayment } from "./status-view"
+import type { ChargeState, ChargeStatusView } from "../types"
 import { MpContractError, type MpOrder, type MpOrderStatus } from "./types"
 
-export type ChargeState =
-  | "pending"
-  | "awaiting_terminal"
-  | "action_required"
-  | "paid"
-  | "failed"
-  | "expired"
-  | "canceled"
-  | "refunded"
-
-export interface ChargeStatusView {
-  readonly state: ChargeState
-  /** Status cru da order — sempre presente, para auditoria no wiring. */
-  readonly rawStatus: MpOrderStatus
-  /** Id do pagamento inspecionado, quando a ordem o traz. */
-  readonly paymentId?: string | undefined
-  /** status_detail cru da transação (ou origem do cancelamento / o próprio status). */
-  readonly reasonCode?: string
-  readonly retryClass?: RetryClass
-  /** Copy pt-BR para o operador do caixa — presente quando há motivo a exibir. */
-  readonly reason?: string
-}
+export type { ChargeStatusView } from "../types"
 
 /** Decisão: NENHUM estado MP produz "processing" no v1 — o poll não sintetiza otimismo. */
 const STATE_BY_STATUS: Record<MpOrderStatus, ChargeState> = {
@@ -76,13 +56,21 @@ export function mapOrderStatus(order: MpOrder): ChargeStatusView {
   if (state === "failed") return failureView(order)
   if (state === "canceled") return cancelView(order)
   if (state === "action_required") {
-    // Doc oficial: action_required não muda mais — a transação fica em
-    // waiting_payment/check_on_terminal (o dinheiro pode ter passado).
+    // Doc oficial: action_required é ABSORVENTE no nível da order ("will not
+    // change") — quem confirma o resultado é a TRANSAÇÃO.
+    const payment = singlePayment(order)
+    if (
+      payment?.status === "processed" ||
+      payment?.status_detail === "accredited"
+    ) {
+      return { state: "paid", rawStatus: order.status, paymentId: payment.id }
+    }
     return {
       state,
       rawStatus: order.status,
+      paymentId: payment?.id,
       reason: "Verifique o terminal para confirmar o resultado do pagamento.",
     }
   }
-  return { state, rawStatus: order.status }
+  return { state, rawStatus: order.status, paymentId: singlePayment(order)?.id }
 }
