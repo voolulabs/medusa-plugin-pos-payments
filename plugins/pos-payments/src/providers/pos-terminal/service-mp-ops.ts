@@ -57,10 +57,14 @@ export async function mpCancel(
   }
   try {
     const chargeId = data.charge_id as string
+    // Header INCONDICIONAL: a MP carrega a ordem no terminal em segundos e o
+    // blob local chega atrasado; sem o header, created só cancela pré-carga.
     const view = await adapter.cancelCharge(
       chargeId,
       keyFor(chargeId, "cancel"),
-      data.state === "awaiting_terminal" ? { allowAtTerminal: true } : undefined
+      {
+        allowAtTerminal: true,
+      }
     )
     logger.info("pos-terminal: cobrança cancelada na adquirente", {
       provider_id: PROVIDER_LOG_ID,
@@ -92,12 +96,21 @@ export async function mpRefund(
   if (typeof data.amount_minor !== "number") {
     throw unexpected("blob sem amount_minor", "invariante")
   }
-  // amount do Medusa já é minor units — compara verbatim (sem converter 2x).
-  if (amount !== undefined && amount !== data.amount_minor) {
-    throw unexpected(
-      "reembolso parcial não suportado no Point v1",
-      "amount difere"
-    )
+  if (amount !== undefined) {
+    // O core passa refund.raw_amount: BigNumberRawValue {value} em unidades
+    // MAIORES (@medusajs/payment 2.21.2, refundPaymentFromProvider_).
+    const raw =
+      typeof amount === "object" &&
+      amount !== null &&
+      "value" in (amount as object)
+        ? (amount as { value: string | number }).value
+        : (amount as string | number)
+    if (toMinor(raw) !== (data.amount_minor as number)) {
+      throw unexpected(
+        "reembolso parcial não suportado no Point v1",
+        "amount difere"
+      )
+    }
   }
   const chargeId = data.charge_id as string
   const view = await adapter.refundCharge(chargeId, keyFor(chargeId, "refund"))

@@ -299,6 +299,7 @@ describe("refund do provider mercadopago", () => {
       data: { charge_id: "ORD-9", state: "paid", amount_minor: 1999 },
     } as never)
     expect(cap.data?.captured_at).toBeTruthy()
+    expect(cap.data?.state).toBe("paid")
     const can = await service.cancelPayment({
       id: "x",
       data: { charge_id: "ORD-9", state: "awaiting_terminal" },
@@ -306,10 +307,12 @@ describe("refund do provider mercadopago", () => {
     expect(can.data?.state).toBe("canceled")
     const ref = await service.refundPayment({
       id: "x",
-      amount: 1999,
+      // Forma REAL do core: refund.raw_amount (objeto, unidades maiores).
+      amount: { value: "19.99", precision: 2 },
       data: { charge_id: "ORD-9", state: "paid", amount_minor: 1999 },
     } as never)
     expect(ref.data?.state).toBe("refunded")
+    expect(ref.data?.refunded_at).toBeTruthy()
   })
 
   it("getPaymentStatus sem data degrada pending (ramo do coalescing)", async () => {
