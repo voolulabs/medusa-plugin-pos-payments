@@ -1,11 +1,12 @@
 /** Operações de ciclo de vida do charge por adapter (usadas pelo service). */
-import { MathBN, MedusaError } from "@medusajs/framework/utils"
-import type { StructuredLogger } from "./mp-status"
+import { MedusaError } from "@medusajs/framework/utils"
 import type {
   CreateChargeInput,
   PosPaymentsAdapter,
 } from "../../adapters/types"
 import { applyTransition } from "./charge-state"
+import { assertTerminalId, toMinor } from "./charge-input"
+import type { StructuredLogger } from "./mp-status"
 
 export const PROVIDER_LOG_ID = "pp_pos-terminal_mercadopago"
 
@@ -37,48 +38,6 @@ function assertExternalReference(seed: string): string {
     )
   }
   return seed
-}
-
-/** Minor units via MathBN (CONSTRAINTS 1) — BRL tem 2 casas; fail-closed. */
-export function toMinor(amount: unknown): number {
-  const value =
-    typeof amount === "object" &&
-    amount !== null &&
-    "value" in (amount as object)
-      ? (amount as { value: string | number }).value
-      : (amount as string | number)
-  const bn = MathBN.mult(String(value), 100)
-  // Fração de centavo rejeitada ANTES do toNumber (toNumber arredondaria calado).
-  if (String(bn).includes(".")) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "pos-terminal: valor monetário fora do domínio de minor units"
-    )
-  }
-  const minor = bn.toNumber()
-  if (!Number.isSafeInteger(minor)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "pos-terminal: valor monetário fora do domínio de minor units"
-    )
-  }
-  return minor
-}
-
-function assertTerminalId(input: {
-  data?: Record<string, unknown>
-  context?: Record<string, unknown>
-}): string {
-  const terminalId =
-    (input.data?.terminal_id as string | undefined) ??
-    (input.context?.terminal_id as string | undefined)
-  if (!terminalId) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "pos-terminal: terminal_id obrigatório no data/context para cobrar na maquininha"
-    )
-  }
-  return terminalId
 }
 
 export async function mpInitiate(

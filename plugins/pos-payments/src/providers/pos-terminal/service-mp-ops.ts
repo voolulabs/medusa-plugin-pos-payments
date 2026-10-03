@@ -3,7 +3,8 @@ import { MedusaError } from "@medusajs/framework/utils"
 import type { PosPaymentsAdapter } from "../../adapters/types"
 import type { StructuredLogger } from "./mp-status"
 import { applyTransition } from "./charge-state"
-import { PROVIDER_LOG_ID, toMinor } from "./service-mp"
+import { PROVIDER_LOG_ID } from "./service-mp"
+import { toMinor } from "./charge-input"
 
 function keyFor(chargeId: string, purpose: string): string {
   return `pos-terminal:${chargeId}:${purpose}`
