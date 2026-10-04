@@ -15,14 +15,29 @@ cd "$ROOT"
 require_cli() {
   local cli="$1"
   local package="$2"
+  local expected="${3:-}"
   if ! command -v "$cli" >/dev/null 2>&1; then
     echo "CLI ausente: instale $package antes de rodar ci:local." >&2
     exit 1
   fi
+  # Presença não basta: versão diferente da pinada pelo CI destrói a paridade
+  # (um verde local deixa de garantir o verde do CI).
+  if [ -n "$expected" ] && ! "$cli" --version 2>/dev/null | grep -q "$expected"; then
+    echo "Versão de $cli diverge do pin do CI (esperado $expected; encontrado $($cli --version 2>/dev/null | head -1))." >&2
+    exit 1
+  fi
 }
-require_cli pnpm "pnpm@9.10.0 (corepack enable)"
-require_cli opcore "@the-open-engine-company/opcore@0.3.3 (npm i -g)"
-require_cli adlc "@adlc/cli@1.11.1 (npm i -g --ignore-scripts)"
+require_cli opcore "@the-open-engine-company/opcore@0.3.3 (npm i -g)" "0.3.3"
+require_cli adlc "@adlc/cli@1.11.1 (npm i -g --ignore-scripts)" "1.11.1"
+# O CI usa corepack prepare pnpm@9.10.0 (packageManager do repo). Com corepack
+# disponível, TODO pnpm daqui passa pelo pin do repo; sem corepack, exige a
+# versão exata no PATH.
+if command -v corepack >/dev/null 2>&1; then
+  pnpm() { command corepack pnpm "$@"; }
+  export -f pnpm
+else
+  require_cli pnpm "pnpm@9.10.0 (corepack enable)" "9.10.0"
+fi
 
 SKIPS=()
 STAGES_OK=0
