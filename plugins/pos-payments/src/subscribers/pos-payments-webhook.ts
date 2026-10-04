@@ -125,7 +125,9 @@ export default async function posPaymentsWebhook({
     refundTotal: async (paymentId) => {
       // Idempotência no engine: redelivery do event bus com a mesma chave não
       // re-executa o workflow concluído (a guarda de refunds do payment cobre
-      // os casos posteriores). O transactionId existe no engine
+      // os casos posteriores). NÃO garante exclusão mútua entre execuções
+      // concorrentes: risco residual aceito no T5 (ledger seq 90), revisão
+      // com locking no T6. O transactionId existe no engine
       // (WorkflowOrchestratorRunDTO) mas o FlowRunOptions do sdk ainda não o
       // expõe — cast local.
       await refundPaymentWorkflow(container).run({
