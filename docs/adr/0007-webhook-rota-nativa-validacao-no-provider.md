@@ -1,8 +1,8 @@
 # ADR 0007: Webhook de adquirente na rota nativa do core, com HMAC no provider e reconciliação no subscriber
 
 - **Status:** aceito (2026-10-04, ciclo T5)
-- **Contexto:** plano-pos-br.md §6.2/§6.3 · event-bus.md §2 (fatos verificados no fonte
-  core 2.21) · mercado-pago.md §5 (assinatura) · ADR 0005 (superfícies API)
+- **Contexto:** ADR 0001 (estado por re-fetch) · ADR 0005 (superfícies API) ·
+  fonte do core Medusa 2.19 (rota de hook, subscriber de webhook e enum de ações)
 
 ## Contexto e problema
 
@@ -12,7 +12,7 @@ terminal**, que o fluxo do caixa (poll + markAsPaid) não enxerga. Precisávamos
 (1) onde a notificação entra no backend, (2) onde a assinatura `x-signature` é validada e
 (3) como reconciliar estados que o core não processa.
 
-## Fatos verificados (fonte do core, event-bus.md §2)
+## Fatos verificados (fonte do core 2.19)
 
 - A rota `POST /hooks/payment/{provider}` é do core: responde **200 imediato**, emite
   `payment.webhook_received` com `{provider, payload: {data, rawData, headers}}` e agenda
