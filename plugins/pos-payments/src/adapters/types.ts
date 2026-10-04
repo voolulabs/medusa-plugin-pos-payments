@@ -24,6 +24,10 @@ export interface ChargeStatusView {
   readonly retryClass?: RetryClass
   /** Copy pt-BR para o operador do caixa — presente quando há motivo a exibir. */
   readonly reason?: string
+  /** external_reference ecoada pela ordem — session_id do webhook (T5). */
+  readonly externalReference?: string | undefined
+  /** Amount da transação em minor units — insumo do captured do webhook (T5). */
+  readonly amountMinor?: number | undefined
 }
 
 export interface CreateChargeInput {
