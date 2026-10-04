@@ -73,9 +73,14 @@ stage_adlc() {
     return 1
   fi
   if [ -f "$HOME/.adlc/manifest.key" ]; then
-    # SC2155: export com atribuição embutida mascara a falha do cat — separar
-    # (sem a chave o record gravaria unsigned e o CI quebraria depois).
-    ADLC_MANIFEST_KEY="$(cat "$HOME/.adlc/manifest.key")"
+    # SC2155 + set -e suspenso (função chamada por `if !`): a falha do cat NÃO
+    # pode exportar chave vazia — o verify local sem chave aceita em silêncio
+    # (r1 do CodeRabbit no T8). Arquivo existente porém VAZIO é o mesmo furo.
+    ADLC_MANIFEST_KEY="$(cat "$HOME/.adlc/manifest.key")" || return 1
+    if [ -z "$ADLC_MANIFEST_KEY" ]; then
+      echo "$HOME/.adlc/manifest.key vazio — sem chave o record gravaria unsigned e o verify local aceita em silêncio." >&2
+      return 1
+    fi
     export ADLC_MANIFEST_KEY
   fi
   adlc spec-lint .adlc/specs/fase-1-provider-manual.md || return 1
