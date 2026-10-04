@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# ci:local — paridade de CI em dev (ticket T7). Fonte da verdade: .github/workflows/ci.yml
+# ci:local — paridade de CI em dev (ticket T7) + SAST local (ticket T8).
+# Fonte da verdade: .github/workflows/ci.yml
 # Regra de casa: nenhum erro pode ser descoberto pelo CI — todo gate roda aqui antes do push,
 # na MESMA ordem do job `verify` + o job `commitlint`. Serviços com secret (Codecov, FOSSA,
 # Snyk) são SKIP declarado no fim, nunca falha silenciosa. Qualquer mudança no ci.yml passa
-# por aqui no mesmo PR.
+# por aqui no mesmo PR. Estágios 12–13 (shellcheck, semgrep) são defesa local DECLARADA
+# acima do ci.yml — checagem mecânica das classes CWE que só apareciam em revisão.
 # ATENÇÃO: run_stage chama os estágios dentro de `if !` — dentro de função assim o set -e
 # fica SUSPENSO. Todo comando que pode falhar precisa de `|| return 1` explícito.
 set -euo pipefail
@@ -71,7 +73,10 @@ stage_adlc() {
     return 1
   fi
   if [ -f "$HOME/.adlc/manifest.key" ]; then
-    export ADLC_MANIFEST_KEY="$(cat "$HOME/.adlc/manifest.key")"
+    # SC2155: export com atribuição embutida mascara a falha do cat — separar
+    # (sem a chave o record gravaria unsigned e o CI quebraria depois).
+    ADLC_MANIFEST_KEY="$(cat "$HOME/.adlc/manifest.key")"
+    export ADLC_MANIFEST_KEY
   fi
   adlc spec-lint .adlc/specs/fase-1-provider-manual.md || return 1
   adlc gate-manifest verify --json || return 1
@@ -145,6 +150,86 @@ stage_commitlint() {
     commitlint --from "$from" --to HEAD
 }
 
+stage_shellcheck() {
+  local version="0.10.0"
+  local checksum="6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87"
+  # Mesmo padrão do gitleaks: o TARBALL fica em cache PRIVADO do usuário
+  # (/tmp é plantável por outro usuário local — CWE-829), o checksum é
+  # verificado A CADA execução e o binário só roda se extraído desse tarball
+  # verificado (CWE-354).
+  local cache="${XDG_CACHE_HOME:-$HOME/.cache}/ci-local"
+  local tarball="$cache/shellcheck-v$version.tar.xz"
+  case "$(uname -s)-$(uname -m)" in
+    Linux-x86_64) ;;
+    *)
+      SKIPS+=("shellcheck (plataforma $(uname -s)-$(uname -m) sem binário pinado — rode no CI)")
+      return 0
+      ;;
+  esac
+  if [ ! -f "$tarball" ]; then
+    mkdir -p "$cache"
+    curl -sSfL "https://github.com/koalaman/shellcheck/releases/download/v${version}/shellcheck-v${version}.linux.x86_64.tar.xz" \
+      -o "$tarball" || return 1
+  fi
+  echo "${checksum}  $tarball" | sha256sum -c - >/dev/null || {
+    rm -f "$tarball"
+    echo "checksum do tarball do shellcheck não bateu — cache descartado, rode de novo para baixar limpo." >&2
+    return 1
+  }
+  local rundir
+  rundir="$(mktemp -d)"
+  local status=0
+  tar -xf "$tarball" -C "$rundir" || {
+    rm -rf "$rundir"
+    return 1
+  }
+  # PRESERVA o status do scanner: shellcheck exit 1 = defeito encontrado — o
+  # cleanup não pode mascarar o gate (mesma lição do gitleaks, provada por mutation).
+  "$rundir/shellcheck-v${version}/shellcheck" -x scripts/*.sh || status=$?
+  rm -rf "$rundir"
+  return "$status"
+}
+
+stage_semgrep() {
+  local version="1.179.0"
+  # Bootstrap único em cache PRIVADO: venv sem ensurepip (ubuntu sem
+  # python3-venv) + pip oficial (bootstrap.pypa.io) + semgrep com versão PINADA
+  # do PyPI. Em execução a versão é conferida por token exato, como os outros CLIs.
+  local cache="${XDG_CACHE_HOME:-$HOME/.cache}/ci-local"
+  local venv="$cache/semgrep-venv"
+  local bin="$venv/bin/semgrep"
+  if [ ! -x "$bin" ]; then
+    echo "semgrep $version ausente — bootstrap único em $cache (venv + PyPI)..." >&2
+    mkdir -p "$cache"
+    python3 -m venv --without-pip "$venv" || return 1
+    local getpip
+    getpip="$(mktemp)"
+    curl -sSfL https://bootstrap.pypa.io/get-pip.py -o "$getpip" || {
+      rm -f "$getpip"
+      return 1
+    }
+    "$venv/bin/python" "$getpip" --quiet || {
+      rm -f "$getpip"
+      return 1
+    }
+    rm -f "$getpip"
+    "$venv/bin/pip" install --quiet "semgrep==$version" || return 1
+  fi
+  local found
+  found="$("$bin" --version 2>/dev/null | grep -oE "[0-9]+(\.[0-9]+)+" | head -1)"
+  if [ "$found" != "$version" ]; then
+    echo "Versão do semgrep diverge do pin (esperado $version; encontrado ${found:-desconhecida}) — remova $venv e rode de novo." >&2
+    return 1
+  fi
+  # --error é load-bearing: sem ele semgrep acha e sai 0 (provado no smoke).
+  # Excludes de artefatos de build; regras vêm do registry com metrics off.
+  "$bin" scan \
+    --config p/security-audit --config p/secrets \
+    --metrics=off --error --quiet \
+    --exclude ".medusa" --exclude "node_modules" --exclude "dist" \
+    . || return 1
+}
+
 printf 'ci:local — paridade do .github/workflows/ci.yml (base: %s)\n' "${CI_LOCAL_BASE:-origin/develop}"
 
 run_stage "0 árvore limpa" stage_tree
@@ -159,10 +244,13 @@ run_stage "8 adlc (spec-lint + manifest)" stage_adlc
 run_stage "9 npm audit (prod, high)" pnpm audit --prod --audit-level high
 run_stage "10 gitleaks" stage_gitleaks
 run_stage "11 commitlint (range da branch)" stage_commitlint
+run_stage "12 shellcheck (bash estático)" stage_shellcheck
+run_stage "13 semgrep (SAST: security-audit + secrets)" stage_semgrep
 
-printf '\nCI LOCAL: %s/12 estágios verdes.\n' "$STAGES_OK"
+printf '\nCI LOCAL: %s/14 estágios verdes.\n' "$STAGES_OK"
 if [ "${#SKIPS[@]}" -gt 0 ]; then
   printf 'SKIP declarado:\n'
   printf '  - %s\n' "${SKIPS[@]}"
 fi
 printf 'Serviços com secret sempre fora daqui: Codecov (upload), FOSSA (licenças), Snyk (SAST/deps).\n'
+printf 'Defesa local declarada: 12 shellcheck + 13 semgrep — acima do ci.yml (ticket T8).\n'
