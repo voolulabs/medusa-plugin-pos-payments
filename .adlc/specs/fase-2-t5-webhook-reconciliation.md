@@ -46,7 +46,7 @@ Parseia o envelope do `rawData` (nunca confia no payload); **re-fetch** da ordem
 
 | view.state (re-fetch) | retorno |
 |---|---|
-| `paid` | `{action: "captured", data: {session_id: <external_reference>, amount: <minor units>}}` (Point captura na aprovação) |
+| `paid` | `{action: "captured", data: {session_id: <external_reference>, amount: <minor units>}}` (Point captura na aprovação). `amountMinor` é calculado SÓ na view paid — amount malformado nos outros estados não derruba o mapeamento (inclusive pós-refund na MP, quando o resultado tem que persistir) |
 | `refunded` / `canceled` | `{action: "not_supported"}` — core não move; subscriber do plugin reconcilia |
 | demais (`failed`, `expired`, `awaiting_terminal`, `action_required`, `pending`) | `{action: "pending"}` — no-op; o poll continua sendo o caminho primário |
 
@@ -72,7 +72,11 @@ refund de terminal e tem que consumir as tentativas do event bus (attempts=3) �
 só falhas permanentes (assinatura, sessão inexistente) são descartadas sem retry.
 `canceled` de terminal →
 audit log apenas. A decisão fica em função pura (`webhook-reconcile.ts`) com dependências
-injetadas — o subscriber é fiação.
+injetadas — o subscriber é fiação. O `refundPaymentWorkflow` roda com `transactionId`
+determinístico (`pos-payments-reconcile:<payment_id>`): redelivery do event bus não
+re-executa o workflow concluído no engine, e a guarda de refunds do payment cobre os
+casos posteriores. O adapter do subscriber resolve LAZY, depois do filtro de provider —
+options quebradas não derrubam webhooks de outros providers.
 
 Complemento no adapter (T5): o refund é **resiliente por estado** — falha no POST refund
 com a ordem já `refunded` na MP (refund originado no terminal nasce refunded) ou com o
