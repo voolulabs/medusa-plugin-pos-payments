@@ -14,20 +14,25 @@ import { recoverByIdempotencyConflict } from "./search"
 import { listTerminals as listTerminalsRemote } from "./terminals"
 import { toTerminalsPage } from "./terminals-page"
 import { toCreateOrderInput } from "./payload"
+import { assertTerminalAllowedByMode } from "./test-mode"
 
 interface MpAdapterOptions {
   accessToken: string
   fetchImpl?: typeof fetch
   /** Timeout duro por chamada — padrão 15s (orçamento do app de caixa). */
   timeoutMs?: number
+  /** Guard MP_POINT_TEST_MODE (T6) — default false (produção); true só em homologação. */
+  testMode?: boolean
 }
 
 /** Point captura no processamento: capture do adapter é confirmação LOCAL (sem POST). */
 export class MercadoPagoAdapter implements PosPaymentsAdapter {
   readonly acquirer = "mercadopago"
   private readonly client: MercadoPagoOrdersClient
+  private readonly testMode: boolean
 
   constructor(options: MpAdapterOptions) {
+    this.testMode = options.testMode === true
     this.client = new MercadoPagoOrdersClient({
       accessToken: options.accessToken,
       ...(options.fetchImpl !== undefined
@@ -43,6 +48,9 @@ export class MercadoPagoAdapter implements PosPaymentsAdapter {
     input: CreateChargeInput,
     idempotencyKey: string
   ): Promise<{ chargeId: string; view: ChargeStatusView }> {
+    // Guard T6: sandbox (serial SBX*) só passa com MP_POINT_TEST_MODE —
+    // fail-closed ANTES de idempotência, payload e rede.
+    assertTerminalAllowedByMode(input.terminalId, this.testMode)
     let order
     try {
       order = await this.client.createPointOrder(

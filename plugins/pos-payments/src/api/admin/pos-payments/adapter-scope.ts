@@ -9,7 +9,9 @@ import { getPluginOptions } from "../../../utils/plugin-options"
  * Providers do módulo payment não são resolvíveis do container (verificado no
  * @medusajs/payment 2.19): as rotas falam com o adapter lido do bloco
  * `posTerminal` das options do plugin. manual/ausente → NOT_ALLOWED (400);
- * mercadopago sem accessToken → falha alta (CONSTRAINTS 4).
+ * mercadopago sem accessToken → falha alta (CONSTRAINTS 4). O guard
+ * MP_POINT_TEST_MODE (T6) é espelhado do provider: mesma postura nas duas
+ * entradas de cobrança.
  */
 export function adapterForRequest(
   req: AuthenticatedMedusaRequest
@@ -18,6 +20,7 @@ export function adapterForRequest(
   const acquirer = posTerminal?.acquirer ?? "manual"
   const options: Parameters<typeof resolveAdapter>[1] = {
     accessToken: posTerminal?.accessToken,
+    testMode: posTerminal?.mpPointTestMode === true,
     ...(posTerminal?.fetchImpl ? { fetchImpl: posTerminal.fetchImpl } : {}),
   }
   const adapter = resolveAdapter(acquirer, options)

@@ -6,7 +6,7 @@ import type {
 import { vi, type Mock } from "vitest"
 import { PLUGIN_NAME } from "../../../../utils/plugin-options"
 
-export const TERMINAL = "NEWLAND_N950__SBX0000001"
+export const TERMINAL = "NEWLAND_N950__S1"
 
 export const VALID_BODY = {
   amountMinor: 1999,
@@ -53,6 +53,7 @@ type RequestOpts = {
   plugin?: {
     acquirer?: string
     accessToken?: string
+    mpPointTestMode?: boolean
     fetchImpl?: typeof fetch
   } | null
   body?: unknown

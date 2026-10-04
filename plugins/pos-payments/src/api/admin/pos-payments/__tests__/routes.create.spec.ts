@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 import { POST } from "../charges/route"
-import { VALID_BODY, headerOf, makeReq, makeRes } from "./routes.helpers"
+import {
+  ORDER_OK,
+  VALID_BODY,
+  headerOf,
+  makeReq,
+  makeRes,
+} from "./routes.helpers"
 
 describe("POST /admin/pos-payments/charges", () => {
   it("cria a cobrança com a chave determinística do externalReference", async () => {
@@ -28,5 +34,36 @@ describe("POST /admin/pos-payments/charges", () => {
     }
     expect(payload.transactions.payments[0]!.amount).toBe("19.99")
     expect(payload.config.point.terminal_id).toBe(VALID_BODY.terminalId)
+  })
+})
+
+describe("guard MP_POINT_TEST_MODE na rota (T6)", () => {
+  it("terminal sandbox sem o guard falha alto sem chamar a adquirente", async () => {
+    const { req, calls } = makeReq({
+      body: { ...VALID_BODY, terminalId: "NEWLAND_N950__SBX0000001" },
+    })
+    await expect(POST(req, makeRes())).rejects.toThrow(/MP_POINT_TEST_MODE/)
+    expect(calls).toHaveLength(0)
+  })
+
+  it("terminal sandbox com posTerminal.mpPointTestMode=true cria a cobrança", async () => {
+    // A ordem devolvida tem que bater com o input no reuse-guard (terminal e
+    // external_reference) — sandbox de verdade do outro lado do seam.
+    const sandboxOrder = {
+      ...ORDER_OK,
+      id: "ORD-SBX",
+      config: { point: { terminal_id: "NEWLAND_N950__SBX0000001" } },
+    }
+    const { req, calls } = makeReq({
+      plugin: { mpPointTestMode: true },
+      queue: [{ status: 201, body: sandboxOrder }],
+      body: { ...VALID_BODY, terminalId: "NEWLAND_N950__SBX0000001" },
+    })
+    const res = makeRes()
+    await POST(req, res)
+    expect(calls[0]!.url).toContain("/v1/orders")
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ chargeId: "ORD-SBX" })
+    )
   })
 })

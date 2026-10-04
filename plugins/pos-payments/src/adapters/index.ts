@@ -5,6 +5,8 @@ import type { PosPaymentsAdapter } from "./types"
 
 type AdapterOptions = {
   accessToken?: string | undefined
+  /** Guard MP_POINT_TEST_MODE — default false (produção); true só em homologação. */
+  testMode?: boolean | undefined
   fetchImpl?: typeof fetch
 }
 
@@ -27,6 +29,7 @@ export function resolveAdapter(
     }
     return new MercadoPagoAdapter({
       accessToken: options.accessToken,
+      testMode: options.testMode === true,
       ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
     })
   }

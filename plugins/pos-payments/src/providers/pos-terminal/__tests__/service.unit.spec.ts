@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import PosTerminalProviderService from "../service"
 
 const service = new PosTerminalProviderService({ logger: console } as never, {
@@ -71,5 +71,48 @@ describe("PosTerminalProviderService", () => {
     expect((await service.getPaymentStatus(undefined as never)).status).toBe(
       "pending"
     )
+  })
+})
+
+describe("guard MP_POINT_TEST_MODE (T6 — boot nunca silencioso)", () => {
+  it("validateOptions: o guard NÃO isenta credenciais (CONSTRAINTS 4)", () => {
+    expect(() =>
+      PosTerminalProviderService.validateOptions({
+        acquirer: "mercadopago",
+        mpPointTestMode: true,
+      })
+    ).toThrow(/accessToken/)
+    expect(() =>
+      PosTerminalProviderService.validateOptions({
+        acquirer: "mercadopago",
+        mpPointTestMode: true,
+        accessToken: "test-token-fixture",
+      })
+    ).toThrow(/webhookSecret/)
+  })
+
+  it("boot com mpPointTestMode=true loga warn explícito", () => {
+    const warn = vi.fn()
+    const logger = { info: vi.fn(), warn, error: vi.fn() }
+    new PosTerminalProviderService({ logger } as never, {
+      acquirer: "mercadopago",
+      accessToken: "test-token-fixture",
+      webhookSecret: "test-webhook-secret",
+      mpPointTestMode: true,
+    })
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("MP_POINT_TEST_MODE")
+    )
+  })
+
+  it("boot sem o guard não loga warn de teste", () => {
+    const warn = vi.fn()
+    const logger = { info: vi.fn(), warn, error: vi.fn() }
+    new PosTerminalProviderService({ logger } as never, {
+      acquirer: "mercadopago",
+      accessToken: "test-token-fixture",
+      webhookSecret: "test-webhook-secret",
+    })
+    expect(warn).not.toHaveBeenCalled()
   })
 })

@@ -543,3 +543,57 @@ describe("validações de sessão do provider mercadopago", () => {
     ).rejects.toThrow(/parcial/)
   })
 })
+
+describe("guard MP_POINT_TEST_MODE no provider (T6)", () => {
+  const sandboxOrder = {
+    id: "ORD-SBX",
+    status: "created",
+    type: "point",
+    config: { point: { terminal_id: "NEWLAND_N950__SBX0000001" } },
+    transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
+  }
+
+  function serviceWith(mpPointTestMode?: boolean) {
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify(sandboxOrder), { status: 201 })
+    ) as unknown as typeof fetch
+    const service = new PosTerminalProviderService(
+      { logger },
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+        fetchImpl,
+        ...(mpPointTestMode === undefined ? {} : { mpPointTestMode }),
+      }
+    )
+    return { service, fetchImpl }
+  }
+
+  const initiateSandbox = {
+    id: "pay_01SBX",
+    amount: 19.99,
+    currency_code: "brl",
+    context: {},
+    data: { terminal_id: "NEWLAND_N950__SBX0000001" },
+  }
+
+  it("initiate para terminal sandbox sem o guard falha alto e não chama a rede", async () => {
+    const { service, fetchImpl } = serviceWith()
+    await expect(
+      service.initiatePayment(initiateSandbox as never)
+    ).rejects.toThrow(/MP_POINT_TEST_MODE/)
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it("initiate para sandbox com mpPointTestMode=true cria a cobrança", async () => {
+    const { service, fetchImpl } = serviceWith(true)
+    const out = await service.initiatePayment(initiateSandbox as never)
+    expect(out.id).toBe("ORD-SBX")
+    expect(out.data).toMatchObject({
+      charge_id: "ORD-SBX",
+      acquirer: "mercadopago",
+    })
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+})

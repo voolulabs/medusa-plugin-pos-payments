@@ -25,6 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (opcore = code hygiene, the-open-engine; ADLC = development lifecycle with
   evidence, voodootikigod) — the repository is self-contained for any
   contributor.
+- `MP_POINT_TEST_MODE` guard (mercadopago, T6): charging a sandbox terminal
+  (serial prefix `SBX` in the official `{type}__{serial}` format, e.g.
+  `NEWLAND_N950__SBX0000001`) fails closed before any network call unless the
+  option `mpPointTestMode` is explicitly enabled — on the provider
+  (`PosTerminalOptions`) or the plugin `posTerminal` block that feeds the admin
+  routes. Enabling logs a loud warning at boot and never exempts credentials
+  (presence-gated registration preserved): test mode is never silent in
+  production.
+
+### Fixed
+
+- Mercado Pago 409 queue-conflict error code corrected to the real
+  `already_queued_order_on_terminal` (was `..._for_...`), proven in the
+  2026-10-04 homologation smoke; the idempotency-conflict recovery was already
+  generic by status and is unchanged.
 
 ### Changed
 
