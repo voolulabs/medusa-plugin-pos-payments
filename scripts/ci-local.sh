@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# ci:local — paridade de CI em dev (ticket T7). Fonte da verdade: .github/workflows/ci.yml
+# Regra de casa: nenhum erro pode ser descoberto pelo CI — todo gate roda aqui antes do push,
+# na MESMA ordem do job `verify` + o job `commitlint`. Serviços com secret (Codecov, FOSSA,
+# Snyk) são SKIP declarado no fim, nunca falha silenciosa. Qualquer mudança no ci.yml passa
+# por aqui no mesmo PR.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+[ -d "$HOME/.volta/bin" ] && export PATH="$HOME/.volta/bin:$PATH"
+
+SKIPS=()
+
+run_stage() {
+  local name="$1"
+  shift
+  printf '\n==> [%s]\n' "$name"
+  if ! "$@"; then
+    printf '\nERRO: estágio "%s" falhou — corrija antes de push.\n' "$name" >&2
+    exit 1
+  fi
+}
+
+stage_tree() {
+  if [ -n "$(git status --porcelain)" ]; then
+    echo "working tree suja — o CI constrói código commitado; commit ou stash antes."
+    return 1
+  fi
+}
+
+stage_adlc() {
+  if [ -f .adlc/manifest.jsonl ] && [ ! -f "$HOME/.adlc/manifest.key" ]; then
+    echo "ledger .adlc/manifest.jsonl existe sem ~/.adlc/manifest.key — o record gravaria unsigned e o CI quebraria (chain broken)."
+    return 1
+  fi
+  if [ -f "$HOME/.adlc/manifest.key" ]; then
+    export ADLC_MANIFEST_KEY="$(cat "$HOME/.adlc/manifest.key")"
+  fi
+  adlc spec-lint .adlc/specs/fase-1-provider-manual.md
+  adlc gate-manifest verify --json >/dev/null && echo "gate-manifest: cadeia OK (assinada se a chave estava presente)"
+}
+
+stage_gitleaks() {
+  local version="8.30.1"
+  local checksum="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+  local bin="/tmp/gitleaks-${version}/gitleaks"
+  case "$(uname -s)-$(uname -m)" in
+    Linux-x86_64) ;;
+    *)
+      SKIPS+=("gitleaks (plataforma $(uname -s)-$(uname -m) sem binário pinado — rode no CI)")
+      return 0
+      ;;
+  esac
+  if [ ! -x "$bin" ]; then
+    mkdir -p "$(dirname "$bin")"
+    curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+      -o /tmp/gitleaks.tgz
+    echo "${checksum}  /tmp/gitleaks.tgz" | sha256sum -c - >/dev/null
+    tar -xzf /tmp/gitleaks.tgz -C "$(dirname "$bin")" gitleaks
+  fi
+  "$bin" detect --source . --no-banner --redact -v
+}
+
+stage_commitlint() {
+  local branch
+  branch="$(git branch --show-current)"
+  case "$branch" in
+    develop | main | "")
+      SKIPS+=("commitlint (branch $branch — job é só de PR)")
+      return 0
+      ;;
+  esac
+  local base="${CI_LOCAL_BASE:-origin/develop}"
+  git fetch origin develop --quiet
+  local from
+  from="$(git merge-base "$base" HEAD)"
+  printf 'validando %s..HEAD (%s)\n' "$from" "$branch"
+  npx --yes -p @commitlint/cli@21 -p @commitlint/config-conventional@21 \
+    commitlint --from "$from" --to HEAD
+}
+
+printf 'ci:local — paridade do .github/workflows/ci.yml (base: %s)\n' "${CI_LOCAL_BASE:-origin/develop}"
+
+run_stage "0 árvore limpa" stage_tree
+run_stage "1 install (frozen)" pnpm install --frozen-lockfile
+run_stage "2 lint + formato" bash -c 'pnpm lint && pnpm format:check'
+run_stage "3 build (medusa plugin:build)" bash -c 'cd plugins/pos-payments && pnpm exec medusa plugin:build'
+run_stage "4 testes + cobertura (90/95)" bash -c 'cd plugins/pos-payments && pnpm test:coverage'
+run_stage "5 typecheck (tsc --noEmit)" bash -c 'cd plugins/pos-payments && pnpm exec tsc --noEmit'
+run_stage "6 knip" pnpm knip
+run_stage "7 opcore" bash -c 'OPCORE_NO_HOOKS=1 opcore check --repo . --all'
+run_stage "8 adlc (spec-lint + manifest)" stage_adlc
+run_stage "9 npm audit (prod, high)" pnpm audit --prod --audit-level high
+run_stage "10 gitleaks" stage_gitleaks
+run_stage "11 commitlint (range da branch)" stage_commitlint
+
+printf '\nCI LOCAL: 12/12 estágios verdes.\n'
+if [ "${#SKIPS[@]}" -gt 0 ]; then
+  printf 'SKIP declarado:\n'
+  printf '  - %s\n' "${SKIPS[@]}"
+fi
+printf 'Serviços com secret sempre fora daqui: Codecov (upload), FOSSA (licenças), Snyk (SAST/deps).\n'
