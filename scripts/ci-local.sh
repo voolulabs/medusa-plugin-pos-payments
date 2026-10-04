@@ -84,9 +84,16 @@ stage_gitleaks() {
   }
   local rundir
   rundir="$(mktemp -d)"
-  tar -xzf "$tgz" -C "$rundir" gitleaks || return 1
-  "$rundir/gitleaks" detect --source . --no-banner --redact -v
+  local status=0
+  tar -xzf "$tgz" -C "$rundir" gitleaks || {
+    rm -rf "$rundir"
+    return 1
+  }
+  # PRESERVA o status do scanner: gitleaks exit 1 = VAZAMENTO encontrado —
+  # o cleanup depois dele não pode mascarar o gate (provado na r4 da revisão).
+  "$rundir/gitleaks" detect --source . --no-banner --redact -v || status=$?
   rm -rf "$rundir"
+  return "$status"
 }
 
 stage_commitlint() {
@@ -103,8 +110,8 @@ stage_commitlint() {
   # comando quebrada silenciava o range e o commitlint validava outra coisa
   # (provado por mutation). Checagem explícita em cada passo que pode falhar.
   if [[ "$base" == origin/* ]]; then
-    if ! git fetch origin develop --quiet; then
-      echo "git fetch origin develop falhou — commitlint exige a base atualizada (offline: aponte CI_LOCAL_BASE para um ref local)." >&2
+    if ! git fetch origin "${base#origin/}" --quiet; then
+      echo "git fetch ${base} falhou — commitlint exige a base atualizada (offline: aponte CI_LOCAL_BASE para um ref local)." >&2
       return 1
     fi
   fi
