@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import posPaymentsWebhook, { createHandler } from "../pos-payments-webhook"
+import { resolveAdapter } from "../../adapters"
 import type { PosPaymentsAdapter } from "../../adapters/types"
 
 const SECRET = "segredo-webhook-fixture"
@@ -250,7 +251,10 @@ describe("subscriber — fiação do container (default export)", () => {
       payment_session_id: "ps_1",
     })
     expect(graph.mock.calls[0]![0]!.fields).toContain("captured_at")
-    expect(workflowRun).toHaveBeenCalledWith({ input: { payment_id: "pay_1" } })
+    expect(workflowRun).toHaveBeenCalledWith({
+      input: { payment_id: "pay_1" },
+      transactionId: "pos-payments-reconcile:pay_1",
+    })
   })
 
   it("sem secret nas options → descarte com warn, workflow nunca roda", async () => {
@@ -266,5 +270,40 @@ describe("subscriber — fiação do container (default export)", () => {
     })
     expect(graph).not.toHaveBeenCalled()
     expect(workflowRun).not.toHaveBeenCalled()
+  })
+})
+
+describe("subscriber — options quebradas (adapter lazy)", () => {
+  it("evento de outro provider nem resolve o adapter", async () => {
+    vi.mocked(resolveAdapter).mockImplementation((): never => {
+      throw new Error("sem credencial")
+    })
+    const graph = vi.fn(async () => ({ data: [] }))
+    const container = {
+      resolve: (key: string) =>
+        key === ContainerRegistrationKeys.CONFIG_MODULE
+          ? {
+              plugins: [
+                {
+                  resolve: "@voolulabs/medusa-plugin-pos-payments",
+                  options: {
+                    posTerminal: { acquirer: "mercadopago" },
+                  },
+                },
+              ],
+            }
+          : { graph },
+    }
+    await expect(
+      posPaymentsWebhook({
+        event: {
+          name: "payment.webhook_received",
+          data: evento("pp_pos-terminal_card", "X1"),
+        },
+        container: container as never,
+        pluginOptions: {},
+      })
+    ).resolves.toBeUndefined()
+    expect(graph).not.toHaveBeenCalled()
   })
 })
