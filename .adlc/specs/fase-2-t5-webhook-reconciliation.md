@@ -66,7 +66,11 @@ real e única do payment — verificada no schema do banco) e cria o **refund TO
 `refundPaymentWorkflow` do core, **idempotente**: skip quando o pagamento já está
 reembolsado (o event bus tenta 3×; a 2ª entrega vê o refund existente) e quando ainda não
 há captura no Medusa (`captured_at` nulo — refund de terminal antes do markAsPaid não tem
-o que reembolsar). Sessão não encontrada → warn e descarte. `canceled` de terminal →
+o que reembolsar). Sessão não encontrada → warn e descarte. Falha TRANSITÓRIA
+(re-fetch, workflow) → warn e **re-throw**: a reconciliação é o único caminho do
+refund de terminal e tem que consumir as tentativas do event bus (attempts=3) —
+só falhas permanentes (assinatura, sessão inexistente) são descartadas sem retry.
+`canceled` de terminal →
 audit log apenas. A decisão fica em função pura (`webhook-reconcile.ts`) com dependências
 injetadas — o subscriber é fiação.
 
