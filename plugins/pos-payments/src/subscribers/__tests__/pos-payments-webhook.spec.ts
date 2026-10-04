@@ -108,6 +108,27 @@ describe("subscriber pos-payments-webhook (T5)", () => {
       expect.objectContaining({ charge_id: "ORD1" })
     )
   })
+
+  it("falha transitória no re-fetch → warn e RE-THROW (event bus re-tenta)", async () => {
+    const adapter = adapterFake({
+      state: "refunded",
+      rawStatus: "refunded",
+      externalReference: "ps_1",
+    })
+    adapter.getCharge = vi.fn(async () => {
+      throw new Error("MP 5xx")
+    })
+    const d = deps({ getAdapter: vi.fn(() => adapter) })
+    await expect(
+      createHandler(d)({
+        event: { data: evento("pp_pos-terminal_mercadopago", "ORD1") },
+      })
+    ).rejects.toThrow("MP 5xx")
+    expect(d.logger.warn).toHaveBeenCalledWith(
+      "mercadopago: reconciliacao falhou",
+      expect.objectContaining({ charge_id: "ORD1" })
+    )
+  })
 })
 
 describe("subscriber — rawData do event bus", () => {
