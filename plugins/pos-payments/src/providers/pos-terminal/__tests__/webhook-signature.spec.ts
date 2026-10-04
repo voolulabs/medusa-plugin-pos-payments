@@ -60,16 +60,18 @@ describe("validateWebhookSignature (mercado-pago.md §5)", () => {
         SECRET
       )
     ).toBe(false)
+    // ts trocado no header com a assinatura ORIGINAL: o canonical usa o ts do
+    // header, que diverge do ts assinado — rejeita.
     expect(
       validateWebhookSignature(
         {
           ...h,
-          "x-signature": `ts=1700000001,v1=${assinar("ORD1", "rid-1", "1700000001")}`,
+          "x-signature": `ts=1700000001,v1=${assinar("ORD1", "rid-1", "1700000000")}`,
         },
         { data: { id: "ORD1" } },
         SECRET
       )
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it("falha fechado sem ts/v1/request-id/secret/id", () => {
