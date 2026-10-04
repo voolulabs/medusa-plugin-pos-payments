@@ -26,7 +26,7 @@ Fora de escopo: rota de refund (reflui pelo `refundPayment` do core), rota de si
 
 Os providers do módulo payment não são resolvíveis do container (verificado no
 `@medusajs/payment` 2.19: instâncias internas ao módulo, sem método público de acesso). As
-rotas então leem o bloco `posTerminal: { acquirer, accessToken }` das **options do plugin**
+rotas então leem o bloco `posTerminal: { acquirer, accessToken, fetchImpl? }` das **options do plugin**
 (array `plugins` do config module — via `getPluginOptions`, padrão ADR 0002 §5) e resolvem o
 adapter por request (stateless sobre o cliente T1; nunca credencial em log). `manual` ou
 bloco ausente → `NOT_ALLOWED` (400); `mercadopago` sem `accessToken` → falha alta. O bloco
@@ -35,11 +35,11 @@ espelha as options do provider no `medusa-config` (a spec do T6 unifica via env)
 ## 3. Contrato das rotas
 
 - Auth do core em `/admin/*` — padrão da rota `health`; este plugin não tem `middlewares.ts`.
-- Dinheiro em **minor units**: `amount_minor` inteiro > 0 no body (fronteira única — adapter
-  converte para a forma da adquirente). `external_reference` obrigatória (1–64
-  `[A-Za-z0-9-_]`; deve ser o id da payment session — reconciliação). `terminal_id`
-  obrigatório. `expiration_time` (ISO-8601 PT30S–PT3H), `description` e
-  `payment_method_default_type` opcionais.
+- Dinheiro em **minor units**: `amountMinor` inteiro > 0 no body (fronteira única — adapter
+  converte para a forma da adquirente). `externalReference` obrigatória (1–64
+  `[A-Za-z0-9-_]`; deve ser o id da payment session — reconciliação). `terminalId`
+  obrigatório. `expirationTime` (ISO-8601 PT30S–PT3H), `description` e
+  `paymentMethodDefaultType` opcionais. Contrato HTTP **camelCase** (convenção do core).
 - **Idempotência determinística compartilhada com o provider**: chave
   `pos-payments-mercadopago:<external_reference>:charge` (mesma derivação do `mpInitiate`).
   Replay do mesmo corpo devolve a MESMA ordem (dedup da MP + reuse-guard de valor e terminal
@@ -49,10 +49,10 @@ espelha as options do provider no `medusa-config` (a spec do T6 unifica via env)
   rota não tem).
 - `GET /terminals`: query `limit` (1–50), `offset` (≥0), `store_id`/`pos_id` (numéricos)
   validada na fronteira (zod) e no client (`assertTerminalsQuery`). Resposta **agnóstica de
-  adquirente**: `{ terminals: [{ id, store_id, pos_id, external_pos_id, operating_mode }],
+  adquirente**: `{ terminals: [{ id, storeId, posId, externalPosId, operatingMode }],
   paging: { total, offset, limit } }` — mapeamento snake_case→domínio no adapter.
-- Respostas de charge: `{ charge_id, state, raw_status, payment_id?, reason_code?,
-  retry_class?, reason? }` (view do T2 + `charge_id`).
+- Respostas de charge: `{ chargeId, state, rawStatus, paymentId?, reasonCode?,
+  retryClass?, reason? }` (view do T2 + `chargeId`).
 
 ## 4. Mapeamento de erros (verificado no error-handler do framework 2.19)
 
@@ -82,3 +82,16 @@ espelha as options do provider no `medusa-config` (a spec do T6 unifica via env)
 9. MUST cobertura global ≥90% e money paths ≥95% — verify: `pnpm test:coverage`.
 10. SHOULD nenhuma dependência nova (zod via `@medusajs/framework/zod`, peer dep) — verify:
     diff do package.json contra a base.
+
+## Erratas do build 2026-10-03 (implementação × spec)
+
+- Contrato HTTP em **camelCase** nos dois sentidos (`amountMinor`/`chargeId`/`rawStatus`/
+  `operatingMode`) — convenção do core; a redação original usava snake_case.
+- O bloco `posTerminal` inclui `fetchImpl` (seam de teste injetado nas rotas).
+- `:id` ausente no path → `NOT_FOUND` (guard `assertChargeId` em `schemas.ts`).
+- Residuais conscientes da adversarial (rodada 1): formato MP do `terminalId`
+  (`{tipo}__{serial}`) não é validado na fronteira — sai como `UNEXPECTED_STATE` (500) com o
+  motivo; regex de ids numéricos (storeId/posId) existe na fronteira E no client com os
+  mesmos limites; rotas não logam domínio (acesso coberto pelo http logger do core;
+  auditoria de domínio fica para o T5); amounts extremos (>2^53 no JSON) degradam para o
+  4xx/5xx da adquirente.
