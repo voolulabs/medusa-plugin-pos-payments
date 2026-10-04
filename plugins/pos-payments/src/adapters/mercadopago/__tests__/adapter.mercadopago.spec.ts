@@ -29,11 +29,47 @@ function orderBody(status: string) {
     id: "ORD-77",
     status,
     type: "point",
+    config: { point: { terminal_id: "NEWLAND_N950__S1" } },
     transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
   }
 }
 
 describe("busca na colisão de idempotência", () => {
+  it("ordem reutilizada SEM terminal na confirmação falha alto", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = []
+    const semTerminal = {
+      id: "ORD-77",
+      status: "created",
+      type: "point",
+      external_reference: "pay_01H",
+      transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
+    }
+    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} })
+      if (init?.method === "POST") {
+        return jsonResponse({ error: "idempotency_key_already_used" }, 409)
+      }
+      if (String(url).includes("?"))
+        return jsonResponse({ data: [semTerminal] })
+      return jsonResponse(semTerminal)
+    }) as unknown as typeof fetch
+    const adapter = new MercadoPagoAdapter({
+      accessToken: "test-token-fixture",
+      fetchImpl,
+    })
+    await expect(
+      adapter.createCharge(
+        {
+          amountMinor: 1999,
+          externalReference: "pay_01H",
+          terminalId: "NEWLAND_N950__S1",
+        },
+        "pos-payments-mercadopago:pay_01H:charge"
+      )
+    ).rejects.toThrow(/não trouxe o terminal/)
+    expect(calls).toHaveLength(3)
+  })
+
   it("resposta da busca fora do contrato lança MpContractError (não o 409)", async () => {
     for (const corpo of [JSON.stringify({ data: null }), "{}"]) {
       const calls: Array<{ url: string; init: RequestInit }> = []
@@ -105,6 +141,7 @@ describe("MpAdapter na interface comum", () => {
       status: "created",
       type: "point",
       external_reference: "pay_01H",
+      config: { point: { terminal_id: "NEWLAND_N950__S1" } },
       transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
     }
     const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
@@ -112,7 +149,9 @@ describe("MpAdapter na interface comum", () => {
       if (init?.method === "POST") {
         return jsonResponse({ error: "idempotency_key_already_used" }, 409)
       }
-      return jsonResponse({ data: [ordem] })
+      // Busca (com query) devolve a lista; ordem completa confirma o terminal.
+      if (String(url).includes("?")) return jsonResponse({ data: [ordem] })
+      return jsonResponse(ordem)
     }) as unknown as typeof fetch
     const adapter = new MercadoPagoAdapter({
       accessToken: "test-token-fixture",
@@ -130,6 +169,7 @@ describe("MpAdapter na interface comum", () => {
     const metodos = calls.map((c) => c.init.method ?? "GET")
     expect(metodos.filter((m) => m === "POST")).toHaveLength(1)
     expect(calls[1]!.url).toContain("external_reference=pay_01H")
+    expect(calls).toHaveLength(3)
   })
 
   it("cancel em awaiting_terminal manda o header condicional do contrato", async () => {

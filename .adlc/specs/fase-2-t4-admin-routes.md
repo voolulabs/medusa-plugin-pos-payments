@@ -89,6 +89,11 @@ espelha as options do provider no `medusa-config` (a spec do T6 unifica via env)
   `operatingMode`) — convenção do core; a redação original usava snake_case.
 - O bloco `posTerminal` inclui `fetchImpl` (seam de teste injetado nas rotas).
 - `:id` ausente no path → `NOT_FOUND` (guard `assertChargeId` em `schemas.ts`).
+- Consertos do review r1: a recuperação de colisão 409 RE-FACHA a ordem completa
+  (`getOrder`) antes do reuse-guard — a busca pode vir parcial — e o guard REJEITA
+  ordem sem `config.point.terminal_id` (fail-closed no vínculo de dinheiro e
+  terminal). O 404 da adquirente passa a mensagem GENÉRICA (sem interpolação do
+  upstream); o 500 mantém o motivo preservado (decisão acima).
 - Residuais conscientes da adversarial (rodada 1): formato MP do `terminalId`
   (`{tipo}__{serial}`) não é validado na fronteira — sai como `UNEXPECTED_STATE` (500) com o
   motivo; regex de ids numéricos (storeId/posId) existe na fronteira E no client com os

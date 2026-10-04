@@ -47,6 +47,25 @@ describe("POST /charges — replay de idempotência", () => {
             ],
           },
         },
+        {
+          status: 200,
+          body: {
+            id: "ORD-77",
+            status: "at_terminal",
+            type: "point",
+            external_reference: VALID_BODY.externalReference,
+            config: { point: { terminal_id: VALID_BODY.terminalId } },
+            transactions: {
+              payments: [
+                {
+                  id: "PAY-1",
+                  amount: "19.99",
+                  status: "waiting_payment",
+                },
+              ],
+            },
+          },
+        },
       ],
     })
     const res = makeRes()
@@ -54,7 +73,7 @@ describe("POST /charges — replay de idempotência", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ chargeId: "ORD-77" })
     )
-    expect(calls).toHaveLength(2)
+    expect(calls).toHaveLength(3)
   })
 })
 

@@ -59,5 +59,7 @@ export async function recoverByIdempotencyConflict(
     (candidate) => candidate.external_reference === externalReference
   )
   if (!found) throw original
-  return found
+  // A busca pode vir parcial (sem config/terminal): a cobrança é confirmada
+  // na ordem completa antes do reuse-guard.
+  return client.getOrder(found.id)
 }
