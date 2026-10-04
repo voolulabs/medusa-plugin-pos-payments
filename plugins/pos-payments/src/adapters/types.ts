@@ -38,6 +38,27 @@ export interface CreateChargeInput {
   paymentMethodDefaultType?: "debit_card" | "credit_card" | "qr"
 }
 
+/** Consulta da listagem de terminais (§6.3); limites na validação do adapter. */
+export interface TerminalsListQuery {
+  limit?: number
+  offset?: number
+  storeId?: string
+  posId?: string
+}
+
+export interface TerminalInfo {
+  readonly id: string
+  readonly storeId?: string | undefined
+  readonly posId?: string | undefined
+  readonly externalPosId?: string | undefined
+  readonly operatingMode: string
+}
+
+export interface TerminalsPage {
+  readonly terminals: TerminalInfo[]
+  readonly paging: { total: number; offset: number; limit: number }
+}
+
 /** Interface comum: o provider fala ISTO, nunca a adquirente. */
 export interface PosPaymentsAdapter {
   readonly acquirer: string
@@ -57,4 +78,6 @@ export interface PosPaymentsAdapter {
     chargeId: string,
     idempotencyKey: string
   ): Promise<ChargeStatusView>
+  /** Terminais ativos na conta (§6.3 GET /terminals) — resposta agnóstica. */
+  listTerminals(query?: TerminalsListQuery): Promise<TerminalsPage>
 }

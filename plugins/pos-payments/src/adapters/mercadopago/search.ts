@@ -1,7 +1,11 @@
 /** GET /v1/orders — busca por external_reference (reconsulta de colisão 409). */
 import type { MercadoPagoOrdersClient } from "./client"
 import { parseOrder } from "./schema"
-import { MpContractError, type MpOrder } from "./types"
+import {
+  MpContractError,
+  MpIdempotencyConflictError,
+  type MpOrder,
+} from "./types"
 
 /** Janela padrão: ordem criada nas últimas 24h (expiration máxima é 3h). */
 function janelaPadrao(): { begin_date: string; end_date: string } {
@@ -13,7 +17,7 @@ function janelaPadrao(): { begin_date: string; end_date: string } {
 }
 
 /** Nunca recria: a colisão de idempotência reconsulta por referência. */
-export async function searchOrdersByExternalReference(
+async function searchOrdersByExternalReference(
   client: MercadoPagoOrdersClient,
   externalReference: string
 ): Promise<MpOrder[]> {
@@ -34,4 +38,26 @@ export async function searchOrdersByExternalReference(
     )
   }
   return (data as unknown[]).map((item) => parseOrder(item))
+}
+
+/**
+ * Recuperação da colisão de idempotência: 409 reconsulta por referência e
+ * devolve a ordem existente; sem colisão ou sem ordem achada, relança o
+ * original (nunca recria — ADR 0001 §6).
+ */
+export async function recoverByIdempotencyConflict(
+  client: MercadoPagoOrdersClient,
+  externalReference: string,
+  original: unknown
+): Promise<MpOrder> {
+  if (!(original instanceof MpIdempotencyConflictError)) throw original
+  const orders = await searchOrdersByExternalReference(
+    client,
+    externalReference
+  )
+  const found = orders.find(
+    (candidate) => candidate.external_reference === externalReference
+  )
+  if (!found) throw original
+  return found
 }

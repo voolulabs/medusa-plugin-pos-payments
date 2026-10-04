@@ -1,16 +1,19 @@
-/** Adapter Mercado Pago da interface comum (POS o cliente T1 + status T2 falam). */
+/** Adapter Mercado Pago da interface comum (usa o cliente T1 + status T2). */
 import type {
   ChargeStatusView,
   CreateChargeInput,
   PosPaymentsAdapter,
+  TerminalsListQuery,
+  TerminalsPage,
 } from "../types"
 import { assertReusedOrder } from "./reuse-guard"
-import { MpContractError, MpIdempotencyConflictError } from "./types"
 import { MercadoPagoOrdersClient } from "./client"
-import { minorUnitsToDecimalString } from "./money"
 import { cancelOrder, refundOrder } from "./orders"
 import { mapOrderStatus } from "./status"
-import { searchOrdersByExternalReference } from "./search"
+import { recoverByIdempotencyConflict } from "./search"
+import { listTerminals as listTerminalsRemote } from "./terminals"
+import { toTerminalsPage } from "./terminals-page"
+import { toCreateOrderInput } from "./payload"
 
 interface MpAdapterOptions {
   accessToken: string
@@ -43,33 +46,16 @@ export class MercadoPagoAdapter implements PosPaymentsAdapter {
     let order
     try {
       order = await this.client.createPointOrder(
-        {
-          amount: minorUnitsToDecimalString(input.amountMinor),
-          externalReference: input.externalReference,
-          terminalId: input.terminalId,
-          ...(input.expirationTime
-            ? { expirationTime: input.expirationTime }
-            : {}),
-          ...(input.description ? { description: input.description } : {}),
-          ...(input.paymentMethodDefaultType
-            ? { paymentMethodDefaultType: input.paymentMethodDefaultType }
-            : {}),
-        },
+        toCreateOrderInput(input),
         idempotencyKey
       )
     } catch (error) {
-      // Colisão de idempotência: a ordem pode existir — reconsulta por
-      // referência, nunca recria (ADR 0001 §6).
-      if (!(error instanceof MpIdempotencyConflictError)) throw error
-      const orders = await searchOrdersByExternalReference(
+      // Colisão de idempotência: reconsulta por referência, nunca recria.
+      order = await recoverByIdempotencyConflict(
         this.client,
-        input.externalReference
+        input.externalReference,
+        error
       )
-      const found = orders.find(
-        (candidate) => candidate.external_reference === input.externalReference
-      )
-      if (!found) throw error
-      order = found
     }
     assertReusedOrder(order, input)
     return { chargeId: order.id, view: mapOrderStatus(order) }
@@ -97,5 +83,9 @@ export class MercadoPagoAdapter implements PosPaymentsAdapter {
     return mapOrderStatus(
       await refundOrder(this.client, chargeId, idempotencyKey)
     )
+  }
+
+  async listTerminals(query: TerminalsListQuery = {}): Promise<TerminalsPage> {
+    return toTerminalsPage(await listTerminalsRemote(this.client, query))
   }
 }

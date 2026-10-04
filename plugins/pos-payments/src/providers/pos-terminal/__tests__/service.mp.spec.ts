@@ -29,6 +29,10 @@ const fakeAdapter = (
     async () =>
       ({ state: "canceled", rawStatus: "canceled" }) as ChargeStatusView
   ),
+  listTerminals: vi.fn(async () => ({
+    terminals: [],
+    paging: { total: 0, offset: 0, limit: 50 },
+  })),
   refundCharge: vi.fn(
     async () =>
       ({ state: "refunded", rawStatus: "refunded" }) as ChargeStatusView

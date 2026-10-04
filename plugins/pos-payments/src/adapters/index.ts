@@ -3,7 +3,10 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { MercadoPagoAdapter } from "./mercadopago/adapter"
 import type { PosPaymentsAdapter } from "./types"
 
-type AdapterOptions = { accessToken?: string; fetchImpl?: typeof fetch }
+type AdapterOptions = {
+  accessToken?: string | undefined
+  fetchImpl?: typeof fetch
+}
 
 /**
  * manual → undefined (comportamento legado intacto); mercadopago → adapter com
