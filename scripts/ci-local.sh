@@ -21,10 +21,15 @@ require_cli() {
     exit 1
   fi
   # Presença não basta: versão diferente da pinada pelo CI destrói a paridade
-  # (um verde local deixa de garantir o verde do CI).
-  if [ -n "$expected" ] && ! "$cli" --version 2>/dev/null | grep -q "$expected"; then
-    echo "Versão de $cli diverge do pin do CI (esperado $expected; encontrado $($cli --version 2>/dev/null | head -1))." >&2
-    exit 1
+  # (um verde local deixa de garantir o verde do CI). Token extraído e
+  # comparado por IGUALDADE — substring/regex aceitariam 10.3.3 como 0.3.3.
+  if [ -n "$expected" ]; then
+    local found_token
+    found_token="$("$cli" --version 2>/dev/null | grep -oE "[0-9]+(\.[0-9]+)+([-.][0-9A-Za-z]+)*" | head -1)"
+    if [ "$found_token" != "$expected" ]; then
+      echo "Versão de $cli diverge do pin do CI (esperado $expected; encontrado ${found_token:-desconhecida})." >&2
+      exit 1
+    fi
   fi
 }
 require_cli opcore "@the-open-engine-company/opcore@0.3.3 (npm i -g)" "0.3.3"
