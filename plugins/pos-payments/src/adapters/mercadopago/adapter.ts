@@ -8,7 +8,7 @@ import type {
 } from "../types"
 import { assertReusedOrder } from "./reuse-guard"
 import { MercadoPagoOrdersClient } from "./client"
-import { cancelOrder, refundOrder } from "./orders"
+import { cancelOrder, refundOrderResilient } from "./orders"
 import { mapOrderStatus } from "./status"
 import { recoverByIdempotencyConflict } from "./search"
 import { listTerminals as listTerminalsRemote } from "./terminals"
@@ -80,8 +80,10 @@ export class MercadoPagoAdapter implements PosPaymentsAdapter {
     idempotencyKey: string
   ): Promise<ChargeStatusView> {
     // Contrato Point: estorno TOTAL — o provider recusa parcial ANTES de chamar.
+    // Idempotente por estado: refund já aplicado no terminal (T5) volta como
+    // sucesso — a decisão vem do re-fetch, não do corpo do erro (ADR 0001).
     return mapOrderStatus(
-      await refundOrder(this.client, chargeId, idempotencyKey)
+      await refundOrderResilient(this.client, chargeId, idempotencyKey)
     )
   }
 

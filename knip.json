@@ -9,7 +9,8 @@
         "src/index.ts",
         "src/api/**/*.ts",
         "src/admin/**/*.ts",
-        "src/providers/**/index.ts"
+        "src/providers/**/index.ts",
+        "src/subscribers/**/*.ts"
       ],
       "ignoreDependencies": [
         "@medusajs/medusa",
