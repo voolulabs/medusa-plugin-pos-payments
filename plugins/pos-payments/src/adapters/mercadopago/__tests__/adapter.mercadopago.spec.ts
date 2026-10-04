@@ -241,5 +241,12 @@ describe("reuso com divergência na recuperação", () => {
         "pos-payments-mercadopago:pay_01H:charge"
       )
     ).rejects.toThrow(/amount 29.99 ≠ 19.99/)
+    expect(calls).toHaveLength(3)
+    expect(calls[0]!.init.method).toBe("POST")
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01H:charge",
+    })
+    expect(calls[1]!.url).toContain("external_reference=pay_01H")
+    expect(calls[2]!.url).toContain("/v1/orders/ORD-77")
   })
 })
