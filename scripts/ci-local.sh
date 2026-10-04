@@ -4,11 +4,25 @@
 # na MESMA ordem do job `verify` + o job `commitlint`. Serviços com secret (Codecov, FOSSA,
 # Snyk) são SKIP declarado no fim, nunca falha silenciosa. Qualquer mudança no ci.yml passa
 # por aqui no mesmo PR.
+# ATENÇÃO: run_stage chama os estágios dentro de `if !` — dentro de função assim o set -e
+# fica SUSPENSO. Todo comando que pode falhar precisa de `|| return 1` explícito.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 [ -d "$HOME/.volta/bin" ] && export PATH="$HOME/.volta/bin:$PATH"
+
+require_cli() {
+  local cli="$1"
+  local package="$2"
+  if ! command -v "$cli" >/dev/null 2>&1; then
+    echo "CLI ausente: instale $package antes de rodar ci:local." >&2
+    exit 1
+  fi
+}
+require_cli pnpm "pnpm@9.10.0 (corepack enable)"
+require_cli opcore "@the-open-engine-company/opcore@0.3.3 (npm i -g)"
+require_cli adlc "@adlc/cli@1.11.1 (npm i -g --ignore-scripts)"
 
 SKIPS=()
 STAGES_OK=0
@@ -39,14 +53,16 @@ stage_adlc() {
   if [ -f "$HOME/.adlc/manifest.key" ]; then
     export ADLC_MANIFEST_KEY="$(cat "$HOME/.adlc/manifest.key")"
   fi
-  adlc spec-lint .adlc/specs/fase-1-provider-manual.md
-  adlc gate-manifest verify --json >/dev/null && echo "gate-manifest: cadeia OK (assinada se a chave estava presente)"
+  adlc spec-lint .adlc/specs/fase-1-provider-manual.md || return 1
+  adlc gate-manifest verify --json || return 1
 }
 
 stage_gitleaks() {
   local version="8.30.1"
   local checksum="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
-  local bin="/tmp/gitleaks-${version}/gitleaks"
+  # Cache PRIVADO do usuário (/tmp é plantável por outro usuário local — CWE-829).
+  local cache="${XDG_CACHE_HOME:-$HOME/.cache}/gitleaks"
+  local bin="$cache/gitleaks-$version"
   case "$(uname -s)-$(uname -m)" in
     Linux-x86_64) ;;
     *)
@@ -55,11 +71,13 @@ stage_gitleaks() {
       ;;
   esac
   if [ ! -x "$bin" ]; then
-    mkdir -p "$(dirname "$bin")"
+    mkdir -p "$cache"
     curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
-      -o /tmp/gitleaks.tgz
-    echo "${checksum}  /tmp/gitleaks.tgz" | sha256sum -c - >/dev/null
-    tar -xzf /tmp/gitleaks.tgz -C "$(dirname "$bin")" gitleaks
+      -o "$cache/gitleaks.tgz" || return 1
+    # Checksum VERIFICA antes de extrair/executar (CWE-354).
+    echo "${checksum}  $cache/gitleaks.tgz" | sha256sum -c - >/dev/null || return 1
+    tar -xzf "$cache/gitleaks.tgz" -C "$cache" gitleaks || return 1
+    mv "$cache/gitleaks" "$bin"
   fi
   "$bin" detect --source . --no-banner --redact -v
 }
@@ -77,9 +95,11 @@ stage_commitlint() {
   # set -e fica suspenso dentro de função chamada por `if` — substituição de
   # comando quebrada silenciava o range e o commitlint validava outra coisa
   # (provado por mutation). Checagem explícita em cada passo que pode falhar.
-  if ! git fetch origin develop --quiet; then
-    echo "git fetch origin develop falhou — commitlint exige a base atualizada (offline: aponte CI_LOCAL_BASE para um ref local)." >&2
-    return 1
+  if [[ "$base" == origin/* ]]; then
+    if ! git fetch origin develop --quiet; then
+      echo "git fetch origin develop falhou — commitlint exige a base atualizada (offline: aponte CI_LOCAL_BASE para um ref local)." >&2
+      return 1
+    fi
   fi
   local from
   if ! from="$(git merge-base "$base" HEAD 2>/dev/null)"; then
