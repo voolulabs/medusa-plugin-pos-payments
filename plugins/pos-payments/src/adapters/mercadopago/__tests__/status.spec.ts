@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { mapOrderStatus } from "../status"
-import type { MpOrder, MpOrderStatus } from "../types"
+import { MpContractError, type MpOrder, type MpOrderStatus } from "../types"
 
 function order(status: MpOrderStatus, extra?: Partial<MpOrder>): MpOrder {
   return { id: "ORD-1", status, ...extra }
@@ -77,5 +77,37 @@ describe("máquina point (8 estados)", () => {
     ] as const
     for (const s of estados)
       expect(mapOrderStatus(order(s)).state).not.toBe("processing")
+  })
+})
+
+describe("eco do re-fetch (externalReference/amountMinor)", () => {
+  const comRef = { external_reference: "ps_1" }
+  const comPagamento = {
+    ...comRef,
+    transactions: { payments: [{ id: "PAY-1", amount: "50.00" }] },
+  }
+
+  it("paid carrega amountMinor; demais estados só ecoam a referência", () => {
+    expect(mapOrderStatus(order("processed", comPagamento))).toMatchObject({
+      state: "paid",
+      externalReference: "ps_1",
+      amountMinor: 5000,
+    })
+    const refundada = mapOrderStatus(order("refunded", comPagamento))
+    expect(refundada.externalReference).toBe("ps_1")
+    expect(refundada.amountMinor).toBeUndefined()
+  })
+
+  it("amount malformado NÃO derruba estados que não usam o valor", () => {
+    const quebrado = {
+      ...comRef,
+      transactions: { payments: [{ id: "PAY-1", amount: "50.005" }] },
+    }
+    expect(() => mapOrderStatus(order("processed", quebrado))).toThrow(
+      MpContractError
+    )
+    expect(mapOrderStatus(order("refunded", quebrado)).state).toBe("refunded")
+    expect(mapOrderStatus(order("failed", quebrado)).state).toBe("failed")
+    expect(mapOrderStatus(order("canceled", quebrado)).state).toBe("canceled")
   })
 })
