@@ -50,7 +50,11 @@ function makeFetch(queue: QueuedResponse[]): {
 type RequestOpts = {
   queue?: QueuedResponse[]
   /** null = bloco posTerminal ausente (rotas respondem NOT_ALLOWED). */
-  plugin?: { acquirer?: string; accessToken?: string } | null
+  plugin?: {
+    acquirer?: string
+    accessToken?: string
+    fetchImpl?: typeof fetch
+  } | null
   body?: unknown
   params?: Record<string, string>
   query?: Record<string, unknown>
