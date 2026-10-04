@@ -103,6 +103,42 @@ describe("busca na colisão de idempotência", () => {
   })
 })
 
+describe("refund resiliente (refund originado no terminal)", () => {
+  it("POST refund falha mas a ordem já está refunded → sucesso idempotente", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = []
+    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} })
+      if (init?.method === "POST") {
+        return jsonResponse({ error: "refund_not_possible" }, 412)
+      }
+      return jsonResponse(orderBody("refunded"))
+    }) as unknown as typeof fetch
+    const adapter = new MercadoPagoAdapter({
+      accessToken: "test-token-fixture",
+      fetchImpl,
+    })
+    const view = await adapter.refundCharge("ORD-77", "k-refund")
+    expect(view.state).toBe("refunded")
+    expect(
+      calls.some((c) => c.init.method === "POST" && c.url.endsWith("/refund"))
+    ).toBe(true)
+  })
+
+  it("POST refund falha e a ordem segue paga → relança o erro original", async () => {
+    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        return jsonResponse({ error: "refund_not_possible" }, 412)
+      }
+      return jsonResponse(orderBody("processed"))
+    }) as unknown as typeof fetch
+    const adapter = new MercadoPagoAdapter({
+      accessToken: "test-token-fixture",
+      fetchImpl,
+    })
+    await expect(adapter.refundCharge("ORD-77", "k-refund")).rejects.toThrow()
+  })
+})
+
 describe("MpAdapter na interface comum", () => {
   it("createCharge converte minor->decimal e envia a idempotency key", async () => {
     const { adapter, calls } = makeAdapter()

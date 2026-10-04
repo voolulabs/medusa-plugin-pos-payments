@@ -11,3 +11,18 @@ export function minorUnitsToDecimalString(amountMinor: number): string {
   }
   return MathBN.div(amountMinor, 100).toFixed(2)
 }
+
+/** "19.99" → 1999 — conversão inversa exata (fração de centavo rejeitada). */
+export function decimalToMinorUnits(decimal: string): number {
+  const bn = MathBN.mult(decimal, 100)
+  if (String(bn).includes(".")) {
+    throw new MpContractError(
+      `valor monetário deve respeitar 2 casas decimais: recebido "${decimal}"`
+    )
+  }
+  const minor = bn.toNumber()
+  if (!Number.isSafeInteger(minor)) {
+    throw new MpContractError(`amount fora dos minor units seguros: ${decimal}`)
+  }
+  return minor
+}

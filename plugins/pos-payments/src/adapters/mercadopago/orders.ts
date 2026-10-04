@@ -37,3 +37,28 @@ export async function refundOrder(
     )
   )
 }
+
+/**
+ * Refund resiliente por ESTADO (ADR 0001): o POST pode falhar porque a ordem
+ * já foi reembolsada (origem terminal — reconciliação do T5) ou com o refund
+ * criado em trânsito. O veredito vem do re-fetch da ordem, nunca do corpo do
+ * erro: `refunded` volta como sucesso; qualquer outro estado relança o erro
+ * original (falha de permissão não vira falso sucesso).
+ */
+export async function refundOrderResilient(
+  client: MercadoPagoOrdersClient,
+  orderId: string,
+  idempotencyKey: string
+): Promise<MpOrder> {
+  try {
+    return await refundOrder(client, orderId, idempotencyKey)
+  } catch (error) {
+    try {
+      const order = await client.getOrder(orderId)
+      if (order.status === "refunded") return order
+    } catch {
+      // Sem visibilidade do estado real: relança o erro original.
+    }
+    throw error
+  }
+}
