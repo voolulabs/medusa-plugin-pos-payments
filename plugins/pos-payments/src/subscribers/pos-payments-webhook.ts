@@ -95,14 +95,21 @@ export default async function posPaymentsWebhook({
 }: SubscriberArgs<WebhookEvent>) {
   const options = getPluginOptions(container as never)
   const posTerminal = options.posTerminal
-  const adapter = resolveAdapter(posTerminal?.acquirer ?? "manual", {
-    accessToken: posTerminal?.accessToken,
-    ...(posTerminal?.fetchImpl ? { fetchImpl: posTerminal.fetchImpl } : {}),
-  })
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const run = createHandler({
-    getAdapter: () => adapter,
+    // Lazy: o adapter resolve SÓ para eventos do nosso provider — options
+    // quebradas (sem accessToken) não podem derrubar webhooks de outros
+    // providers no event bus.
+    getAdapter: () =>
+      posTerminal?.acquirer === "mercadopago"
+        ? resolveAdapter("mercadopago", {
+            accessToken: posTerminal.accessToken,
+            ...(posTerminal.fetchImpl
+              ? { fetchImpl: posTerminal.fetchImpl }
+              : {}),
+          })
+        : undefined,
     getSecret: () => posTerminal?.webhookSecret ?? "",
     logger,
     findPaymentBySession: async (sessionId) => {
@@ -116,9 +123,15 @@ export default async function posPaymentsWebhook({
       return data[0] as SessionPayment | undefined
     },
     refundTotal: async (paymentId) => {
+      // Idempotência no engine: redelivery do event bus com a mesma chave não
+      // re-executa o workflow concluído (a guarda de refunds do payment cobre
+      // os casos posteriores). O transactionId existe no engine
+      // (WorkflowOrchestratorRunDTO) mas o FlowRunOptions do sdk ainda não o
+      // expõe — cast local.
       await refundPaymentWorkflow(container).run({
         input: { payment_id: paymentId },
-      })
+        transactionId: `pos-payments-reconcile:${paymentId}`,
+      } as never)
     },
   })
   await run({ event })
