@@ -81,6 +81,10 @@ export function createHandler(deps: HandlerDeps) {
         charge_id: id,
         detail: String(error).slice(0, 160),
       })
+      // Re-lança: falha transitória (re-fetch, workflow) tem que consumir as
+      // tentativas do event bus — a reconciliação é o único caminho do refund
+      // de terminal. Falhas permanentes (assinatura, sessão) nunca chegam aqui.
+      throw error
     }
   }
 }
