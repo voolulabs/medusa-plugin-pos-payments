@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { AbstractPaymentProvider, MedusaError } from "@medusajs/framework/utils"
-import type { Logger } from "@medusajs/framework/types"
+import type { Logger, WebhookActionResult } from "@medusajs/framework/types"
 import type {
   AuthorizePaymentInput,
   AuthorizePaymentOutput,
@@ -32,6 +32,7 @@ import { mpInitiate } from "./service-mp"
 import { mpCancel, mpCapture } from "./service-mp-ops"
 import { mpRefund } from "./service-mp-refund"
 import { mpPoll } from "./mp-status"
+import { mpWebhookAction } from "./service-webhook"
 
 type InjectedDependencies = {
   logger?: Logger
@@ -47,6 +48,8 @@ export type PosTerminalOptions = {
   acquirer: string
   /** Aditivo (CONSTRAINTS 5): credencial da adquirerente via env do host — nunca literal. */
   accessToken?: string
+  /** Secret de assinatura do webhook no DevPanel (T5) — obrigatório p/ mercadopago. */
+  webhookSecret?: string
   /** Aditivo (CONSTRAINTS 5): seam de teste — fetch injetado (produção usa o global). */
   fetchImpl?: typeof fetch
 }
@@ -93,11 +96,20 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
       )
     }
     // CONSTRAINTS 4: falhar alto — sem credencial a adquirerente não sobe.
-    if (options.acquirer === "mercadopago" && !options.accessToken) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "pos-terminal: acquirer mercadopago exige accessToken (env do host, nunca literal)"
-      )
+    if (options.acquirer === "mercadopago") {
+      if (!options.accessToken) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "pos-terminal: acquirer mercadopago exige accessToken (env do host, nunca literal)"
+        )
+      }
+      // T5: sem secret o webhook não é confiável — boot falha alto.
+      if (!options.webhookSecret) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "pos-terminal: acquirer mercadopago exige webhookSecret (assinatura x-signature)"
+        )
+      }
     }
   }
 
@@ -245,14 +257,19 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
     }
   }
 
-  override async getWebhookActionAndData(_payload: {
+  override async getWebhookActionAndData(payload: {
     data: SessionData
     rawData: Buffer
     headers: Record<string, string>
-  }): Promise<{ action: "not_supported" }> {
-    // Fase 1: terminal-presente não recebe webhook. Fase 2+: ações
-    // "authorized"/"captured" com data.session_id obrigatórios.
-    return { action: "not_supported" }
+  }): Promise<WebhookActionResult> {
+    // T5 (ADR 0007): valida HMAC, re-fetcha e mapeia — nunca lança.
+    if (!this.adapter_) return { action: "not_supported" }
+    return mpWebhookAction(
+      this.adapter_,
+      payload,
+      this.options_.webhookSecret ?? "",
+      this.logger_
+    )
   }
 }
 
