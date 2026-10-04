@@ -15,6 +15,8 @@ export type PosPaymentsPluginOptions = {
   posTerminal?: {
     acquirer?: string
     accessToken?: string
+    /** Secret de assinatura do webhook no DevPanel (T5) — espelha o provider. */
+    webhookSecret?: string
     /** Seam de teste — fetch injetado (produção usa o global). */
     fetchImpl?: typeof fetch
   }

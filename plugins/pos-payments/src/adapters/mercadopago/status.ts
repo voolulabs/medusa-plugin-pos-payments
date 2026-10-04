@@ -1,5 +1,6 @@
 /** Mapeamento puro order → estado do charge. Type-aware (point vs qr) e fail-closed. */
 import { QR_FORBIDDEN_STATUSES, type RetryClass } from "./status-taxonomy"
+import { decimalToMinorUnits } from "./money"
 import { cancelView, failureView, singlePayment } from "./status-view"
 import type { ChargeState, ChargeStatusView } from "../types"
 import { MpContractError, type MpOrder, type MpOrderStatus } from "./types"
@@ -53,8 +54,17 @@ function assertMappable(order: MpOrder): void {
 export function mapOrderStatus(order: MpOrder): ChargeStatusView {
   assertMappable(order)
   const state = STATE_BY_STATUS[order.status]
-  if (state === "failed") return failureView(order)
-  if (state === "canceled") return cancelView(order)
+  const eco = {
+    ...(order.external_reference !== undefined
+      ? { externalReference: order.external_reference }
+      : {}),
+  }
+  if (state === "failed") {
+    return { ...eco, ...failureView(order) }
+  }
+  if (state === "canceled") {
+    return { ...eco, ...cancelView(order) }
+  }
   if (state === "action_required") {
     // Doc oficial: action_required é ABSORVENTE no nível da order ("will not
     // change") — quem confirma o resultado é a TRANSAÇÃO.
@@ -63,14 +73,45 @@ export function mapOrderStatus(order: MpOrder): ChargeStatusView {
       payment?.status === "processed" ||
       payment?.status_detail === "accredited"
     ) {
-      return { state: "paid", rawStatus: order.status, paymentId: payment.id }
+      return paidView(eco, order.status, payment)
     }
     return {
+      ...eco,
       state,
       rawStatus: order.status,
       paymentId: payment?.id,
       reason: "Verifique o terminal para confirmar o resultado do pagamento.",
     }
   }
-  return { state, rawStatus: order.status, paymentId: singlePayment(order)?.id }
+  if (state === "paid") {
+    return paidView(eco, order.status, singlePayment(order))
+  }
+  return {
+    ...eco,
+    state,
+    rawStatus: order.status,
+    paymentId: singlePayment(order)?.id,
+  }
+}
+
+/**
+ * View paid: ÚNICO consumidor de amountMinor (ação captured do webhook).
+ * Converter amount fora daqui transformaria um valor malformado em falha de
+ * mapeamento de estados que nem usam o número — inclusive pós-refund na MP,
+ * quando o estorno JÁ aconteceu e o resultado tem que persistir.
+ */
+function paidView(
+  eco: { externalReference?: string },
+  rawStatus: MpOrderStatus,
+  payment: ReturnType<typeof singlePayment>
+): ChargeStatusView {
+  return {
+    ...eco,
+    ...(payment?.amount !== undefined
+      ? { amountMinor: decimalToMinorUnits(payment.amount) }
+      : {}),
+    state: "paid",
+    rawStatus,
+    paymentId: payment?.id,
+  }
 }
