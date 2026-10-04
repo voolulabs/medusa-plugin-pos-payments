@@ -20,14 +20,29 @@ describe("mapeamento de erros das rotas de charge", () => {
     })
   })
 
-  it("5xx da adquirente → unexpected_state com o motivo preservado", async () => {
+  it("5xx da adquirente → unexpected_state com método/path/status (controlado)", async () => {
     const { req } = makeReq({
       params: { id: "ORD-1" },
       queue: [{ status: 500, body: { error: "internal_error" } }],
     })
     await expect(GET(req, makeRes())).rejects.toMatchObject({
       type: "unexpected_state",
-      message: expect.stringContaining("recusada pela adquirente"),
+      message: expect.stringContaining("HTTP 500"),
+    })
+  })
+
+  it("erro desconhecido (rede) → mensagem genérica, sem eco do mundo externo", async () => {
+    const { req } = makeReq({
+      params: { id: "ORD-1" },
+      plugin: {
+        fetchImpl: (async () => {
+          throw new TypeError("fetch failed com segredo-que-nao-eco")
+        }) as unknown as typeof fetch,
+      },
+    })
+    await expect(GET(req, makeRes())).rejects.toMatchObject({
+      type: "unexpected_state",
+      message: "pos-payments: falha inesperada na operação com a adquirente",
     })
   })
 

@@ -61,7 +61,8 @@ espelha as options do provider no `medusa-config` (a spec do T6 unifica via env)
 | body/query/param fora do schema (zod) | `INVALID_DATA` → 400, mensagens das issues |
 | `manual`/bloco `posTerminal` ausente | `NOT_ALLOWED` → 400 |
 | `MpApiError` com status 404 da adquirente | `NOT_FOUND` → 404 |
-| demais falhas do adapter (`MpApiError` ≠ 404, `MpContractError`) | `UNEXPECTED_STATE` → 500, mensagem preservada |
+| `MpApiError` ≠ 404 e `MpContractError` (tipos que o adapter controla) | `UNEXPECTED_STATE` → 500, mensagem interpolada do tipo |
+| erro desconhecido (rede, bug) | `UNEXPECTED_STATE` → 500, mensagem GENÉRICA — nada do mundo externo ecoa cru |
 
 ## Acceptance criteria (cada uma com verify)
 
