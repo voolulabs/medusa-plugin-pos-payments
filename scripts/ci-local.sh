@@ -60,9 +60,11 @@ stage_adlc() {
 stage_gitleaks() {
   local version="8.30.1"
   local checksum="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
-  # Cache PRIVADO do usuário (/tmp é plantável por outro usuário local — CWE-829).
+  # Cache PRIVADO do usuário (/tmp é plantável por outro usuário local — CWE-829);
+  # o que fica em cache é o TARBALL — o binário é extraído a cada execução a
+  # partir dele, então só roda código cujo checksum bate (CWE-354).
   local cache="${XDG_CACHE_HOME:-$HOME/.cache}/gitleaks"
-  local bin="$cache/gitleaks-$version"
+  local tgz="$cache/gitleaks-$version.tgz"
   case "$(uname -s)-$(uname -m)" in
     Linux-x86_64) ;;
     *)
@@ -70,16 +72,21 @@ stage_gitleaks() {
       return 0
       ;;
   esac
-  if [ ! -x "$bin" ]; then
+  if [ ! -f "$tgz" ]; then
     mkdir -p "$cache"
     curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
-      -o "$cache/gitleaks.tgz" || return 1
-    # Checksum VERIFICA antes de extrair/executar (CWE-354).
-    echo "${checksum}  $cache/gitleaks.tgz" | sha256sum -c - >/dev/null || return 1
-    tar -xzf "$cache/gitleaks.tgz" -C "$cache" gitleaks || return 1
-    mv "$cache/gitleaks" "$bin"
+      -o "$tgz" || return 1
   fi
-  "$bin" detect --source . --no-banner --redact -v
+  echo "${checksum}  $tgz" | sha256sum -c - >/dev/null || {
+    rm -f "$tgz"
+    echo "checksum do tarball do gitleaks não bateu — cache descartado, rode de novo para baixar limpo." >&2
+    return 1
+  }
+  local rundir
+  rundir="$(mktemp -d)"
+  tar -xzf "$tgz" -C "$rundir" gitleaks || return 1
+  "$rundir/gitleaks" detect --source . --no-banner --redact -v
+  rm -rf "$rundir"
 }
 
 stage_commitlint() {
