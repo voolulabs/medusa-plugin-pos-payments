@@ -40,7 +40,7 @@ describe("erros HTTP e fail-closed", () => {
   it("409 de OUTRA origem continua MpApiError comum", async () => {
     const { client, fetchImpl } = makeClient()
     fetchImpl.mockImplementation(async () =>
-      jsonResponse({ error: "already_queued_order_for_terminal" }, 409)
+      jsonResponse({ error: "already_queued_order_on_terminal" }, 409)
     )
     const promise = client.getOrder("ORD-1")
     await expect(promise).rejects.toBeInstanceOf(MpApiError)
