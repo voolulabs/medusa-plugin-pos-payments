@@ -20,7 +20,12 @@ export function assertReusedOrder(
   }
   const config = (order as OrderWithConfig).config
   const returnedTerminal = config?.point?.terminal_id
-  if (returnedTerminal !== undefined && returnedTerminal !== input.terminalId) {
+  if (returnedTerminal === undefined) {
+    throw new MpContractError(
+      `ordem ${order.id} não trouxe o terminal (sessão reutilizada sem confirmação)`
+    )
+  }
+  if (returnedTerminal !== input.terminalId) {
     throw new MpContractError(
       `ordem ${order.id} pertence ao terminal ${returnedTerminal} ≠ ${input.terminalId} (sessão reutilizada em terminal diferente)`
     )

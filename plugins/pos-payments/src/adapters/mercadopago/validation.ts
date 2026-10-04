@@ -43,19 +43,25 @@ export function assertTerminalId(terminalId: string): void {
   }
 }
 
-/** Duração ISO-8601 na janela PT30S–PT3H (contrato do campo expiration_time). */
-export function assertExpirationTime(duration: string): void {
+/** Predicado puro da janela PT30S–PT3H — a rota usa para 400 na fronteira. */
+export function isValidExpirationTime(duration: string): boolean {
   const match = ISO_DURATION.exec(duration)
-  if (!match) {
-    throw new MpContractError(
-      `expiration_time deve ser duração ISO-8601 (ex. PT15M): recebido "${duration}"`
-    )
-  }
+  if (!match) return false
   const seconds =
     3600 * Number(match[1] ?? 0) +
     60 * Number(match[2] ?? 0) +
     Number(match[3] ?? 0)
-  if (seconds < MIN_EXPIRATION_S || seconds > MAX_EXPIRATION_S) {
+  return seconds >= MIN_EXPIRATION_S && seconds <= MAX_EXPIRATION_S
+}
+
+/** Duração ISO-8601 na janela PT30S–PT3H (contrato do campo expiration_time). */
+export function assertExpirationTime(duration: string): void {
+  if (!ISO_DURATION.test(duration)) {
+    throw new MpContractError(
+      `expiration_time deve ser duração ISO-8601 (ex. PT15M): recebido "${duration}"`
+    )
+  }
+  if (!isValidExpirationTime(duration)) {
     throw new MpContractError(
       `expiration_time fora da janela PT30S–PT3H: recebido "${duration}"`
     )

@@ -1,9 +1,27 @@
 /** Construção pura de payloads do contrato Orders API (sem fetch/logger). */
+import type { CreateChargeInput } from "../types"
+import { minorUnitsToDecimalString } from "./money"
 import type { CreatePointOrderInput } from "./types"
 
 export interface SetupTerminalItem {
   id: string
   operatingMode: "PDV" | "STANDALONE"
+}
+
+/** Domínio (interface comum) → payload oficial: conversão única na fronteira. */
+export function toCreateOrderInput(
+  input: CreateChargeInput
+): CreatePointOrderInput {
+  return {
+    amount: minorUnitsToDecimalString(input.amountMinor),
+    externalReference: input.externalReference,
+    terminalId: input.terminalId,
+    ...(input.expirationTime ? { expirationTime: input.expirationTime } : {}),
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.paymentMethodDefaultType
+      ? { paymentMethodDefaultType: input.paymentMethodDefaultType }
+      : {}),
+  }
 }
 
 export function buildCreateOrderBody(input: CreatePointOrderInput): unknown {

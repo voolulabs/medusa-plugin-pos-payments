@@ -29,6 +29,10 @@ const fakeAdapter = (
     async () =>
       ({ state: "canceled", rawStatus: "canceled" }) as ChargeStatusView
   ),
+  listTerminals: vi.fn(async () => ({
+    terminals: [],
+    paging: { total: 0, offset: 0, limit: 50 },
+  })),
   refundCharge: vi.fn(
     async () =>
       ({ state: "refunded", rawStatus: "refunded" }) as ChargeStatusView
@@ -41,6 +45,7 @@ describe("provider mercadopago (wiring T3)", () => {
       id: "ORD-9",
       status: "created",
       type: "point",
+      config: { point: { terminal_id: "NEWLAND_N950__S1" } },
       transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
     }
     const fetchImpl = (async (url: string | URL) =>
@@ -434,6 +439,7 @@ describe("refund e validações de sessão do provider mercadopago", () => {
       id: "ORD-9",
       status: "created",
       type: "point",
+      config: { point: { terminal_id: "NEWLAND_N950__S1" } },
       transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
     }
     const calls: Array<{ url: string; init: RequestInit }> = []
