@@ -207,3 +207,39 @@ describe("MpAdapter: colisão de idempotência e ciclo", () => {
     })
   })
 })
+
+describe("reuso com divergência na recuperação", () => {
+  it("replay 409 com valor divergente falha alto (mesma ref e terminal)", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = []
+    const ordem = {
+      id: "ORD-77",
+      status: "at_terminal",
+      type: "point",
+      external_reference: "pay_01H",
+      config: { point: { terminal_id: "NEWLAND_N950__S1" } },
+      transactions: { payments: [{ id: "PAY-1", amount: "29.99" }] },
+    }
+    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} })
+      if (init?.method === "POST") {
+        return jsonResponse({ error: "idempotency_key_already_used" }, 409)
+      }
+      if (String(url).includes("?")) return jsonResponse({ data: [ordem] })
+      return jsonResponse(ordem)
+    }) as unknown as typeof fetch
+    const adapter = new MercadoPagoAdapter({
+      accessToken: "test-token-fixture",
+      fetchImpl,
+    })
+    await expect(
+      adapter.createCharge(
+        {
+          amountMinor: 1999,
+          externalReference: "pay_01H",
+          terminalId: "NEWLAND_N950__S1",
+        },
+        "pos-payments-mercadopago:pay_01H:charge"
+      )
+    ).rejects.toThrow(/amount 29.99 ≠ 19.99/)
+  })
+})
