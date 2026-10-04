@@ -11,6 +11,7 @@ cd "$ROOT"
 [ -d "$HOME/.volta/bin" ] && export PATH="$HOME/.volta/bin:$PATH"
 
 SKIPS=()
+STAGES_OK=0
 
 run_stage() {
   local name="$1"
@@ -20,6 +21,7 @@ run_stage() {
     printf '\nERRO: estágio "%s" falhou — corrija antes de push.\n' "$name" >&2
     exit 1
   fi
+  STAGES_OK=$((STAGES_OK + 1))
 }
 
 stage_tree() {
@@ -72,9 +74,18 @@ stage_commitlint() {
       ;;
   esac
   local base="${CI_LOCAL_BASE:-origin/develop}"
-  git fetch origin develop --quiet
+  # set -e fica suspenso dentro de função chamada por `if` — substituição de
+  # comando quebrada silenciava o range e o commitlint validava outra coisa
+  # (provado por mutation). Checagem explícita em cada passo que pode falhar.
+  if ! git fetch origin develop --quiet; then
+    echo "git fetch origin develop falhou — commitlint exige a base atualizada (offline: aponte CI_LOCAL_BASE para um ref local)." >&2
+    return 1
+  fi
   local from
-  from="$(git merge-base "$base" HEAD)"
+  if ! from="$(git merge-base "$base" HEAD 2>/dev/null)"; then
+    echo "merge-base falhou para $base — ref inexistente? Confira CI_LOCAL_BASE." >&2
+    return 1
+  fi
   printf 'validando %s..HEAD (%s)\n' "$from" "$branch"
   npx --yes -p @commitlint/cli@21 -p @commitlint/config-conventional@21 \
     commitlint --from "$from" --to HEAD
@@ -95,7 +106,7 @@ run_stage "9 npm audit (prod, high)" pnpm audit --prod --audit-level high
 run_stage "10 gitleaks" stage_gitleaks
 run_stage "11 commitlint (range da branch)" stage_commitlint
 
-printf '\nCI LOCAL: 12/12 estágios verdes.\n'
+printf '\nCI LOCAL: %s/12 estágios verdes.\n' "$STAGES_OK"
 if [ "${#SKIPS[@]}" -gt 0 ]; then
   printf 'SKIP declarado:\n'
   printf '  - %s\n' "${SKIPS[@]}"
