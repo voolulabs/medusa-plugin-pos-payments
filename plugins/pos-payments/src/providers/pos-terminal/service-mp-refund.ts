@@ -20,21 +20,19 @@ export async function mpRefund(
   if (typeof data.amount_minor !== "number") {
     throw unexpected("blob sem amount_minor", "invariante")
   }
-  if (amount !== undefined) {
-    // O core passa refund.raw_amount: BigNumberRawValue {value} em unidades
-    // MAIORES (@medusajs/payment 2.21.2, refundPaymentFromProvider_).
-    const raw =
-      typeof amount === "object" &&
-      amount !== null &&
-      "value" in (amount as object)
-        ? (amount as { value: string | number }).value
-        : (amount as string | number)
-    if (toMinor(raw) !== (data.amount_minor as number)) {
-      throw unexpected(
-        "reembolso parcial não suportado no Point v1",
-        "amount difere"
-      )
-    }
+  // O core passa refund.raw_amount: BigNumberRawValue {value} em unidades
+  // MAIORES (@medusajs/payment 2.21.2, refundPaymentFromProvider_).
+  const raw =
+    typeof amount === "object" &&
+    amount !== null &&
+    "value" in (amount as object)
+      ? (amount as { value: string | number }).value
+      : (amount as string | number)
+  if (toMinor(raw) !== (data.amount_minor as number)) {
+    throw unexpected(
+      "reembolso parcial não suportado no Point v1",
+      "amount difere"
+    )
   }
   const chargeId = data.charge_id as string
   const view = await adapter.refundCharge(

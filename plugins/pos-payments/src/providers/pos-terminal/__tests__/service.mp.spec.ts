@@ -52,7 +52,12 @@ describe("provider mercadopago (wiring T3)", () => {
       new Response(JSON.stringify(order), { status: 201 })) as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
-      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+        fetchImpl,
+      }
     )
     const out = await service.initiatePayment({
       id: "pay_01H",
@@ -83,7 +88,11 @@ describe("provider mercadopago (wiring T3)", () => {
   it("initiate sem terminal_id falha alta", async () => {
     const service = new PosTerminalProviderService(
       { logger },
-      { acquirer: "mercadopago", accessToken: "test-token-fixture" }
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+      }
     )
     await expect(
       service.initiatePayment({
@@ -193,7 +202,12 @@ describe("reconvergência e resiliência do poll", () => {
       new Response("{}", { status: 500 })) as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
-      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+        fetchImpl,
+      }
     )
     const out = await service.getPaymentStatus({
       data: { charge_id: "ORD-1", state: "paid" },
@@ -206,7 +220,12 @@ describe("reconvergência e resiliência do poll", () => {
       new Response("{}", { status: 201 })) as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
-      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+        fetchImpl,
+      }
     )
     await expect(
       service.initiatePayment({
@@ -340,7 +359,12 @@ describe("refund do provider mercadopago", () => {
       respostas.shift() ?? new Response("{}", { status: 500 })) as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
-      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+        fetchImpl,
+      }
     )
     const cap = await service.capturePayment({
       id: "x",
@@ -393,7 +417,12 @@ describe("refund e validações de sessão do provider mercadopago", () => {
       new Response("{}", { status: 201 })) as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
-      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+        fetchImpl,
+      }
     )
     await expect(
       service.initiatePayment({
@@ -411,7 +440,12 @@ describe("refund e validações de sessão do provider mercadopago", () => {
       new Response("{}", { status: 201 })) as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
-      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+        fetchImpl,
+      }
     )
     const fetchSpy = vi.fn(fetchImpl)
     const service2 = new PosTerminalProviderService(
@@ -449,7 +483,12 @@ describe("refund e validações de sessão do provider mercadopago", () => {
     }) as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
-      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+        fetchImpl,
+      }
     )
     const out = await service.initiatePayment({
       id: "pay_01H",
@@ -473,7 +512,12 @@ describe("validações de sessão do provider mercadopago", () => {
       new Response("{}", { status: 201 })) as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
-      { acquirer: "mercadopago", accessToken: "test-token-fixture", fetchImpl }
+      {
+        acquirer: "mercadopago",
+        accessToken: "test-token-fixture",
+        webhookSecret: "test-webhook-secret",
+        fetchImpl,
+      }
     )
     await expect(
       service.initiatePayment({
