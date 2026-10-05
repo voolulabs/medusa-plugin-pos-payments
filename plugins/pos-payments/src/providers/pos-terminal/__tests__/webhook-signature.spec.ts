@@ -58,9 +58,9 @@ describe("validateWebhookSignature (mercado-pago.md §5)", () => {
         .update(`id:ORD1;request-id:${requestId};ts:${ts};`)
         .digest("hex")}`,
     }
-    expect(
-      validateWebhookSignature(h, { data: { id: "ORD1" } }, SECRET)
-    ).toBe(false)
+    expect(validateWebhookSignature(h, { data: { id: "ORD1" } }, SECRET)).toBe(
+      false
+    )
   })
 
   it("é insensível ao caso do hex (MP manda minúsculo, mas não confia)", () => {

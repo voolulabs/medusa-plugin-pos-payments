@@ -17,28 +17,52 @@ const TERMINAL = "NEWLAND_N950__SBX0000001"
 const PROVIDER = "pp_pos-terminal_mercadopago"
 
 const env = {}
-for (const line of fs.readFileSync("/home/chicofwd/ekipo/store-b2c/backend/.env", "utf8").split("\n")) {
+for (const line of fs
+  .readFileSync("/home/chicofwd/ekipo/store-b2c/backend/.env", "utf8")
+  .split("\n")) {
   const m = line.match(/^([A-Z_]+)=(.*)$/)
   if (m) env[m[1]] = m[2]
 }
 const MP_TOKEN = env.MP_ACCESS_TOKEN
 const MP_SECRET = env.MP_WEBHOOK_SECRET
 const DB = (env.DATABASE_URL || "").split("?")[0].split("/").pop()
-if (!MP_TOKEN || !MP_SECRET || !DB || !env.MEDUSA_ADMIN_EMAIL || !env.MEDUSA_ADMIN_PASSWORD) {
-  console.error("FAIL env: credenciais/DATABASE_URL ausentes no .env do backend")
+if (
+  !MP_TOKEN ||
+  !MP_SECRET ||
+  !DB ||
+  !env.MEDUSA_ADMIN_EMAIL ||
+  !env.MEDUSA_ADMIN_PASSWORD
+) {
+  console.error(
+    "FAIL env: credenciais/DATABASE_URL ausentes no .env do backend"
+  )
   process.exit(1)
 }
 
 const results = []
 const log = (step, ok, detail) => {
   results.push({ step, ok })
-  console.log((ok ? "PASS" : "FAIL") + " " + step + (detail ? " :: " + detail : ""))
+  console.log(
+    (ok ? "PASS" : "FAIL") + " " + step + (detail ? " :: " + detail : "")
+  )
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 function dbVal(sql) {
-  return execFileSync("docker", ["exec", "pos-postgres", "psql", "-U", "postgres", "-d", DB, "-At", "-c", sql])
-    .toString().trim()
+  return execFileSync("docker", [
+    "exec",
+    "pos-postgres",
+    "psql",
+    "-U",
+    "postgres",
+    "-d",
+    DB,
+    "-At",
+    "-c",
+    sql,
+  ])
+    .toString()
+    .trim()
 }
 
 async function api(method, path, token, body) {
@@ -52,16 +76,26 @@ async function api(method, path, token, body) {
   })
   const text = await r.text()
   let json = null
-  try { json = JSON.parse(text) } catch { /* html/empty */ }
+  try {
+    json = JSON.parse(text)
+  } catch {
+    /* html/empty */
+  }
   return { status: r.status, json, text }
 }
 
 async function simulate(orderId, status) {
-  const r = await fetch("https://api.mercadopago.com/v1/orders/" + orderId + "/events", {
-    method: "POST",
-    headers: { authorization: "Bearer " + MP_TOKEN, "content-type": "application/json" },
-    body: JSON.stringify({ status }),
-  })
+  const r = await fetch(
+    "https://api.mercadopago.com/v1/orders/" + orderId + "/events",
+    {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + MP_TOKEN,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    }
+  )
   return r.status
 }
 
@@ -88,7 +122,8 @@ async function postHook(headers, body) {
 async function main() {
   // 0) login admin
   const auth = await api("POST", "/auth/user/emailpass", null, {
-    email: env.MEDUSA_ADMIN_EMAIL, password: env.MEDUSA_ADMIN_PASSWORD,
+    email: env.MEDUSA_ADMIN_EMAIL,
+    password: env.MEDUSA_ADMIN_PASSWORD,
   })
   const token = auth.json && auth.json.token
   log("admin.login", !!token, token ? "jwt ok" : "http=" + auth.status)
@@ -96,42 +131,80 @@ async function main() {
 
   // 1) draft order → collection → session (initiate cria a charge na adquirente)
   const regs = await api("GET", "/admin/regions", token)
-  const regionId = regs.json && regs.json.regions && regs.json.regions[0] && regs.json.regions[0].id
+  const regionId =
+    regs.json &&
+    regs.json.regions &&
+    regs.json.regions[0] &&
+    regs.json.regions[0].id
   log("region.list", !!regionId, regionId || "http=" + regs.status)
-  const draft = await api("POST", "/admin/draft-orders", token, { region_id: regionId, email: "l3-e2e@voolulabs.test" })
-  const orderId = draft.json && draft.json.draft_order && draft.json.draft_order.id
+  const draft = await api("POST", "/admin/draft-orders", token, {
+    region_id: regionId,
+    email: "l3-e2e@voolulabs.test",
+  })
+  const orderId =
+    draft.json && draft.json.draft_order && draft.json.draft_order.id
   log("draftorder.create", !!orderId, orderId || "http=" + draft.status)
-  const col = await api("POST", "/admin/payment-collections", token, { order_id: orderId, amount: 1000 })
-  const colId = col.json && col.json.payment_collection && col.json.payment_collection.id
+  const col = await api("POST", "/admin/payment-collections", token, {
+    order_id: orderId,
+    amount: 1000,
+  })
+  const colId =
+    col.json && col.json.payment_collection && col.json.payment_collection.id
   log("collection.create", !!colId, colId || "http=" + col.status)
   let sessFull = null
   let sessErr = "sem tentativa"
   for (let tent = 1; tent <= 10 && !sessFull; tent++) {
-    const sess = await api("POST", "/admin/payment-collections/" + colId + "/payment-sessions", token, {
-      provider_id: PROVIDER, data: { terminal_id: TERMINAL },
-    })
-    sessFull = sess.json && sess.json.payment_collection && sess.json.payment_collection.payment_sessions
-      && sess.json.payment_collection.payment_sessions[0]
+    const sess = await api(
+      "POST",
+      "/admin/payment-collections/" + colId + "/payment-sessions",
+      token,
+      {
+        provider_id: PROVIDER,
+        data: { terminal_id: TERMINAL },
+      }
+    )
+    sessFull =
+      sess.json &&
+      sess.json.payment_collection &&
+      sess.json.payment_collection.payment_sessions &&
+      sess.json.payment_collection.payment_sessions[0]
     if (!sessFull) {
       sessErr = "http=" + sess.status + " (tentativa " + tent + "/5)"
-      console.log("INFO session.retry :: " + sessErr + " — fila do simulador compartilhado; aguardando 60s")
+      console.log(
+        "INFO session.retry :: " +
+          sessErr +
+          " — fila do simulador compartilhado; aguardando 60s"
+      )
       await sleep(60000)
     }
   }
   const sessId = sessFull && sessFull.id
   const chargeNaSessao = sessFull && sessFull.data && sessFull.data.charge_id
-  log("session.create", !!sessId && !!chargeNaSessao,
-    sessId ? "session=" + sessId + " charge_no_initiate=" + (chargeNaSessao || "-") : sessErr)
+  log(
+    "session.create",
+    !!sessId && !!chargeNaSessao,
+    sessId
+      ? "session=" + sessId + " charge_no_initiate=" + (chargeNaSessao || "-")
+      : sessErr
+  )
   if (!sessId || !chargeNaSessao) process.exit(1)
 
   // 2) replay pela rota admin — MESMA chave de idempotência (seed = session id):
   // devolve a MESMA ordem. amountMinor em MINOR units verbatim (R$10,00 = 1000),
   // igual ao amount da collection — semântica única com o initiate (W1.1).
   const charge = await api("POST", "/admin/pos-payments/charges", token, {
-    amountMinor: 1000, externalReference: sessId, terminalId: TERMINAL,
+    amountMinor: 1000,
+    externalReference: sessId,
+    terminalId: TERMINAL,
   })
-  log("charge.replay.mesma-ordem", !!charge.json && charge.json.chargeId === chargeNaSessao,
-    "route=" + ((charge.json && charge.json.chargeId) || "-") + " http=" + charge.status)
+  log(
+    "charge.replay.mesma-ordem",
+    !!charge.json && charge.json.chargeId === chargeNaSessao,
+    "route=" +
+      ((charge.json && charge.json.chargeId) || "-") +
+      " http=" +
+      charge.status
+  )
 
   // 3) simulate processed → webhook REAL → captured no core (assert via DB)
   const s1 = await simulate(chargeNaSessao, "processed")
@@ -139,28 +212,49 @@ async function main() {
   let capturou = false
   for (let i = 0; i < 17; i++) {
     await sleep(3000)
-    const st = dbVal("select status from payment_session where id='" + sessId + "'")
-    if (st === "captured") { capturou = true; log("webhook.captured", true, "session=captured (t+" + (i + 1) * 3 + "s)"); break }
+    const st = dbVal(
+      "select status from payment_session where id='" + sessId + "'"
+    )
+    if (st === "captured") {
+      capturou = true
+      log("webhook.captured", true, "session=captured (t+" + (i + 1) * 3 + "s)")
+      break
+    }
     if (i === 16) log("webhook.captured", false, "timeout; status=" + st)
   }
 
   // 4) simulate refunded → subscriber cria o Refund no core (assert via DB)
   const s2 = await simulate(chargeNaSessao, "refunded")
   log("simulate.refunded", s2 === 204, "http=" + s2)
-  const sqlRefunds = "select count(*) from refund r join payment p on r.payment_id=p.id where p.payment_session_id='" + sessId + "'"
+  const sqlRefunds =
+    "select count(*) from refund r join payment p on r.payment_id=p.id where p.payment_session_id='" +
+    sessId +
+    "'"
   let refunds = 0
   for (let i = 0; i < 17; i++) {
     await sleep(3000)
     refunds = Number(dbVal(sqlRefunds) || 0)
-    if (refunds > 0) { log("webhook.refunded", true, "refunds=" + refunds + " (t+" + (i + 1) * 3 + "s)"); break }
+    if (refunds > 0) {
+      log(
+        "webhook.refunded",
+        true,
+        "refunds=" + refunds + " (t+" + (i + 1) * 3 + "s)"
+      )
+      break
+    }
     if (i === 16) log("webhook.refunded", false, "timeout sem refund")
   }
 
   // 5) dedup: redelivery ASSINADA do mesmo evento ×2 — refund não duplica
   const envelope = {
-    action: "order.refunded", api_version: "v1", data: { id: chargeNaSessao },
-    date_created: new Date().toISOString(), id: "manual-dedup-" + Date.now(),
-    live_mode: false, type: "order", user_id: 0,
+    action: "order.refunded",
+    api_version: "v1",
+    data: { id: chargeNaSessao },
+    date_created: new Date().toISOString(),
+    id: "manual-dedup-" + Date.now(),
+    live_mode: false,
+    type: "order",
+    user_id: 0,
   }
   const assinada = signEnvelope(envelope)
   const d1 = await postHook(assinada.headers, assinada.body)
@@ -168,13 +262,24 @@ async function main() {
   log("dedup.http200", d1 === 200 && d2 === 200, "http=" + d1 + "/" + d2)
   await sleep(12000)
   const depois = Number(dbVal(sqlRefunds) || 0)
-  log("dedup.sem-duplicacao", depois === refunds, "refunds antes=" + refunds + " depois=" + depois)
+  log(
+    "dedup.sem-duplicacao",
+    depois === refunds,
+    "refunds antes=" + refunds + " depois=" + depois
+  )
 
   // 6) negativo: entrega SEM assinatura → 200 ao MP, estado inalterado
-  const semSig = await postHook({ "content-type": "application/json" }, JSON.stringify(envelope))
+  const semSig = await postHook(
+    { "content-type": "application/json" },
+    JSON.stringify(envelope)
+  )
   await sleep(9000)
   const fin = Number(dbVal(sqlRefunds) || 0)
-  log("negativo.sem-assinatura", semSig === 200 && fin === depois, "http=" + semSig + " refunds=" + fin)
+  log(
+    "negativo.sem-assinatura",
+    semSig === 200 && fin === depois,
+    "http=" + semSig + " refunds=" + fin
+  )
 
   const pass = results.filter((r) => r.ok).length
   console.log("RESUMO: " + pass + "/" + results.length + " PASS")
@@ -182,6 +287,8 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error("FAIL excecao :: " + String(e && e.message ? e.message : e).slice(0, 300))
+  console.error(
+    "FAIL excecao :: " + String(e && e.message ? e.message : e).slice(0, 300)
+  )
   process.exit(1)
 })
