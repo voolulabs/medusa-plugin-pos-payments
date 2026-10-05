@@ -50,6 +50,12 @@ export type PosTerminalOptions = {
   accessToken?: string
   /** Secret de assinatura do webhook no DevPanel (T5) — obrigatório p/ mercadopago. */
   webhookSecret?: string
+  /**
+   * Guard MP_POINT_TEST_MODE (T6): aceita terminal de sandbox (serial SBX*).
+   * Default false — produção. true NUNCA é silencioso (warn no boot) e não
+   * isenta credenciais.
+   */
+  mpPointTestMode?: boolean
   /** Aditivo (CONSTRAINTS 5): seam de teste — fetch injetado (produção usa o global). */
   fetchImpl?: typeof fetch
 }
@@ -117,8 +123,18 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
     super(container, options)
     this.logger_ = (container.logger ?? console) as Logger
     this.options_ = options
+    // T6: nunca silencioso — teste sem hardware precisa gritar no boot.
+    if (options.mpPointTestMode === true) {
+      this.logger_.warn(
+        "pos-terminal: MP_POINT_TEST_MODE ativo — terminais de sandbox (serial SBX*) aceitos; NUNCA usar em produção (mercado-pago.md §8)"
+      )
+    }
     // Construído UMA vez no boot (adapter stateless sobre o cliente T1).
-    this.adapter_ = resolveAdapter(options.acquirer, options)
+    this.adapter_ = resolveAdapter(options.acquirer, {
+      accessToken: options.accessToken,
+      testMode: options.mpPointTestMode === true,
+      ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+    })
   }
 
   override async initiatePayment(

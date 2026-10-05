@@ -17,6 +17,8 @@ export type PosPaymentsPluginOptions = {
     accessToken?: string
     /** Secret de assinatura do webhook no DevPanel (T5) — espelha o provider. */
     webhookSecret?: string
+    /** Guard MP_POINT_TEST_MODE (T6) — espelha o provider: default false. */
+    mpPointTestMode?: boolean
     /** Seam de teste — fetch injetado (produção usa o global). */
     fetchImpl?: typeof fetch
   }
