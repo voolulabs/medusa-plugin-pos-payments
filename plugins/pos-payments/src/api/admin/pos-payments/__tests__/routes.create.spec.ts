@@ -64,6 +64,18 @@ describe("guard MP_POINT_TEST_MODE na rota (T6)", () => {
     const res = makeRes()
     await POST(req, res)
     expect(calls[0]!.url).toContain("/v1/orders")
+    expect(headerOf(calls[0]!.init, "X-Idempotency-Key")).toBe(
+      "pos-payments-mercadopago:ps_01ABC:charge"
+    )
+    expect(headerOf(calls[0]!.init, "Authorization")).toBe(
+      "Bearer test-token-fixture"
+    )
+    const payload = JSON.parse(String(calls[0]!.init.body)) as {
+      transactions: { payments: Array<{ amount: string }> }
+      config: { point: { terminal_id: string } }
+    }
+    expect(payload.transactions.payments[0]!.amount).toBe("19.99")
+    expect(payload.config.point.terminal_id).toBe("NEWLAND_N950__SBX0000001")
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ chargeId: "ORD-SBX" })
     )

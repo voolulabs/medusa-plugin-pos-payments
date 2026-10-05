@@ -554,9 +554,11 @@ describe("guard MP_POINT_TEST_MODE no provider (T6)", () => {
   }
 
   function serviceWith(mpPointTestMode?: boolean) {
-    const fetchImpl = vi.fn(
-      async () => new Response(JSON.stringify(sandboxOrder), { status: 201 })
-    ) as unknown as typeof fetch
+    const calls: Array<{ url: string; init: RequestInit }> = []
+    const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} })
+      return new Response(JSON.stringify(sandboxOrder), { status: 201 })
+    }) as unknown as typeof fetch
     const service = new PosTerminalProviderService(
       { logger },
       {
@@ -567,12 +569,14 @@ describe("guard MP_POINT_TEST_MODE no provider (T6)", () => {
         ...(mpPointTestMode === undefined ? {} : { mpPointTestMode }),
       }
     )
-    return { service, fetchImpl }
+    return { service, fetchImpl, calls }
   }
 
   const initiateSandbox = {
     id: "pay_01SBX",
-    amount: 19.99,
+    // Forma REAL do core (BigNumberRawValue): sem float nu — 1999 minor no blob
+    // e "19.99" na wire, determinístico.
+    amount: { value: "19.99", precision: 2 },
     currency_code: "brl",
     context: {},
     data: { terminal_id: "NEWLAND_N950__SBX0000001" },
@@ -587,13 +591,25 @@ describe("guard MP_POINT_TEST_MODE no provider (T6)", () => {
   })
 
   it("initiate para sandbox com mpPointTestMode=true cria a cobrança", async () => {
-    const { service, fetchImpl } = serviceWith(true)
+    const { service, fetchImpl, calls } = serviceWith(true)
     const out = await service.initiatePayment(initiateSandbox as never)
     expect(out.id).toBe("ORD-SBX")
     expect(out.data).toMatchObject({
       charge_id: "ORD-SBX",
       acquirer: "mercadopago",
+      amount_minor: 1999,
     })
     expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(calls[0]!.url).toContain("/v1/orders")
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01SBX:charge",
+      Authorization: "Bearer test-token-fixture",
+    })
+    const payload = JSON.parse(String(calls[0]!.init.body)) as {
+      transactions: { payments: Array<{ amount: string }> }
+      config: { point: { terminal_id: string } }
+    }
+    expect(payload.transactions.payments[0]!.amount).toBe("19.99")
+    expect(payload.config.point.terminal_id).toBe("NEWLAND_N950__SBX0000001")
   })
 })
