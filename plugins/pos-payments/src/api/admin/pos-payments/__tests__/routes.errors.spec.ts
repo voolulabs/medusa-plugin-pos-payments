@@ -51,7 +51,7 @@ describe("mapeamento de erros das rotas de charge", () => {
       body: {
         amountMinor: 1999,
         externalReference: "ps_01ABC",
-        terminalId: "NEWLAND_N950__SBX0000001",
+        terminalId: "NEWLAND_N950__S1",
       },
       queue: [
         { status: 409, body: { error: "idempotency_key_already_used" } },
@@ -68,7 +68,7 @@ describe("mapeamento de erros das rotas de charge", () => {
       body: {
         amountMinor: 1999,
         externalReference: "ps_01ABC",
-        terminalId: "NEWLAND_N950__SBX0000001",
+        terminalId: "NEWLAND_N950__S1",
       },
       queue: [
         { status: 409, body: { error: "idempotency_key_already_used" } },
