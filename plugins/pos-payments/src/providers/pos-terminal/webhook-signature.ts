@@ -3,7 +3,12 @@ import { createHmac, timingSafeEqual } from "node:crypto"
 
 /**
  * Canonical `id:{data.id};request-id:{x-request-id};ts:{ts};` — sem expiração
- * (doc oficial; renovação do secret via Reset no DevPanel).
+ * (doc oficial; renovação do secret via Reset no DevPanel). Nota oficial
+ * (notifications MP, verificado 2026-10-05): o data.id entra no canonical em
+ * LOWERCASE — "If data.id is returned with uppercase alphanumeric characters,
+ * convert it to lowercase before using it in the manifest" (ex.: ORD01... →
+ * ord01...). Ids reais chegam maiúsculos (ORDTST...) — sem o lowercase, TODA
+ * entrega real é descartada.
  */
 export function validateWebhookSignature(
   headers: Record<string, string>,
@@ -22,7 +27,7 @@ export function validateWebhookSignature(
   if (!ts || !v1 || !requestId || !secret || id === undefined) {
     return false
   }
-  const canonical = `id:${id};request-id:${requestId};ts:${ts};`
+  const canonical = `id:${String(id).toLowerCase()};request-id:${requestId};ts:${ts};`
   const esperado = createHmac("sha256", secret).update(canonical).digest("hex")
   const a = Buffer.from(esperado, "utf8")
   const b = Buffer.from(v1.toLowerCase(), "utf8")

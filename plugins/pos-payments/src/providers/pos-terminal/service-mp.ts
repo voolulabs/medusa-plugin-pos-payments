@@ -5,7 +5,7 @@ import type {
   PosPaymentsAdapter,
 } from "../../adapters/types"
 import { applyTransition } from "./charge-state"
-import { assertTerminalId, toMinor } from "./charge-input"
+import { assertTerminalId, assertMinorAmount } from "./charge-input"
 import type { StructuredLogger } from "./mp-status"
 
 export const PROVIDER_LOG_ID = "pp_pos-terminal_mercadopago"
@@ -20,12 +20,26 @@ const RESERVADAS = new Set([
   "data_version",
 ])
 
-/** Semente determinística de idempotência — sem id, falha alta (nunca aleatória). */
+/**
+ * Semente determinística de idempotência — sem id, falha alta (nunca aleatória).
+ * Contrato do core, idêntico em 2.19 dist e 2.21.1 fonte (L3 2026-10-05):
+ * `data: { ...input.data, session_id }` + `context: { idempotency_key: session.id }`.
+ * A leitura original por `context.session_id` nunca existiu no contrato; a união
+ * abaixo é defesa em profundidade (primeira string presente vence), não
+ * divergência de versão.
+ */
 function sessionSeed(input: {
   id?: string
-  context?: { session_id?: string }
+  data?: Record<string, unknown>
+  context?: { session_id?: string; idempotency_key?: unknown }
 }): string {
-  const seed = input.context?.session_id ?? input.id
+  const dataSeed = input.data?.session_id
+  const ctxKey = input.context?.idempotency_key
+  const seed =
+    input.context?.session_id ??
+    (typeof dataSeed === "string" ? dataSeed : undefined) ??
+    (typeof ctxKey === "string" ? ctxKey : undefined) ??
+    input.id
   if (!seed) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -63,7 +77,7 @@ export async function mpInitiate(
   const seed = sessionSeed(input)
   const key = idempotencyKey(seed, "charge")
   const createInput: CreateChargeInput = {
-    amountMinor: toMinor(input.amount),
+    amountMinor: assertMinorAmount(input.amount),
     externalReference: assertExternalReference(seed),
     terminalId: assertTerminalId(input),
   }

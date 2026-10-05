@@ -61,7 +61,9 @@ describe("provider mercadopago (wiring T3)", () => {
     )
     const out = await service.initiatePayment({
       id: "pay_01H",
-      amount: 19.99,
+      // Forma REAL do core (L3 2026-10-05, dist 2.19 + DB): amount em MINOR
+      // units verbatim — 1999 = R$19,99. O plugin NÃO converte.
+      amount: 1999,
       currency_code: "brl",
       context: {},
       data: {
@@ -379,8 +381,10 @@ describe("refund do provider mercadopago", () => {
     expect(can.data?.state).toBe("canceled")
     const ref = await service.refundPayment({
       id: "x",
-      // Forma REAL do core: refund.raw_amount (objeto, unidades maiores).
-      amount: { value: "19.99", precision: 2 },
+      // Forma REAL do core: refund.raw_amount (BigNumberRawValue) em MINOR
+      // units — dist 2.19/2.21 idênticos; DB real: {"value":"1999",
+      // "precision":20} para R$19,99.
+      amount: { value: "1999", precision: 20 },
       data: { charge_id: "ORD-9", state: "paid", amount_minor: 1999 },
     } as never)
     expect(ref.data?.state).toBe("refunded")
@@ -412,7 +416,7 @@ describe("refund do provider mercadopago", () => {
 })
 
 describe("refund e validações de sessão do provider mercadopago", () => {
-  it("amount negativo falha alto na conversão pura", async () => {
+  it("amount negativo falha alto na validação pura", async () => {
     const fetchImpl = (async () =>
       new Response("{}", { status: 201 })) as typeof fetch
     const service = new PosTerminalProviderService(
@@ -492,7 +496,9 @@ describe("refund e validações de sessão do provider mercadopago", () => {
     )
     const out = await service.initiatePayment({
       id: "pay_01H",
-      amount: { value: "19.99", precision: 2 },
+      // Forma REAL do core (BigNumberRawValue, precision 20 do Medusa): value
+      // em MINOR units verbatim — 1999 no blob e "19.99" na wire.
+      amount: { value: "1999", precision: 20 },
       currency_code: "brl",
       context: {},
       data: { terminal_id: "NEWLAND_N950__S1" },
@@ -537,7 +543,8 @@ describe("validações de sessão do provider mercadopago", () => {
             ({ state: "paid", rawStatus: "processed" }) as ChargeStatusView
         ),
         { charge_id: "ORD-1", state: "paid", amount_minor: 1999 },
-        "10.00",
+        // Minor units válidos, valor DIFERENTE do cobrado → recusa parcial.
+        "10",
         logger as never
       )
     ).rejects.toThrow(/parcial/)
@@ -574,9 +581,9 @@ describe("guard MP_POINT_TEST_MODE no provider (T6)", () => {
 
   const initiateSandbox = {
     id: "pay_01SBX",
-    // Forma REAL do core (BigNumberRawValue): sem float nu — 1999 minor no blob
-    // e "19.99" na wire, determinístico.
-    amount: { value: "19.99", precision: 2 },
+    // Forma REAL do core (BigNumberRawValue, precision 20): 1999 minor no blob
+    // e "19.99" na wire, determinístico — sem float nu.
+    amount: { value: "1999", precision: 20 },
     currency_code: "brl",
     context: {},
     data: { terminal_id: "NEWLAND_N950__SBX0000001" },

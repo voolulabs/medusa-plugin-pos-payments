@@ -10,7 +10,9 @@ const SECRET = "segredo-webhook-fixture"
 function evento(provider: string, id: string) {
   const ts = "1700000000"
   const v1 = createHmac("sha256", SECRET)
-    .update(`id:${id};request-id:rid-1;ts:${ts};`)
+    // Fórmula oficial: data.id no canonical em LOWERCASE (notifications MP,
+    // 2026-10-05) — o id do envelope pode chegar maiúsculo.
+    .update(`id:${id.toLowerCase()};request-id:rid-1;ts:${ts};`)
     .digest("hex")
   return {
     provider,
