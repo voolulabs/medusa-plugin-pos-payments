@@ -19,7 +19,9 @@ testes e réguas de cobertura do pacote (engenharia §4).
 > seam de teste. `default_installments` EXISTE no contrato oficial (Point Pro 2/3,
 > `credit_card`, com `installments_cost`); a ausência no payload v1 é decisão de produto,
 > não proibição do contrato. `GET /v1/orders/{id}` só retorna ordens com menos de 3 meses;
-> 409 `already_queued_order_for_terminal` (uma ordem em fila por terminal) é recusa conhecida.
+> 409 `already_queued_order_on_terminal` (uma ordem em fila por terminal) é recusa conhecida.
+> **[ok] Errata 2026-10-04 (T6):** o código real é 'on', não 'for' como documentado acima
+> originalmente — provado na homologação (a fila é por serial do device virtual).
 
 ## 1. Escopo do ticket
 
