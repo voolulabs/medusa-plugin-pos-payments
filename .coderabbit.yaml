@@ -23,12 +23,14 @@ reviews:
   # feature contra develop/staging ficam sem review ("Auto reviews are disabled
   # on base/target branches other than the default branch", visível nos PRs
   # #12/#24 — base staging). base_branches é ADITIVO à default
-  # (docs.coderabbit.ai/reference/configuration) — main continua coberta.
+  # (docs.coderabbit.ai/reference/configuration): "^main$" é redundante HOJE e
+  # fica por defesa — mantém main coberta se a default do repo mudar.
   auto_review:
     enabled: true
     base_branches:
       - "^develop$"
       - "^staging$"
+      - "^main$"
   # produto de pagamentos — régua alta
   profile: "assertive"
   review_status: true
