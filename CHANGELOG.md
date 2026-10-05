@@ -30,16 +30,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NEWLAND_N950__SBX0000001`) fails closed before any network call unless the
   option `mpPointTestMode` is explicitly enabled — on the provider
   (`PosTerminalOptions`) or the plugin `posTerminal` block that feeds the admin
-  routes. Enabling logs a loud warning at boot and never exempts credentials
-  (presence-gated registration preserved): test mode is never silent in
-  production.
+  routes. Enabling is never silent — a loud warning is logged at provider boot
+  and, on the admin-route path, once per process on first use — and never
+  exempts credentials (presence-gated registration preserved): test mode is
+  never silent in production.
 
 ### Fixed
 
-- Mercado Pago 409 queue-conflict error code corrected to the real
-  `already_queued_order_on_terminal` (was `..._for_...`), proven in the
-  2026-10-04 homologation smoke; the idempotency-conflict recovery was already
-  generic by status and is unchanged.
+- Mercado Pago queue-conflict 409: the test contract now uses the real error
+  code `already_queued_order_on_terminal` (was `..._for_...`), per the
+  2026-10-04 homologation errata. No production behavior change — the
+  idempotency-conflict recovery keys on the `idempotency_key_already_used`
+  error code only, so queue-conflict 409s never entered it.
 
 ### Changed
 

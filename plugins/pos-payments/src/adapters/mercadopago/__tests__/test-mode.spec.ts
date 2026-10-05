@@ -21,6 +21,16 @@ describe("isSandboxTerminal (predicado puro)", () => {
     expect(isSandboxTerminal("garbage")).toBe(false)
   })
 
+  it("serial minúsculo também é sandbox (case não fura o guard)", () => {
+    expect(isSandboxTerminal("NEWLAND_N950__sbx0000001")).toBe(true)
+    expect(isSandboxTerminal("PAX_A910__Sbx1")).toBe(true)
+  })
+
+  it("poi_type com '__' não esconde o serial (lastIndexOf)", () => {
+    expect(isSandboxTerminal("NE__WLAND__SBX0000001")).toBe(true)
+    expect(isSandboxTerminal("NE__WLAND__S1")).toBe(false)
+  })
+
   it("o prefixo exportado é o contrato do §8", () => {
     expect(SANDBOX_SERIAL_PREFIX).toBe("SBX")
   })

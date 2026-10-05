@@ -65,8 +65,10 @@ type RequestOpts = {
 export function makeReq(opts: RequestOpts = {}): {
   req: AuthenticatedMedusaRequest
   calls: FetchCall[]
+  loggerWarn: Mock
 } {
   const { fetchImpl, calls } = makeFetch(opts.queue ?? [])
+  const loggerWarn = vi.fn()
   const pluginOptions =
     opts.plugin === null
       ? {}
@@ -83,16 +85,22 @@ export function makeReq(opts: RequestOpts = {}): {
   }
   const req = {
     scope: {
-      resolve: (key: string) =>
-        key === ContainerRegistrationKeys.CONFIG_MODULE
-          ? configModule
-          : undefined,
+      resolve: (key: string) => {
+        if (key === ContainerRegistrationKeys.CONFIG_MODULE) return configModule
+        if (key === ContainerRegistrationKeys.LOGGER)
+          return { warn: loggerWarn, info: vi.fn(), error: vi.fn() }
+        return undefined
+      },
     },
     body: opts.body,
     params: opts.params ?? {},
     query: opts.query ?? {},
   }
-  return { req: req as unknown as AuthenticatedMedusaRequest, calls }
+  return {
+    req: req as unknown as AuthenticatedMedusaRequest,
+    calls,
+    loggerWarn,
+  }
 }
 
 export function makeRes(): MedusaResponse {

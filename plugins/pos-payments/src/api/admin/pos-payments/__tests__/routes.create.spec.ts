@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { POST } from "../charges/route"
+import { adapterForRequest, resetTestModeWarn } from "../adapter-scope"
 import {
   ORDER_OK,
   VALID_BODY,
@@ -54,7 +55,8 @@ describe("guard MP_POINT_TEST_MODE na rota (T6)", () => {
       id: "ORD-SBX",
       config: { point: { terminal_id: "NEWLAND_N950__SBX0000001" } },
     }
-    const { req, calls } = makeReq({
+    resetTestModeWarn()
+    const { req, calls, loggerWarn } = makeReq({
       plugin: { mpPointTestMode: true },
       queue: [{ status: 201, body: sandboxOrder }],
       body: { ...VALID_BODY, terminalId: "NEWLAND_N950__SBX0000001" },
@@ -65,5 +67,21 @@ describe("guard MP_POINT_TEST_MODE na rota (T6)", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ chargeId: "ORD-SBX" })
     )
+    // Nunca silencioso (T6/r1): teste ativo na entrada rotas grita no log.
+    expect(loggerWarn).toHaveBeenCalledWith(
+      expect.stringContaining("MP_POINT_TEST_MODE")
+    )
+    resetTestModeWarn()
+  })
+
+  it("adapterForRequest: warn de teste é 1× por processo (não spamma por request)", async () => {
+    resetTestModeWarn()
+    const first = makeReq({ plugin: { mpPointTestMode: true } })
+    adapterForRequest(first.req)
+    const second = makeReq({ plugin: { mpPointTestMode: true } })
+    adapterForRequest(second.req)
+    expect(first.loggerWarn).toHaveBeenCalledTimes(1)
+    expect(second.loggerWarn).not.toHaveBeenCalled()
+    resetTestModeWarn()
   })
 })

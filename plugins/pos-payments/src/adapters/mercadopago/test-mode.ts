@@ -9,9 +9,15 @@ export const SANDBOX_SERIAL_PREFIX = "SBX"
  * "__" não é sandbox — o FORMATO continua sob o assertTerminalId do cliente.
  */
 export function isSandboxTerminal(terminalId: string): boolean {
-  const sep = terminalId.indexOf("__")
+  // lastIndexOf: um poi_type com "__" não pode esconder o serial do guard
+  // (defesa em profundidade — o FORMATO continua sob o assertTerminalId).
+  const sep = terminalId.lastIndexOf("__")
   if (sep === -1) return false
-  return terminalId.slice(sep + 2).startsWith(SANDBOX_SERIAL_PREFIX)
+  // Case-insensitive: serial minúsculo não fura o guard.
+  return terminalId
+    .slice(sep + 2)
+    .toUpperCase()
+    .startsWith(SANDBOX_SERIAL_PREFIX)
 }
 
 /**
