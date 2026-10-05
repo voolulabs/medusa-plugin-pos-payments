@@ -23,7 +23,7 @@ function headers(id: string, requestId: string, ts: string) {
   }
 }
 
-describe("validateWebhookSignature (mercado-pago.md §5)", () => {
+describe("validateWebhookSignature (formato oficial)", () => {
   it("aceita assinatura válida do formato oficial", () => {
     expect(
       validateWebhookSignature(
@@ -32,35 +32,6 @@ describe("validateWebhookSignature (mercado-pago.md §5)", () => {
         SECRET
       )
     ).toBe(true)
-  })
-
-  it("id maiúsculo no envelope casa com a assinatura do id em lowercase (nota oficial)", () => {
-    // Cenário REAL do L3: MP entrega data.id maiúsculo (ORDTST...) e assina o
-    // canonical com o id em lowercase. Sem o lowercase no validador, toda
-    // entrega real era descartada.
-    expect(
-      validateWebhookSignature(
-        headers("ORDTST01M46YGB9K0CKPNAM43XSYE1WH", "rid-real", "1791235590"),
-        {
-          data: { id: "ORDTST01M46YGB9K0CKPNAM43XSYE1WH" },
-        },
-        SECRET
-      )
-    ).toBe(true)
-  })
-
-  it("assinatura computada sobre o id maiúsculo NÃO casa (canonical é lowercase)", () => {
-    const ts = "1700000000"
-    const requestId = "rid-1"
-    const h = {
-      "x-request-id": requestId,
-      "x-signature": `ts=${ts},v1=${createHmac("sha256", SECRET)
-        .update(`id:ORD1;request-id:${requestId};ts:${ts};`)
-        .digest("hex")}`,
-    }
-    expect(validateWebhookSignature(h, { data: { id: "ORD1" } }, SECRET)).toBe(
-      false
-    )
   })
 
   it("é insensível ao caso do hex (MP manda minúsculo, mas não confia)", () => {
@@ -129,5 +100,36 @@ describe("validateWebhookSignature (mercado-pago.md §5)", () => {
         ""
       )
     ).toBe(false)
+  })
+})
+
+describe("validateWebhookSignature (lowercase do data.id — nota oficial)", () => {
+  it("id maiúsculo no envelope casa com a assinatura do id em lowercase", () => {
+    // Cenário REAL do L3: MP entrega data.id maiúsculo (ORDTST...) e assina o
+    // canonical com o id em lowercase. Sem o lowercase no validador, toda
+    // entrega real era descartada.
+    expect(
+      validateWebhookSignature(
+        headers("ORDTST01M46YGB9K0CKPNAM43XSYE1WH", "rid-real", "1791235590"),
+        {
+          data: { id: "ORDTST01M46YGB9K0CKPNAM43XSYE1WH" },
+        },
+        SECRET
+      )
+    ).toBe(true)
+  })
+
+  it("assinatura computada sobre o id maiúsculo NÃO casa (canonical é lowercase)", () => {
+    const ts = "1700000000"
+    const requestId = "rid-1"
+    const h = {
+      "x-request-id": requestId,
+      "x-signature": `ts=${ts},v1=${createHmac("sha256", SECRET)
+        .update(`id:ORD1;request-id:${requestId};ts:${ts};`)
+        .digest("hex")}`,
+    }
+    expect(validateWebhookSignature(h, { data: { id: "ORD1" } }, SECRET)).toBe(
+      false
+    )
   })
 })
