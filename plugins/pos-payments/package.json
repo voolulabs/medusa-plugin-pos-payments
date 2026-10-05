@@ -49,9 +49,9 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@medusajs/framework": ">=2.15.0 <3",
-    "@medusajs/medusa": ">=2.15.0 <3",
-    "@medusajs/utils": ">=2.15.0 <3"
+    "@medusajs/framework": ">=2.19.0 <3",
+    "@medusajs/medusa": ">=2.19.0 <3",
+    "@medusajs/utils": ">=2.19.0 <3"
   },
   "engines": {
     "node": ">=20"
