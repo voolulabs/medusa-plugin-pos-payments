@@ -285,7 +285,7 @@ describe("subscriber — options quebradas (adapter lazy)", () => {
           ? {
               plugins: [
                 {
-                  resolve: "@voolulabs/medusa-plugin-pos-payments",
+                  resolve: "@voolulabs/medusajs-plugin-pos-payments",
                   options: {
                     posTerminal: { acquirer: "mercadopago" },
                   },

@@ -1,6 +1,6 @@
 # Medusa POS Payments
 
-[![Codecov](https://codecov.io/github/voolulabs/medusa-plugin-pos-payments/graph/badge.svg)](https://codecov.io/github/voolulabs/medusa-plugin-pos-payments)
+[![Codecov](https://codecov.io/github/voolulabs/medusajs-plugin-pos-payments/graph/badge.svg)](https://codecov.io/github/voolulabs/medusajs-plugin-pos-payments)
 
 _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 

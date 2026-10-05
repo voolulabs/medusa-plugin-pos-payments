@@ -1,4 +1,4 @@
-# CLAUDE.md — medusa-plugin-pos-payments
+# CLAUDE.md — medusajs-plugin-pos-payments
 
 ## O que é
 

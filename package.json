@@ -1,5 +1,5 @@
 {
-  "name": "medusa-plugin-pos-payments",
+  "name": "medusajs-plugin-pos-payments",
   "private": true,
   "workspaces": [
     "./plugins/*",
