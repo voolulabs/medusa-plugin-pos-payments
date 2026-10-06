@@ -48,7 +48,7 @@ const log = (step, ok, detail) => {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-function dbVal(sql) {
+function dbVal(sql, sid) {
   return execFileSync("docker", [
     "exec",
     "pos-postgres",
@@ -58,6 +58,8 @@ function dbVal(sql) {
     "-d",
     DB,
     "-At",
+    "-v",
+    "sid=" + sid,
     "-c",
     sql,
   ])
@@ -115,7 +117,7 @@ function signEnvelope(envelope) {
 }
 
 async function postHook(headers, body) {
-  const r = await fetch(HOOK, { method: "POST", headers, body })
+  const r = await fetch(HOOK, { method: "POST", headers, body }) // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request - loopback 127.0.0.1 do harness local
   return r.status
 }
 
@@ -213,7 +215,8 @@ async function main() {
   for (let i = 0; i < 17; i++) {
     await sleep(3000)
     const st = dbVal(
-      "select status from payment_session where id='" + sessId + "'"
+      "select status from payment_session where id = :'sid'",
+      sessId
     )
     if (st === "captured") {
       capturou = true
@@ -227,13 +230,11 @@ async function main() {
   const s2 = await simulate(chargeNaSessao, "refunded")
   log("simulate.refunded", s2 === 204, "http=" + s2)
   const sqlRefunds =
-    "select count(*) from refund r join payment p on r.payment_id=p.id where p.payment_session_id='" +
-    sessId +
-    "'"
+    "select count(*) from refund r join payment p on r.payment_id=p.id where p.payment_session_id = :'sid'"
   let refunds = 0
   for (let i = 0; i < 17; i++) {
     await sleep(3000)
-    refunds = Number(dbVal(sqlRefunds) || 0)
+    refunds = Number(dbVal(sqlRefunds, sessId) || 0)
     if (refunds > 0) {
       log(
         "webhook.refunded",
@@ -261,7 +262,7 @@ async function main() {
   const d2 = await postHook(assinada.headers, assinada.body)
   log("dedup.http200", d1 === 200 && d2 === 200, "http=" + d1 + "/" + d2)
   await sleep(12000)
-  const depois = Number(dbVal(sqlRefunds) || 0)
+  const depois = Number(dbVal(sqlRefunds, sessId) || 0)
   log(
     "dedup.sem-duplicacao",
     depois === refunds,
@@ -274,7 +275,7 @@ async function main() {
     JSON.stringify(envelope)
   )
   await sleep(9000)
-  const fin = Number(dbVal(sqlRefunds) || 0)
+  const fin = Number(dbVal(sqlRefunds, sessId) || 0)
   log(
     "negativo.sem-assinatura",
     semSig === 200 && fin === depois,
