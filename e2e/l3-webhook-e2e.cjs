@@ -1,9 +1,10 @@
 /* L3 — Webhook E2E no sandbox: entrega REAL do MP pela rota nativa do core.
  * Fluxo: login admin → draft order → collection → session (com terminal_id no
  * data; initiate cria a charge) → replay pela rota admin (mesma ordem via
- * idempotência) → simulate processed → assert session captured no DB (MP →
+ * idempotência) → simulate processed → assert de captura no DB (MP →
  * funnel → proxy stripa pp_ → rota 200 → event bus → provider HMAC + re-fetch
- * → ação captured) → simulate refunded → assert Refund no core (subscriber) →
+ * → ação captured → captured_at no payment) → simulate refunded → assert
+ * Refund no core (subscriber) →
  * dedup (redelivery assinada ×2) → negativo (sem assinatura). Asserts de
  * estado via psql no container (API admin 2.19 não expõe retrieve da
  * collection). Token e secret nunca logados. */
@@ -221,19 +222,27 @@ async function main() {
       charge.status
   )
 
-  // 3) simulate processed → webhook REAL → captured no core (assert via DB)
+  // 3) simulate processed → webhook REAL → captura no core (assert via DB).
+  // O valor capturado vive no PAYMENT (captured_at), não na sessão: o core
+  // 2.19 reescreve CAPTURED → AUTHORIZED em authorizePaymentSession_
+  // (payment-module.ts:645, tag v2.19.0) e a captura do autocapture
+  // (processPaymentWorkflow) grava captured_at no payment sem tocar a sessão.
   const s1 = await simulate(chargeNaSessao, "processed")
   log("simulate.processed", s1 === 204, "http=" + s1)
   let capturou = false
   for (let i = 0; i < 17; i++) {
     await sleep(3000)
     const st = dbVal(
-      "select status from payment_session where id = :'sid'",
+      "select case when p.captured_at is not null then 'captured' else s.status end from payment_session s left join payment p on p.payment_session_id = s.id where s.id = :'sid'",
       sessId
     )
     if (st === "captured") {
       capturou = true
-      log("webhook.captured", true, "session=captured (t+" + (i + 1) * 3 + "s)")
+      log(
+        "webhook.captured",
+        true,
+        "captura confirmada (payment.captured_at, t+" + (i + 1) * 3 + "s)"
+      )
       break
     }
     if (i === 16) log("webhook.captured", false, "timeout; status=" + st)
