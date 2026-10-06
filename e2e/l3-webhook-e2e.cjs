@@ -16,10 +16,15 @@ const HOOK = "http://127.0.0.1:8443/hooks/payment/pp_pos-terminal_mercadopago"
 const TERMINAL = "NEWLAND_N950__SBX0000001"
 const PROVIDER = "pp_pos-terminal_mercadopago"
 
+const ENV_PATH = process.env.BACKEND_ENV_FILE
+if (!ENV_PATH) {
+  console.error(
+    "FAIL env: BACKEND_ENV_FILE ausente (caminho do .env do backend)"
+  )
+  process.exit(1)
+}
 const env = {}
-for (const line of fs
-  .readFileSync("/home/chicofwd/ekipo/store-b2c/backend/.env", "utf8")
-  .split("\n")) {
+for (const line of fs.readFileSync(ENV_PATH, "utf8").split("\n")) {
   const m = line.match(/^([A-Z_]+)=(.*)$/)
   if (m) env[m[1]] = m[2]
 }
@@ -109,7 +114,10 @@ async function simulate(orderId, status) {
 function signEnvelope(envelope) {
   const ts = String(Date.now())
   const rid = randomUUID()
-  const canonical = `id:${envelope.data.id};request-id:${rid};ts:${ts};`
+  // Fórmula oficial: data.id em lowercase no canonical (notifications MP).
+  const canonical = `id:${String(
+    envelope.data.id
+  ).toLowerCase()};request-id:${rid};ts:${ts};`
   const v1 = createHmac("sha256", MP_SECRET).update(canonical).digest("hex")
   return {
     headers: {

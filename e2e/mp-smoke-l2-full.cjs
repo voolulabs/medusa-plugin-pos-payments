@@ -6,9 +6,21 @@
  * Passos de device (listTerminals/cancel via endpoint) são informativos: a
  * migração L2->L4 foi decidida — device virtual SBX0000001 não tem dono.
  * O token nunca é logado. */
-const BASE =
-  "/home/chicofwd/ekipo/voolulabs/medusa-plugin-pos-payments/plugins/pos-payments/.medusa/server/src/adapters/mercadopago"
-const { MercadoPagoAdapter } = require(BASE + "/adapter.js")
+// Caminho resolvido do checkout (o script vive em e2e/) — nada de caminho
+// absoluto de maquina do autor.
+const path = require("node:path")
+const BASE = path.join(
+  __dirname,
+  "..",
+  "plugins",
+  "pos-payments",
+  ".medusa",
+  "server",
+  "src",
+  "adapters",
+  "mercadopago"
+)
+const { MercadoPagoAdapter } = require(path.join(BASE, "adapter.js"))
 
 const token = process.env.MP_ACCESS_TOKEN
 if (!token || !token.startsWith("APP_USR-")) {
@@ -44,6 +56,9 @@ async function simulate(chargeId, body) {
         "content-type": "application/json",
       },
       body: JSON.stringify(body),
+      // Mesmo orcamento do client do plugin (15s) — o fetch cru do Node pode
+      // ficar ate 300s esperando headers sem isso.
+      signal: AbortSignal.timeout(15000),
     }
   )
   return r.status

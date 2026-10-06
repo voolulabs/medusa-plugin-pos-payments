@@ -1,10 +1,27 @@
 /* Fumaça complementar: cancelamento em `created` (ok) e em `processed` (recusado). */
-const BASE =
-  "/home/chicofwd/ekipo/voolulabs/medusa-plugin-pos-payments/plugins/pos-payments/.medusa/server/src/adapters/mercadopago"
-const { MercadoPagoAdapter } = require(BASE + "/adapter.js")
+// Caminho resolvido do checkout (o script vive em e2e/) — nada de caminho
+// absoluto de maquina do autor.
+const path = require("node:path")
+const BASE = path.join(
+  __dirname,
+  "..",
+  "plugins",
+  "pos-payments",
+  ".medusa",
+  "server",
+  "src",
+  "adapters",
+  "mercadopago"
+)
+const { MercadoPagoAdapter } = require(path.join(BASE, "adapter.js"))
 
 const token = process.env.MP_ACCESS_TOKEN
-const adapter = new MercadoPagoAdapter({ accessToken: token })
+if (!token || !token.startsWith("APP_USR-")) {
+  console.error("FAIL token: credencial de teste ausente ou com prefixo errado")
+  process.exit(1)
+}
+// Guard T6: o smoke atinge terminal de sandbox — testMode explicito.
+const adapter = new MercadoPagoAdapter({ accessToken: token, testMode: true })
 const results = []
 const log = (step, ok, detail) => {
   results.push(ok)

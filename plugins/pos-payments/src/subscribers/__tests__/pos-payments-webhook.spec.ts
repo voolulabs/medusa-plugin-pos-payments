@@ -82,6 +82,20 @@ describe("subscriber pos-payments-webhook (T5)", () => {
     expect(d.refundTotal).toHaveBeenCalledWith("pay_1")
   })
 
+  it("id sem o prefixo pp_ também reconcilia (forma sans-pp do path param)", async () => {
+    // O core 2.19 prefixa pp_ INCONDICIONALMENTE ao path param para RESOLVER o
+    // provider, mas o evento carrega o path param como chega — URL sans-pp no
+    // painel entrega a forma sem prefixo. Se a forma sair de
+    // PROVIDER_EVENT_IDS, o handler retorna antes da reconciliação e este
+    // teste falha.
+    const d = deps()
+    await createHandler(d)({
+      event: { data: evento("pos-terminal_mercadopago", "ORD1") },
+    })
+    expect(d.findPaymentBySession).toHaveBeenCalledWith("ps_1")
+    expect(d.refundTotal).toHaveBeenCalledWith("pay_1")
+  })
+
   it("entrega repetida pula (guarda de refund existente) e loga o motivo", async () => {
     const d = deps({
       findPaymentBySession: vi.fn(async () => ({

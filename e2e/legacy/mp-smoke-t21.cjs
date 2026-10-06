@@ -1,16 +1,29 @@
 /* Fumaça T2.1/T3.1 — Orders API real (sandbox) com o adapter do plugin.
  * Sem hardware: terminal virtual + POST /v1/orders/{id}/events com janelas oficiais 10s/40s.
  * O token nunca é logado. */
-const BASE =
-  "/home/chicofwd/ekipo/voolulabs/medusa-plugin-pos-payments/plugins/pos-payments/.medusa/server/src/adapters/mercadopago"
-const { MercadoPagoAdapter } = require(BASE + "/adapter.js")
+// Caminho resolvido do checkout (o script vive em e2e/) — nada de caminho
+// absoluto de maquina do autor.
+const path = require("node:path")
+const BASE = path.join(
+  __dirname,
+  "..",
+  "plugins",
+  "pos-payments",
+  ".medusa",
+  "server",
+  "src",
+  "adapters",
+  "mercadopago"
+)
+const { MercadoPagoAdapter } = require(path.join(BASE, "adapter.js"))
 
 const token = process.env.MP_ACCESS_TOKEN
 if (!token || !token.startsWith("APP_USR-")) {
   console.error("FAIL token: credencial de teste ausente ou com prefixo errado")
   process.exit(1)
 }
-const adapter = new MercadoPagoAdapter({ accessToken: token })
+// Guard T6: o fallback de terminal pode ser SBX — testMode explicito.
+const adapter = new MercadoPagoAdapter({ accessToken: token, testMode: true })
 const results = []
 const log = (step, ok, detail) => {
   results.push(ok)
