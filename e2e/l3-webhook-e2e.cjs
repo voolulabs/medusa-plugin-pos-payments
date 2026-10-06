@@ -49,20 +49,25 @@ const log = (step, ok, detail) => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 function dbVal(sql, sid) {
-  return execFileSync("docker", [
-    "exec",
-    "pos-postgres",
-    "psql",
-    "-U",
-    "postgres",
-    "-d",
-    DB,
-    "-At",
-    "-v",
-    "sid=" + sid,
-    "-c",
-    sql,
-  ])
+  // Consulta via STDIN com psql -v: a substituicao de :'"'"'sid'"'"' so acontece no
+  // buffer de consulta (stdin), nao no -c do psql do container.
+  return execFileSync(
+    "docker",
+    [
+      "exec",
+      "-i",
+      "pos-postgres",
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      DB,
+      "-At",
+      "-v",
+      "sid=" + sid,
+    ],
+    { input: sql }
+  )
     .toString()
     .trim()
 }
