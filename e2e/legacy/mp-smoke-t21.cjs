@@ -1,5 +1,5 @@
 /* Fumaça T2.1/T3.1 — Orders API real (sandbox) com o adapter do plugin.
- * Sem hardware: terminal virtual + POST /v1/orders/{id}/events (§4.5).
+ * Sem hardware: terminal virtual + POST /v1/orders/{id}/events com janelas oficiais 10s/40s.
  * O token nunca é logado. */
 const BASE =
   "/home/chicofwd/ekipo/voolulabs/medusa-plugin-pos-payments/plugins/pos-payments/.medusa/server/src/adapters/mercadopago"
@@ -73,7 +73,7 @@ async function main() {
     `raw=${vista.rawStatus} state=${vista.state}`
   )
 
-  // 5) simular processado (§4.5) e pollar até o estado pago
+  // 5) simular processado e pollar até o estado pago
   const sim = await fetch(
     "https://api.mercadopago.com/v1/orders/" + criada.chargeId + "/events",
     {

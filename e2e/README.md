@@ -17,7 +17,8 @@ sandbox do Mercado Pago. Proveniência textual `[ok] / [pendente]` — sem emoji
 
 - Backend Medusa 2.19 no WSL (`:9000`) com o provider `pp_pos-terminal_mercadopago`
   registrado **flag-gated** (`POS_PAYMENTS_MP_TEST=true`) e o build do plugin no
-  store pnpm (fluxo §6.4 do repo).
+  store do gerenciador de pacotes do backend (o symlink manual para a
+  working copy é instável — copiar o build por cima do pacote).
 - Túnel Tailscale Funnel apontando para o proxy `:8443` (que repassa à `:9000`
   com o path `/hooks/payment/<provider>` sans `pp_`).
 - Container docker `pos-postgres` para os asserts de estado (a API admin 2.19

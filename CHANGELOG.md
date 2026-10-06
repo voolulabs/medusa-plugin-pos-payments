@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Money: provider agora trata o amount do core como minor units verbatim
+  (`assertMinorAmount`) — a conversão anterior multiplicava por 100 e inflava
+  a cobrança na adquirente; refund compara o `raw_amount` verbatim com o blob.
+- Webhook: `data.id` em lowercase no canonical HMAC (nota oficial da doc de
+  notifications) — entregas reais com id maiúsculo eram descartadas.
+- Subscriber: aceita o id do provider com e sem o prefixo `pp_` (o core 2.19
+  prefixa incondicionalmente ao path param; o 2.21 tolera ambas as formas).
+
 ### Added
 
 - Mercado Pago adapter: `mapStatus` — pure order-to-charge-state mapping that is
