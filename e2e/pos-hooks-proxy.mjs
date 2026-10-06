@@ -40,17 +40,17 @@ http
     req.on("data", (c) => chunks.push(c))
     req.on("end", () => {
       const body = chunks.length ? Buffer.concat(chunks) : undefined
-      // Diagnóstico L3: corpo da entrega real (o MP aparenta mandar o id só na
-      // query — confirmar com o dump antes de mudar contrato no plugin).
+      // Diagnóstico L3: SÓ metadados. Assinatura/rid em valor + corpo formam
+      // material de replay (o validador não checa expiração) — nunca
+      // persistir em /tmp.
       try {
         appendFileSync(
           "/tmp/proxy-bodies.log",
           JSON.stringify({
             t: new Date().toISOString(),
             bodyLen: body ? body.length : 0,
-            body: body ? body.toString("utf8").slice(0, 600) : "",
-            rid: req.headers["x-request-id"],
-            sig: req.headers["x-signature"],
+            rid: !!req.headers["x-request-id"],
+            sig: !!req.headers["x-signature"],
           }) + "\n"
         )
       } catch {}
