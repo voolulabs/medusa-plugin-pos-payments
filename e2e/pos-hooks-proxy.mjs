@@ -1,8 +1,10 @@
 // Proxy mínimo: expoe APENAS /hooks/payment/* para o Medusa local (:9000).
 // Qualquer outro caminho responde 404 — o funnel publico nunca ve o resto.
 // L3 2026-10-05: o core 2.19 monta `pp_${param}` no getWebhookActionAndData
-// (dist payment-module.js:697); o painel MP tem a URL COM pp_ — o proxy
-// normaliza o segmento para o formato que o core 2.19 resolve (sem pp_).
+// (dist payment-module.js:697); o proxy normaliza o segmento COMO TOLERÂNCIA
+// para o formato que o core 2.19 resolve (sem pp_). A URL vigente no painel é
+// sans-pp (log do proxy registra o path pré-strip; entregas reais chegam sem
+// o prefixo) — o strip existe para o caso de a entrega vir com pp_.
 import http from "node:http"
 import { appendFileSync } from "node:fs"
 
