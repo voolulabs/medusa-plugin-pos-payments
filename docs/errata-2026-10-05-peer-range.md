@@ -22,8 +22,12 @@ sem editar os registros históricos. Erratas de ADR vivem em `docs/`.
 
 - Runtime **2.19.0** verificado no dist instalado (createPaymentSession,
   refundPaymentFromProvider_, roteamento do webhook).
-- Referência **2.21.1** verificada no fonte do monorepo: única divergência
+- Referência **2.21.x** verificada no fonte do monorepo: única divergência
   funcional relevante para providers custom é a tolerância do prefixo `pp_` no
-  roteamento do webhook (o 2.19 prefixa incondicionalmente; o 2.21 aceita o
-  path param já prefixado) — coberta pelo subscriber do plugin.
+  roteamento do webhook (o 2.19 prefixa incondicionalmente). **Doc oficial: o
+  path já prefixado só é aceito a partir da 2.21.2** — em 2.21.0/2.21.1 a URL
+  com `pp_` não resolve o provider. O fonte develop em cache (commit
+  2026-09-25) já contém a tolerância (`payment-module.ts:1459-1461`).
+  Orientação operacional: manter a URL do adquirente **sans `pp_`** (funciona
+  em todas as versões); o subscriber do plugin aceita as duas formas.
 - Faixa **2.15–2.18 nunca foi verificada** — motivo do estreitamento.
