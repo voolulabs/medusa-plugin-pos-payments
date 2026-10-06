@@ -40,10 +40,21 @@ type HandlerDeps = {
   refundTotal(paymentId: string): Promise<unknown>
 }
 
+/** Formas do id do provider no evento (L3 2026-10-05): o core 2.19 prefixa
+ * `pp_` INCONDICIONALMENTE ao path param no roteamento do webhook — a URL
+ * registrada no painel MP tem que ser sans-pp e o evento chega na forma do
+ * path (doc oficial: o path já prefixado só é aceito a partir da 2.21.2 —
+ * manter a URL sans `pp_`). O Set cobre as duas formas por robustez; ids de
+ * outros providers continuam de fora. */
+const PROVIDER_EVENT_IDS = new Set([
+  "pp_pos-terminal_mercadopago",
+  "pos-terminal_mercadopago",
+])
+
 /** Fiação testável: as dependências vêm de fora (nada de mock de módulo). */
 export function createHandler(deps: HandlerDeps) {
   return async ({ event }: { event: { data: WebhookEvent } }) => {
-    if (event.data.provider !== "pp_pos-terminal_mercadopago") return
+    if (!PROVIDER_EVENT_IDS.has(event.data.provider)) return
     const adapter = deps.getAdapter()
     if (!adapter) return
     const payload = event.data.payload

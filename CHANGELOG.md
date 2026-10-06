@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-10-05
+
+### Fixed
+
+- Money: provider agora trata o amount do core como minor units verbatim
+  (`assertMinorAmount`) — a conversão anterior multiplicava por 100 e inflava
+  a cobrança na adquirente; refund compara o `raw_amount` verbatim com o blob.
+- Webhook: `data.id` em lowercase no canonical HMAC (nota oficial da doc de
+  notifications) — entregas reais com id maiúsculo eram descartadas.
+- Subscriber: aceita o id do provider com e sem o prefixo `pp_` (o core 2.19
+  prefixa incondicionalmente ao path param; o 2.21 tolera ambas as formas).
 
 ### Added
 

@@ -21,7 +21,9 @@ function payload(overrides?: Partial<Record<string, unknown>>): WebhookPayload {
   const ts = "1700000000"
   const requestId = "rid-1"
   const v1 = createHmac("sha256", SECRET)
-    .update(`id:${id};request-id:${requestId};ts:${ts};`)
+    // Fórmula oficial: o data.id entra no canonical em LOWERCASE (nota da doc
+    // de notifications, 2026-10-05) — o id do envelope pode chegar maiúsculo.
+    .update(`id:${id.toLowerCase()};request-id:${requestId};ts:${ts};`)
     .digest("hex")
   return {
     data: {},

@@ -4,7 +4,7 @@ import type { PosPaymentsAdapter } from "../../adapters/types"
 import { applyTransition } from "./charge-state"
 import { PROVIDER_LOG_ID } from "./service-mp"
 import { keyFor, unexpected } from "./service-mp-ops"
-import { toMinor } from "./charge-input"
+import { assertMinorAmount } from "./charge-input"
 
 export async function mpRefund(
   adapter: PosPaymentsAdapter,
@@ -20,15 +20,17 @@ export async function mpRefund(
   if (typeof data.amount_minor !== "number") {
     throw unexpected("blob sem amount_minor", "invariante")
   }
-  // O core passa refund.raw_amount: BigNumberRawValue {value} em unidades
-  // MAIORES (@medusajs/payment 2.21.2, refundPaymentFromProvider_).
+  // O core passa refund.raw_amount: BigNumberRawValue {value} em MINOR units
+  // (dist 2.19 e 2.21.1 idênticos; DB real 2026-10-05: {"value":"1000",
+  // "precision":20}). Comparação VERBATIM — o blob também guarda o amount do
+  // core verbatim (assertMinorAmount não converte).
   const raw =
     typeof amount === "object" &&
     amount !== null &&
     "value" in (amount as object)
       ? (amount as { value: string | number }).value
       : (amount as string | number)
-  if (toMinor(raw) !== (data.amount_minor as number)) {
+  if (assertMinorAmount(raw) !== (data.amount_minor as number)) {
     throw unexpected(
       "reembolso parcial não suportado no Point v1",
       "amount difere"

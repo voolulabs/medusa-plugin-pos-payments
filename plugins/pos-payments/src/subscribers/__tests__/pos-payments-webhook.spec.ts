@@ -10,7 +10,9 @@ const SECRET = "segredo-webhook-fixture"
 function evento(provider: string, id: string) {
   const ts = "1700000000"
   const v1 = createHmac("sha256", SECRET)
-    .update(`id:${id};request-id:rid-1;ts:${ts};`)
+    // Fórmula oficial: data.id no canonical em LOWERCASE (notifications MP,
+    // 2026-10-05) — o id do envelope pode chegar maiúsculo.
+    .update(`id:${id.toLowerCase()};request-id:rid-1;ts:${ts};`)
     .digest("hex")
   return {
     provider,
@@ -75,6 +77,20 @@ describe("subscriber pos-payments-webhook (T5)", () => {
     const d = deps()
     await createHandler(d)({
       event: { data: evento("pp_pos-terminal_mercadopago", "ORD1") },
+    })
+    expect(d.findPaymentBySession).toHaveBeenCalledWith("ps_1")
+    expect(d.refundTotal).toHaveBeenCalledWith("pay_1")
+  })
+
+  it("id sem o prefixo pp_ também reconcilia (forma sans-pp do path param)", async () => {
+    // O core 2.19 prefixa pp_ INCONDICIONALMENTE ao path param para RESOLVER o
+    // provider, mas o evento carrega o path param como chega — URL sans-pp no
+    // painel entrega a forma sem prefixo. Se a forma sair de
+    // PROVIDER_EVENT_IDS, o handler retorna antes da reconciliação e este
+    // teste falha.
+    const d = deps()
+    await createHandler(d)({
+      event: { data: evento("pos-terminal_mercadopago", "ORD1") },
     })
     expect(d.findPaymentBySession).toHaveBeenCalledWith("ps_1")
     expect(d.refundTotal).toHaveBeenCalledWith("pay_1")

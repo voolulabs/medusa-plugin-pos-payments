@@ -2,7 +2,8 @@
   "$schema": "./node_modules/knip/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["commitlint.config.js"]
+      "entry": ["commitlint.config.js"],
+      "ignore": ["e2e/**"]
     },
     "plugins/pos-payments": {
       "entry": [
@@ -13,9 +14,7 @@
         "src/subscribers/**/*.ts"
       ],
       "ignoreDependencies": [
-        "@medusajs/medusa",
         "@medusajs/admin-shared",
-        "@swc/core",
         "ts-node",
         "@medusajs/test-utils"
       ]
