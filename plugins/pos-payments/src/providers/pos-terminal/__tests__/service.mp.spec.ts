@@ -512,6 +512,140 @@ describe("refund e validações de sessão do provider mercadopago", () => {
   })
 })
 
+// Fixture e fábrica compartilhadas pelos dois describes do seed (o helper
+// captura as chamadas de rede para assertar a derivação da idempotência).
+const ordemCriada = {
+  id: "ORD-SEED",
+  status: "created",
+  type: "point",
+  config: { point: { terminal_id: "NEWLAND_N950__S1" } },
+  transactions: { payments: [{ id: "PAY-1", amount: "19.99" }] },
+}
+
+function serviceCapturandoSeeds() {
+  const calls: Array<{ url: string; init: RequestInit }> = []
+  const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+    calls.push({ url: String(url), init: init ?? {} })
+    return new Response(JSON.stringify(ordemCriada), { status: 201 })
+  }) as typeof fetch
+  const service = new PosTerminalProviderService(
+    { logger },
+    {
+      acquirer: "mercadopago",
+      accessToken: "test-token-fixture",
+      webhookSecret: "test-webhook-secret",
+      fetchImpl,
+    }
+  )
+  return { service, calls }
+}
+
+describe("seed de sessão — ordem do union (formas do core)", () => {
+  it("data.session_id é o seed PRIMÁRIO (forma real: o core 2.19 injeta session_id no data)", async () => {
+    const { service, calls } = serviceCapturandoSeeds()
+    await service.initiatePayment({
+      id: "pay_wrapper",
+      amount: 1999,
+      currency_code: "brl",
+      context: { idempotency_key: "payses_wrapper" },
+      // O dist 2.19 monta data = { ...input.data, session_id } antes de chamar
+      // o provider — o seed tem que ser o session_id injetado, não o
+      // idempotency_key do context (mesma derivação do E2E real).
+      data: { terminal_id: "NEWLAND_N950__S1", session_id: "payses_data" },
+    } as never)
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-payments-mercadopago:payses_data:charge",
+    })
+  })
+
+  it("context.session_id vence quando presente (defesa da forma alternativa)", async () => {
+    const { service, calls } = serviceCapturandoSeeds()
+    const out = await service.initiatePayment({
+      id: "pay_fallback",
+      amount: 1999,
+      currency_code: "brl",
+      context: { session_id: "payses_ctx" },
+      data: { terminal_id: "NEWLAND_N950__S1" },
+    } as never)
+    expect(out.data?.amount_minor).toBe(1999)
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-payments-mercadopago:payses_ctx:charge",
+    })
+  })
+
+  it("context.idempotency_key é a segunda alternativa do seed", async () => {
+    const { service, calls } = serviceCapturandoSeeds()
+    await service.initiatePayment({
+      id: "pay_fallback",
+      amount: 1999,
+      currency_code: "brl",
+      context: { idempotency_key: "payses_key" },
+      data: { terminal_id: "NEWLAND_N950__S1" },
+    } as never)
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-payments-mercadopago:payses_key:charge",
+    })
+  })
+})
+
+describe("seed de sessão — fallbacks e defesas de tipo", () => {
+  it("idempotency_key não-string no context é ignorada pelo seed (defesa de tipo)", async () => {
+    const { service, calls } = serviceCapturandoSeeds()
+    await service.initiatePayment({
+      id: "payses_tipado",
+      amount: 1999,
+      currency_code: "brl",
+      context: { idempotency_key: 12345 },
+      data: { terminal_id: "NEWLAND_N950__S1" },
+    } as never)
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-payments-mercadopago:payses_tipado:charge",
+    })
+  })
+
+  it("sem nada no context/data, o id da sessão é o seed (última alternativa)", async () => {
+    const { service, calls } = serviceCapturandoSeeds()
+    await service.initiatePayment({
+      id: "payses_fallback",
+      amount: 1999,
+      currency_code: "brl",
+      context: {},
+      data: { terminal_id: "NEWLAND_N950__S1" },
+    } as never)
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-payments-mercadopago:payses_fallback:charge",
+    })
+  })
+
+  it("context inteiramente ausente: seed cai no id da sessão", async () => {
+    const { service, calls } = serviceCapturandoSeeds()
+    await service.initiatePayment({
+      id: "payses_semctx",
+      amount: 1999,
+      currency_code: "brl",
+      data: { terminal_id: "NEWLAND_N950__S1" },
+    } as never)
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-payments-mercadopago:payses_semctx:charge",
+    })
+  })
+
+  it("sem data, o terminal vem do context e o blob nasce vazio de dados do cliente", async () => {
+    const { service, calls } = serviceCapturandoSeeds()
+    const out = await service.initiatePayment({
+      id: "payses_nodata",
+      amount: 1999,
+      currency_code: "brl",
+      context: { terminal_id: "NEWLAND_N950__S1" },
+    } as never)
+    expect(out.id).toBe("ORD-SEED")
+    expect(out.data?.terminal_id).toBeUndefined()
+    expect(calls[0]!.init.headers).toMatchObject({
+      "X-Idempotency-Key": "pos-payments-mercadopago:payses_nodata:charge",
+    })
+  })
+})
+
 describe("validações de sessão do provider mercadopago", () => {
   it("seed fora do alfabeto da external_reference falha alto", async () => {
     const fetchImpl = (async () =>
