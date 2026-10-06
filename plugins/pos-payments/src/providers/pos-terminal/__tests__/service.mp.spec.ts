@@ -556,20 +556,35 @@ describe("seed de sessão — ordem do union (formas do core)", () => {
     expect(calls[0]!.init.headers).toMatchObject({
       "X-Idempotency-Key": "pos-payments-mercadopago:payses_data:charge",
     })
+    expect(JSON.parse(String(calls[0]!.init.body))).toMatchObject({
+      external_reference: "payses_data",
+      transactions: { payments: [{ amount: "19.99" }] },
+      config: { point: { terminal_id: "NEWLAND_N950__S1" } },
+    })
   })
 
-  it("context.session_id vence quando presente (defesa da forma alternativa)", async () => {
+  it("context.session_id vence mesmo com data.session_id concorrente (precedência do union)", async () => {
     const { service, calls } = serviceCapturandoSeeds()
     const out = await service.initiatePayment({
       id: "pay_fallback",
       amount: 1999,
       currency_code: "brl",
       context: { session_id: "payses_ctx" },
-      data: { terminal_id: "NEWLAND_N950__S1" },
+      // Semente concorrente: uma implementação que priorizasse data.session_id
+      // passaria no teste se a expectativa não fosse do context.
+      data: {
+        terminal_id: "NEWLAND_N950__S1",
+        session_id: "payses_concorrente",
+      },
     } as never)
     expect(out.data?.amount_minor).toBe(1999)
     expect(calls[0]!.init.headers).toMatchObject({
       "X-Idempotency-Key": "pos-payments-mercadopago:payses_ctx:charge",
+    })
+    // Header e ordem têm que concordar: external_reference = seed do header.
+    expect(JSON.parse(String(calls[0]!.init.body))).toMatchObject({
+      external_reference: "payses_ctx",
+      transactions: { payments: [{ amount: "19.99" }] },
     })
   })
 
@@ -614,6 +629,9 @@ describe("seed de sessão — fallbacks e defesas de tipo", () => {
     } as never)
     expect(calls[0]!.init.headers).toMatchObject({
       "X-Idempotency-Key": "pos-payments-mercadopago:payses_fallback:charge",
+    })
+    expect(JSON.parse(String(calls[0]!.init.body))).toMatchObject({
+      external_reference: "payses_fallback",
     })
   })
 
