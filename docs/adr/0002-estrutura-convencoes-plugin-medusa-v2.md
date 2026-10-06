@@ -32,7 +32,7 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
    `prepublishOnly` = `medusa plugin:build`; `typecheck` = `tsc --noEmit`; `test` = `vitest run`.
 4. **Versões:** devDeps `@medusajs/{cli,framework,medusa,test-utils}` **`^2.19`** (compila contra a
    versão do backend-alvo) + `@swc/core`, `typescript`, `vitest`; peerDeps
-   `@medusajs/framework` + `@medusajs/medusa` **`>=2.15 <3`** *(errata 2026-10-05, [ok] verificado no dist 2.19.0 e no fonte 2.21.1: estreitado para `>=2.19.0 <3` no PR #56 — 2.15–2.18 nunca verificados; única divergência funcional 2.19→2.21 é a tolerância do prefixo `pp_` no roteamento do webhook, já coberta)* (ADR 0006 §5: dropar minor do
+   `@medusajs/framework` + `@medusajs/medusa` **`>=2.15 <3`** (ADR 0006 §5: dropar minor do
    range = MINOR; suportada e quebrada = MAJOR).
 5. **Layout de código:**
    - `src/index.ts` — factory do plugin retornando `{ resolve, options }` (padrão narisolutions).
@@ -226,7 +226,7 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
 ## Erratas 2026-10-01 (review adversarial do workspace)
 
 1. **peerDependencies**: o pacote 0.0.1 declara **três** peers — `@medusajs/framework`,
-   `@medusajs/medusa` e **`@medusajs/utils`**, todos `>=2.15 <3` *(errata 2026-10-05, [ok]: `>=2.19.0 <3` — ver errata na seção de dependências)* (helpers importados em runtime,
+   `@medusajs/medusa` e **`@medusajs/utils`**, todos `>=2.15 <3` (helpers importados em runtime,
    ex. `ContainerRegistrationKeys` em `src/utils/plugin-options.ts`). Superfície semver do
    contrato de 1.0.0 (ADR 0006 §4) — este §4 fica atualizado por esta errata.
 2. **Adapters = diretório por adquirente** (`src/adapters/<acquirer>/{client,types,validation,…}`
