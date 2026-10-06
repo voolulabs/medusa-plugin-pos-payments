@@ -7,6 +7,7 @@ const path = require("node:path")
 const BASE = path.join(
   __dirname,
   "..",
+  "..",
   "plugins",
   "pos-payments",
   ".medusa",

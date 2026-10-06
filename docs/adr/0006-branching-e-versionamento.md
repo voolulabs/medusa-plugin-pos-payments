@@ -70,7 +70,7 @@ provider id/options, payload de webhook, faixas de peerDep), Keep-a-Changelog, p
    **não** exige todos os adapters — a camada base congela com o adapter piloto certificado;
    os demais entram como MINOR. Options de adapter são superfície pública: **aditivas por
    design**.
-5. **Compatibilidade Medusa = política de versão:** peer range **`>=2.15 <3`** *(errata 2026-10-05: `>=2.19.0 <3` desde o PR #56, com bump MINOR `0.0.1`→`0.1.0` conforme esta política — drop de minor em `0.x` entra em MINOR)*; a matriz de CI
+5. **Compatibilidade Medusa = política de versão:** peer range **`>=2.15 <3`** *(errata 2026-10-05, [ok] aplicada no PR #56: `>=2.19.0 <3` com bump MINOR `0.0.1`→`0.1.0` conforme esta política — drop de minor em `0.x` entra em MINOR)*; a matriz de CI
    roda contra as minors suportadas (a que produzimos + a última 2.2x). **Dropar uma minor do
    range = MINOR; suportada e quebrada = MAJOR.** Nunca peer pinado exato (anti-padrão
    `2.12.4`).
