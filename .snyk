@@ -18,3 +18,9 @@ ignore:
 exclude:
   code:
     - "**/__tests__/**"
+    # Harness E2E (PR #56): scripts operacionais standalone, local-only —
+    # proxy loopback 127.0.0.1 (http propositado, o Funnel pubico faz TLS),
+    # telemetria em /tmp, sem deploy. "Cleartext" e "rate-limit" sao falsos
+    # positivos nesse contexto. Mesma exclusao declarada do knip.json e
+    # .opcore.json; semgrep (ci:local 13) e gitleaks seguem cobrindo e2e/.
+    - "e2e/**"
