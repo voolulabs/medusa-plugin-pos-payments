@@ -1,26 +1,13 @@
-# Snyk (https://snyk.io) policy file.
-# Ignora/exclui achados de codigo revisados como falso positivo.
-
-version: v1.25.0
-
-ignore:
-  # Fixture de teste: TEST_ACCESS_TOKEN = "test-token-fixture" NAO e credencial.
-  # (Snyk Code, LOW — scan do develop de 2026-10-03.)
-  "6aa2d766-05b1-4058-975d-a2e66a1bf530":
-    - "plugins/pos-payments/src/adapters/mercadopago/__tests__/helpers.ts":
-        reason: "Fixture de teste, nao e credencial — valor sem formato de token de adquirente"
-        expires: "2027-01-31T00:00:00.000Z"
-
-# Diretorios de teste fora do scan de codigo (snyk code test): fixtures
-# produzem falso positivo de "secret hardcoded" — o detector faz dataflow
-# de qualquer literal em campo com nome de credencial. Codigo de producao
-# segue 100% escaneado; o gitleaks varre tudo, testes inclusive.
+# Política Snyk — exclusões auditadas (doc: docs.snyk.io, CLI ignore).
+# O bloco `exclude` (--file-path) é o ÚNICO mecanismo de arquivo suportado
+# para Snyk Code no .snyk (ignore por finding é `snyk ignore create` com
+# Consistent Ignores, que depende de org/token).
+#
+# uuid5.ts EXISTE para implementar UUID v5, cuja RFC 4122 §4.3 EXIGE SHA-1
+# (createHash("sha1")) — o finding [LOW] "Password Hash With Insufficient
+# Computational Effort" é falso positivo por definição. O arquivo não toca
+# credencial (namespace fixo + nome da charge); cobrimos por testes próprios
+# (uuid5.spec.ts) e mutação (golden values de implementação independente).
 exclude:
-  code:
-    - "**/__tests__/**"
-    # Harness E2E (PR #56): scripts operacionais standalone, local-only —
-    # proxy loopback 127.0.0.1 (http propositado, o Funnel pubico faz TLS),
-    # telemetria em /tmp, sem deploy. "Cleartext" e "rate-limit" sao falsos
-    # positivos nesse contexto. Mesma exclusao declarada do knip.json e
-    # .opcore.json; semgrep (ci:local 13) e gitleaks seguem cobrindo e2e/.
-    - "e2e/**"
+  "global":
+    - "plugins/pos-payments/src/utils/uuid5.ts"
