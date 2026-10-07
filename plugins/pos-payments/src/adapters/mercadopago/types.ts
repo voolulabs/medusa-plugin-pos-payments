@@ -52,6 +52,29 @@ export class MpIdempotencyConflictError extends MpApiError {
   }
 }
 
+/**
+ * Colisões de idempotência RETRYABLE — os únicos dois erros que a doc oficial
+ * da Orders API classifica como "Idempotency Error" com instrução de retry
+ * (docs checkout-api-orders/payment-management/integration-errors, 2026-10-07):
+ * 423 `resource_locked` ("chave temporariamente travada — aguarde e tente
+ * novamente") e 500 `idempotency_validation_failed` ("retry the request").
+ * Diferente do 409 (re-consulta), o chamador pode repetir a chamada original —
+ * a classe expõe `retryable: true` e herda o `retryAfter`; o backoff em si é
+ * decisão do chamador (poll degrada para pending; rotas devolvem 500 honesto).
+ */
+export class MpIdempotencyRetryableError extends MpApiError {
+  readonly retryable = true
+  constructor(
+    message: string,
+    status: number,
+    body: unknown,
+    retryAfter?: string
+  ) {
+    super(message, status, body, retryAfter)
+    this.name = "MpIdempotencyRetryableError"
+  }
+}
+
 /** Violação de contrato em fronteira do adapter (entrada local ou resposta fora do schema). */
 export class MpContractError extends Error {
   constructor(message: string) {

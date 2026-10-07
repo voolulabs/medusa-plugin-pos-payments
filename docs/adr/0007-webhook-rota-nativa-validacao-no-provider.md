@@ -61,3 +61,14 @@ terminal**, que o fluxo do caixa (poll + markAsPaid) não enxerga. Precisávamos
 - Duplicação deliberada da validação (provider + subscriber): cada consumidor do evento é
   responsável pela própria fronteira — remover qualquer uma das duas é regressão de
   segurança.
+- **Errata 2026-10-07 (Onda 2/W2.2): segunda origem de escrita do refund** — o job
+  `pos-payments-reconcile` também executa `refundPaymentWorkflow` com a MESMA
+  `transactionId` do subscriber (`pos-payments-reconcile:<payment_id>`); o paralelismo
+  job×subscriber fica protegido pelo row lock `FOR UPDATE` do `refundPayment_` do core
+  2.19 **[ok — verificado no fonte instalado do backend-alvo: `@medusajs/payment`
+  2.19.0, `dist/services/payment-module.js:479-484` — transação obrigatória ("must run
+  inside a transaction to serialize concurrent refunds"), `SET LOCAL lock_timeout = '3s'`
+  e `knex("payment").where("id", …).forUpdate()`; re-read de captures/refunds sob o lock
+  com guarda de over-refund (:468-476); o lock nunca atravessa a chamada do provider]**,
+  somado à idempotency key do refund na adquirente — resíduo T5 (sem exclusão mútua
+  explícita no engine) segue registrado para a revisão com locking no T6.

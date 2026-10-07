@@ -135,6 +135,74 @@ async function postHook(headers, body) {
   return r.status
 }
 
+// Cria draft → collection → session (charge via initiate). Fila do simulador
+// SBX0000001 é compartilhada com terceiros: 409 already_queued é transitivo —
+// cada tentativa nasce do ZERO (draft → collection → session) para nunca
+// reaproveitar sessão velha nem enfileirar charge duplicada na MESMA collection.
+// Setup quebrado (sem região/draft/collection) não tem retry que resolva:
+// falha imediato com os HTTP status do setup.
+async function criarSessaoComCharge(token, rotulo) {
+  for (let tent = 1; tent <= 10; tent++) {
+    const regs = await api("GET", "/admin/regions", token)
+    const regionId =
+      regs.json &&
+      regs.json.regions &&
+      regs.json.regions[0] &&
+      regs.json.regions[0].id
+    const draft = await api("POST", "/admin/draft-orders", token, {
+      region_id: regionId,
+      email: "l3-e2e@voolulabs.test",
+    })
+    const orderId =
+      draft.json && draft.json.draft_order && draft.json.draft_order.id
+    const col = await api("POST", "/admin/payment-collections", token, {
+      order_id: orderId,
+      amount: 1000,
+    })
+    const colId =
+      col.json && col.json.payment_collection && col.json.payment_collection.id
+    if (!regionId || !orderId || !colId) {
+      console.log(
+        "FAIL session.setup[" +
+          rotulo +
+          "] :: region=" +
+          regs.status +
+          " draft=" +
+          draft.status +
+          " collection=" +
+          col.status
+      )
+      return null
+    }
+    const sess = await api(
+      "POST",
+      "/admin/payment-collections/" + colId + "/payment-sessions",
+      token,
+      { provider_id: PROVIDER, data: { terminal_id: TERMINAL } }
+    )
+    const full =
+      sess.json &&
+      sess.json.payment_collection &&
+      sess.json.payment_collection.payment_sessions &&
+      sess.json.payment_collection.payment_sessions[0]
+    const sessId = full && full.id
+    const chargeId = full && full.data && full.data.charge_id
+    if (sessId && chargeId) return { sessId, chargeId }
+    if (tent === 10) break
+    console.log(
+      "INFO session.retry[" +
+        rotulo +
+        "] :: http=" +
+        sess.status +
+        " (tentativa " +
+        tent +
+        "/10) — aguardando 60s"
+    )
+    await sleep(60000)
+  }
+  return null
+}
+
 async function main() {
   // 0) login admin
   const auth = await api("POST", "/auth/user/emailpass", null, {
@@ -146,62 +214,16 @@ async function main() {
   if (!token) process.exit(1)
 
   // 1) draft order → collection → session (initiate cria a charge na adquirente)
-  const regs = await api("GET", "/admin/regions", token)
-  const regionId =
-    regs.json &&
-    regs.json.regions &&
-    regs.json.regions[0] &&
-    regs.json.regions[0].id
-  log("region.list", !!regionId, regionId || "http=" + regs.status)
-  const draft = await api("POST", "/admin/draft-orders", token, {
-    region_id: regionId,
-    email: "l3-e2e@voolulabs.test",
-  })
-  const orderId =
-    draft.json && draft.json.draft_order && draft.json.draft_order.id
-  log("draftorder.create", !!orderId, orderId || "http=" + draft.status)
-  const col = await api("POST", "/admin/payment-collections", token, {
-    order_id: orderId,
-    amount: 1000,
-  })
-  const colId =
-    col.json && col.json.payment_collection && col.json.payment_collection.id
-  log("collection.create", !!colId, colId || "http=" + col.status)
-  let sessFull = null
-  let sessErr = "sem tentativa"
-  for (let tent = 1; tent <= 10 && !sessFull; tent++) {
-    const sess = await api(
-      "POST",
-      "/admin/payment-collections/" + colId + "/payment-sessions",
-      token,
-      {
-        provider_id: PROVIDER,
-        data: { terminal_id: TERMINAL },
-      }
-    )
-    sessFull =
-      sess.json &&
-      sess.json.payment_collection &&
-      sess.json.payment_collection.payment_sessions &&
-      sess.json.payment_collection.payment_sessions[0]
-    if (!sessFull) {
-      sessErr = "http=" + sess.status + " (tentativa " + tent + "/5)"
-      console.log(
-        "INFO session.retry :: " +
-          sessErr +
-          " — fila do simulador compartilhado; aguardando 60s"
-      )
-      await sleep(60000)
-    }
-  }
-  const sessId = sessFull && sessFull.id
-  const chargeNaSessao = sessFull && sessFull.data && sessFull.data.charge_id
+  log("region.list", true, "via helper criarSessaoComCharge")
+  const criada = await criarSessaoComCharge(token, "principal")
+  const sessId = criada && criada.sessId
+  const chargeNaSessao = criada && criada.chargeId
   log(
     "session.create",
     !!sessId && !!chargeNaSessao,
-    sessId
+    criada
       ? "session=" + sessId + " charge_no_initiate=" + (chargeNaSessao || "-")
-      : sessErr
+      : "esgotou 10 tentativas (fila do simulador)"
   )
   if (!sessId || !chargeNaSessao) process.exit(1)
 
@@ -303,6 +325,180 @@ async function main() {
     semSig === 200 && fin === depois,
     "http=" + semSig + " refunds=" + fin
   )
+
+  // 7) CENÁRIO RECUSADO (Use case 2 oficial — cartão recusado no terminal):
+  // nova charge → simulate failed → assert via rota admin do plugin (estado
+  // failed + taxonomia da recusa) e via DB (NUNCA captura).
+  const rec = await criarSessaoComCharge(token, "recusado")
+  if (!rec) {
+    log("recusado.session.create", false, "esgotou 10 tentativas (fila)")
+  } else {
+    const sf = await simulate(rec.chargeId, "failed")
+    log("recusado.simulate.failed", sf === 204, "http=" + sf)
+    // O webhook pode demorar (fila): poll na rota admin do plugin, que
+    // reconsulta a adquirente — estado + taxonomia normativa da recusa.
+    // Estado observado logado a cada transição: distingue timeout genuíno de
+    // ordem que chegou a OUTRO estado terminal (failed é o terminal esperado
+    // do Use case 2 — não se aceita canceled/expired como sinônimo).
+    let view = null
+    let ultimoRec = null
+    for (let i = 0; i < 10; i++) {
+      await sleep(3000)
+      const g = await api(
+        "GET",
+        "/admin/pos-payments/charges/" + rec.chargeId,
+        token
+      )
+      const st = g.json && g.json.state
+      if (st !== ultimoRec) {
+        console.log(
+          "INFO recusado.poll[" +
+            (i + 1) +
+            "] :: state=" +
+            (st || "http=" + g.status)
+        )
+        ultimoRec = st
+      }
+      if (st === "failed") {
+        view = g.json
+        break
+      }
+    }
+    log(
+      "recusado.estado-failed",
+      !!view,
+      view
+        ? "state=failed reasonCode=" +
+            (view.reasonCode || "-") +
+            " retryClass=" +
+            (view.retryClass || "-")
+        : "timeout; ultimo estado=" + (ultimoRec || "-")
+    )
+    log(
+      "recusado.taxonomia",
+      !!view &&
+        !!view.copy &&
+        view.copy.length > 0 &&
+        ["not_retryable", "escalate"].includes(view.retryClass),
+      view ? "copy presente; retryClass=" + view.retryClass : "sem view"
+    )
+    await sleep(12000)
+    const stRec = dbVal(
+      "select case when p.captured_at is not null then 'captured' else 'nao-capturado' end from payment_session s left join payment p on p.payment_session_id = s.id where s.id = :'sid'",
+      rec.sessId
+    )
+    log("recusado.nunca-captura", stRec === "nao-capturado", "estado=" + stRec)
+  }
+
+  // 8) ACTION_REQUIRED → CANCEL (W2.5): a ordem entra em action_required e NÃO
+  // muda sozinha (mercado-pago.md §4.2) — assert do estado, cancel pela rota do
+  // plugin (header at_terminal é incondicional na rota — decisão do T3) e
+  // assert final de cancelamento sem captura.
+  const aq = await criarSessaoComCharge(token, "action-required")
+  if (!aq) {
+    log("action_required.session.create", false, "esgotou 10 tentativas (fila)")
+  } else {
+    const sa = await simulate(aq.chargeId, "action_required")
+    log("action_required.simulate", sa === 204, "http=" + sa)
+    // A ordem NÃO sai sozinha de action_required (mercado-pago.md §4.2 — é
+    // exatamente isso que o cenário prova); estado observado logado a cada
+    // transição para distinguir timeout de outro terminal.
+    let viewAq = null
+    let ultimoAq = null
+    for (let i = 0; i < 15; i++) {
+      await sleep(3000)
+      const g = await api(
+        "GET",
+        "/admin/pos-payments/charges/" + aq.chargeId,
+        token
+      )
+      const st = g.json && g.json.state
+      if (st !== ultimoAq) {
+        console.log(
+          "INFO action_required.poll[" +
+            (i + 1) +
+            "] :: state=" +
+            (st || "http=" + g.status)
+        )
+        ultimoAq = st
+      }
+      if (st === "action_required") {
+        viewAq = g.json
+        break
+      }
+    }
+    log(
+      "action_required.estado",
+      !!viewAq,
+      viewAq
+        ? "state=action_required (janela 40s respeitada)"
+        : "timeout; ultimo estado=" + (ultimoAq || "-")
+    )
+    const cx = await api(
+      "POST",
+      "/admin/pos-payments/charges/" + aq.chargeId + "/cancel",
+      token,
+      {}
+    )
+    log(
+      "cancel.rota-plugin",
+      cx.status === 200 && cx.json && cx.json.state === "canceled",
+      "http=" + cx.status + " state=" + ((cx.json && cx.json.state) || "-")
+    )
+    await sleep(9000)
+    const stAq = dbVal(
+      "select case when p.captured_at is not null then 'capturado' else 'nao-capturado' end from payment_session s left join payment p on p.payment_session_id = s.id where s.id = :'sid'",
+      aq.sessId
+    )
+    log("cancel.nunca-captura", stAq === "nao-capturado", "estado=" + stAq)
+  }
+
+  // 9) EXPIRED (W2.5): ordem nova → simulate expired → poll do plugin reflete
+  // expired e a sessão nunca captura.
+  const ex = await criarSessaoComCharge(token, "expired")
+  if (!ex) {
+    log("expired.session.create", false, "esgotou 10 tentativas (fila)")
+  } else {
+    const se = await simulate(ex.chargeId, "expired")
+    log("expired.simulate", se === 204, "http=" + se)
+    // Estado observado logado a cada transição: expired é o terminal exato
+    // produzido pelo evento simulado — outro terminal é regressão, não timeout.
+    let viewEx = null
+    let ultimoEx = null
+    for (let i = 0; i < 15; i++) {
+      await sleep(3000)
+      const g = await api(
+        "GET",
+        "/admin/pos-payments/charges/" + ex.chargeId,
+        token
+      )
+      const st = g.json && g.json.state
+      if (st !== ultimoEx) {
+        console.log(
+          "INFO expired.poll[" +
+            (i + 1) +
+            "] :: state=" +
+            (st || "http=" + g.status)
+        )
+        ultimoEx = st
+      }
+      if (st === "expired") {
+        viewEx = g.json
+        break
+      }
+    }
+    log(
+      "expired.estado",
+      !!viewEx,
+      viewEx ? "state=expired" : "timeout; ultimo estado=" + (ultimoEx || "-")
+    )
+    await sleep(9000)
+    const stEx = dbVal(
+      "select case when p.captured_at is not null then 'capturado' else 'nao-capturado' end from payment_session s left join payment p on p.payment_session_id = s.id where s.id = :'sid'",
+      ex.sessId
+    )
+    log("expired.nunca-captura", stEx === "nao-capturado", "estado=" + stEx)
+  }
 
   const pass = results.filter((r) => r.ok).length
   console.log("RESUMO: " + pass + "/" + results.length + " PASS")

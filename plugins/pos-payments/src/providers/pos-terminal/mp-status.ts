@@ -18,7 +18,7 @@ export const POLL_WINDOW = { typicalSeconds: 10, maxSeconds: 40 } as const
 
 type MedusaSessionStatus = GetPaymentStatusOutput["status"]
 
-// União real (@medusajs/types 2.21.2): authorized | captured | pending |
+// União real (idêntica em @medusajs/types 2.19 e 2.21.2 — payment/common.d.ts): authorized | captured | pending |
 // requires_more | error | canceled | pending_authorization — SEM requires_action
 // nem refunded (refund vive no PAYMENT; a reconciliação é do T5).
 const MEDUSA_STATUS: Record<ChargeState, MedusaSessionStatus> = {
@@ -40,6 +40,21 @@ function medusaStatus(view: ChargeStatusView): MedusaSessionStatus {
   return MEDUSA_STATUS[view.state]
 }
 
+/** A11 (W2.6): captura registrada vence — quando o blob traz `captured_at`, o
+ * poll tem que refletir captured (não "authorized"). NOTA de escopo (verificado
+ * no core 2.19, 2026-10-07): `getPaymentStatus` não tem caller no core/SDK — a
+ * superfície do app é a rota `/admin/pos-payments/charges/:id` (re-fetch direto
+ * do adapter). A correção aqui é DEFENSIVA: alinha o mapa para qualquer caller
+ * futuro e para os harnesses de teste. O refund pós-captura segue no caminho
+ * próprio (webhook → T5), e o estado terminal local segue preservado no poll. */
+function capturedOutcome(
+  data: Record<string, unknown>
+): GetPaymentStatusOutput | undefined {
+  return typeof data.captured_at === "string" && data.captured_at
+    ? { status: "captured", data }
+    : undefined
+}
+
 /**
  * Poll da MP como fonte de verdade: reconsulta o adapter e reconverge o blob.
  * NUNCA lança e NUNCA converte tempo em falha — erro de rede degrada pending.
@@ -52,6 +67,8 @@ export async function mpPoll(
   if (typeof data.charge_id !== "string" || !data.charge_id) {
     return { status: "pending", data }
   }
+  const capturado = capturedOutcome(data)
+  if (capturado) return capturado
   try {
     const chargeId = data.charge_id as string
     const before = (data.state as string) ?? "pending"

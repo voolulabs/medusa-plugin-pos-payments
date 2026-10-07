@@ -183,6 +183,38 @@ describe("poll do provider mercadopago (janelas 10s/40s)", () => {
   })
 })
 
+describe("poll captured-first (A11/W2.6 — captured_at no data vence)", () => {
+  it("captured_at no data vence: poll devolve captured sem reconsultar a adquirente", async () => {
+    const adapter = fakeAdapter(
+      async () =>
+        ({ state: "paid", rawStatus: "processed" }) as ChargeStatusView
+    )
+    const out = await mpPoll(
+      adapter,
+      {
+        charge_id: "ORD-1",
+        state: "paid",
+        captured_at: "2026-10-06T12:00:00Z",
+      },
+      logger as never
+    )
+    expect(out.status).toBe("captured")
+    expect(adapter.getCharge).not.toHaveBeenCalled()
+  })
+
+  it("sem captured_at o comportamento não muda: paid segue authorized (poll consulta)", async () => {
+    const out = await mpPoll(
+      fakeAdapter(
+        async () =>
+          ({ state: "paid", rawStatus: "processed" }) as ChargeStatusView
+      ),
+      { charge_id: "ORD-1", state: "pending" },
+      logger as never
+    )
+    expect(out.status).toBe("authorized")
+  })
+})
+
 describe("reconvergência e resiliência do poll", () => {
   it("estado terminal local divergente é PRESERVADO (nunca volta a máquina)", async () => {
     const spy = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }

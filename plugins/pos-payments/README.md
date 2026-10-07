@@ -75,6 +75,55 @@ _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 
 ---
 
+## Webhooks and Reconciliation (mercadopago)
+
+The provider registers a native webhook handler at `POST /hooks/payment/pos-terminal_mercadopago`.
+Point your Mercado Pago application webhook at the **full URL** (application-level config in the
+developer panel; the panel summary shows only the domain — configure the complete path).
+
+The core Medusa payment module emits the webhook event on an internal queue with
+`attempts: 3` and a `delay: 5000`ms by default. Mercado Pago retries its delivery for up to 22s
+and only while it does NOT receive a 2xx — so if every internal attempt fails, a terminal-originated
+refund could stay unreconciled. Two defenses, use both:
+
+1. **Raise the internal budget** on the payment module (`webhook_retries` / `webhook_delay` are
+   core options read from the payment module registration — verified in the `@medusajs/medusa`
+   2.19 hook route):
+
+   ```js
+   modules: [
+     {
+       resolve: "@medusajs/payment",
+       options: {
+         webhook_retries: 6,   // default 3
+         webhook_delay: 10000, // default 5000
+         providers: [/* ... */],
+       },
+     },
+   ]
+   ```
+
+2. **Scheduled reconciliation job** (registered automatically by this plugin, daily at 04:00):
+   scans captured payments of `pp_pos-terminal_mercadopago` from the last 30 days (the charge
+   state lives in `payment.data`, written by the provider's capture/refund), re-fetches each
+   charge from the Mercado Pago Orders API and reconciles refunds that were missed by the event
+   bus, reusing the same idempotent decision and transaction id as the webhook subscriber.
+   The guard is the Medusa payment's refunds list; job×subscriber parallelism is serialized by
+   the core's refund row lock (`FOR UPDATE` under a mandatory transaction, verified in
+   `@medusajs/payment` 2.19.0) plus the refund idempotency key at the acquirer — engine-level
+   mutual exclusion remains a T5 residual tracked in ADR 0007. Volume: one GET per captured
+   payment within the window, sequential, per daily run.
+   The job is presence-gated: without the `posTerminal.acquirer: "mercadopago"` block it does
+   nothing.
+
+The plugin also keeps both entries in your `medusa-config.js` honest: if the provider entry of the
+payment module and the plugin's `posTerminal` block diverge (token/secret/test mode), the provider
+fails to resolve with the diverging key NAMES (providers are constructed lazily — first session,
+webhook or capture). Manual providers (`card`/`pix`/`cash`/`transfer`) are exempt, since they do
+not consume the block.
+
+---
+
 ## Test the Plugin
 
 1. Run your Medusa backend (`pnpm dev` / `pnpm start`).
