@@ -132,20 +132,27 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
     // provider (o loader do módulo é lazy — asFunction), citando só os NOMES
     // das chaves. Sem CONFIG_MODULE resolvível (embeds exóticos/testes):
     // degrada com info — a checagem é contra-drift, não barreira de segurança.
+    let pluginPosTerminal: Parameters<typeof assertOptionsConsistency>[1]
+    let configDisponivel = true
     try {
-      const pluginOptions = getPluginOptions(container as never)
-      assertOptionsConsistency(
-        options,
-        pluginOptions.posTerminal,
-        `pp_pos-terminal${options.acquirer ? `_${options.acquirer}` : ""}`
-      )
+      pluginPosTerminal = getPluginOptions(container as never).posTerminal
     } catch (error) {
-      if (error instanceof MedusaError) throw error
+      configDisponivel = false
       // info (não warn): em produção o CONFIG_MODULE SEMPRE resolve — este
       // ramo só aparece em embeds exóticos/testes, onde o warn poluiria o
-      // contrato "boot sem guard não loga warn".
+      // contrato "boot sem guard não loga warn". Detalhe do erro de resolução
+      // awilix no log: nome de registro, nunca credencial.
       this.logger_.info(
-        "pos-terminal: checagem de consistência de options pulada (CONFIG_MODULE não resolvível neste container)"
+        `pos-terminal: checagem de consistência de options pulada (CONFIG_MODULE não resolvível neste container: ${String(error).slice(0, 120)})`
+      )
+    }
+    // Fora de qualquer catch: MedusaError do guard NUNCA é engolida pela
+    // degradação do CONFIG_MODULE.
+    if (configDisponivel) {
+      assertOptionsConsistency(
+        options,
+        pluginPosTerminal,
+        `pp_pos-terminal${options.acquirer ? `_${options.acquirer}` : ""}`
       )
     }
     // T6: nunca silencioso — teste sem hardware precisa gritar na construção

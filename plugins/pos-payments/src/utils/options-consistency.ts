@@ -34,6 +34,9 @@ export function effectiveTerminalConfig(
   options: RawOptions | undefined
 ): EffectiveTerminalConfig {
   return {
+    // Default "manual" tem sentido só no LADO PLUGIN: bloco posTerminal ausente
+    // com provider não-manual diverge em `acquirer` e falha alto. No lado do
+    // provider a ausência NÃO é manual (ver assertOptionsConsistency).
     acquirer: options?.acquirer ?? "manual",
     accessToken: options?.accessToken,
     webhookSecret: options?.webhookSecret,
@@ -59,6 +62,15 @@ export function assertOptionsConsistency(
   pluginPosTerminal: RawOptions | undefined,
   providerId: string
 ): void {
+  // Fail-closed: provider SEM acquirer declarado não é "manual" — a omissão
+  // não pode isentar a comparação de credenciais (no fluxo real o
+  // validateOptions do loader garante acquirer antes do construtor).
+  if (!providerOptions?.acquirer) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `pos-payments: provider ${providerId} sem options.acquirer declarado — corrija o config do host.`
+    )
+  }
   const provider = effectiveTerminalConfig(providerOptions)
   // Entrada manual não consome o bloco posTerminal: nada a comparar (os
   // registros manual do host convivem com o bloco da adquirente).

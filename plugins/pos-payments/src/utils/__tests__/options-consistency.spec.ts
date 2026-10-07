@@ -88,8 +88,20 @@ describe("assertOptionsConsistency (A6 — fonte única de credenciais)", () => 
     }
     expect(message).toContain("accessToken")
     expect(message).toContain("webhookSecret")
+    expect(message).not.toContain("tok-A")
     expect(message).not.toContain("tok-B")
     expect(message).not.toContain("sec-A")
+    expect(message).not.toContain("sec-B")
+  })
+
+  it("provider SEM acquirer declarado falha alto (omissão não isenta a comparação de credenciais)", () => {
+    expect(() =>
+      assertOptionsConsistency(
+        { accessToken: "tok-A" } as never,
+        { acquirer: "mercadopago", accessToken: "tok-A" },
+        "pos-terminal_mercadopago"
+      )
+    ).toThrow(/sem options\.acquirer/)
   })
 
   it("modo manual dos dois lados sem credenciais é consistente", () => {

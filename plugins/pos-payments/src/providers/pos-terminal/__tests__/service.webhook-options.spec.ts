@@ -138,12 +138,16 @@ describe("consistência de options na resolução do provider (A6/W2.1 — provi
   })
 
   it("mensagem de divergência nunca contém o valor da credencial", () => {
-    try {
+    const exec = () =>
       new PosTerminalProviderService(
         cradle({ acquirer: "mercadopago", accessToken: "tok-VAZA" }) as never,
         providerOptions as never
       )
-      throw new Error("deveria ter falhado")
+    // Primeiro o contrato: DEVE lançar (falha aqui se não lançar).
+    expect(exec).toThrow(MedusaError)
+    // Depois, a higiene da mensagem capturada (fora do assert de lançar).
+    try {
+      exec()
     } catch (error) {
       expect((error as Error).message).not.toContain("tok-VAZA")
     }
