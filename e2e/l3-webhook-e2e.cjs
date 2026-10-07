@@ -136,27 +136,44 @@ async function postHook(headers, body) {
 }
 
 // Cria draft → collection → session (charge via initiate). Fila do simulador
-// SBX0000001 é compartilhada com terceiros: 409 already_queued é transitivo.
+// SBX0000001 é compartilhada com terceiros: 409 already_queued é transitivo —
+// cada tentativa nasce do ZERO (draft → collection → session) para nunca
+// reaproveitar sessão velha nem enfileirar charge duplicada na MESMA collection.
+// Setup quebrado (sem região/draft/collection) não tem retry que resolva:
+// falha imediato com os HTTP status do setup.
 async function criarSessaoComCharge(token, rotulo) {
-  const regs = await api("GET", "/admin/regions", token)
-  const regionId =
-    regs.json &&
-    regs.json.regions &&
-    regs.json.regions[0] &&
-    regs.json.regions[0].id
-  const draft = await api("POST", "/admin/draft-orders", token, {
-    region_id: regionId,
-    email: "l3-e2e@voolulabs.test",
-  })
-  const orderId =
-    draft.json && draft.json.draft_order && draft.json.draft_order.id
-  const col = await api("POST", "/admin/payment-collections", token, {
-    order_id: orderId,
-    amount: 1000,
-  })
-  const colId =
-    col.json && col.json.payment_collection && col.json.payment_collection.id
   for (let tent = 1; tent <= 10; tent++) {
+    const regs = await api("GET", "/admin/regions", token)
+    const regionId =
+      regs.json &&
+      regs.json.regions &&
+      regs.json.regions[0] &&
+      regs.json.regions[0].id
+    const draft = await api("POST", "/admin/draft-orders", token, {
+      region_id: regionId,
+      email: "l3-e2e@voolulabs.test",
+    })
+    const orderId =
+      draft.json && draft.json.draft_order && draft.json.draft_order.id
+    const col = await api("POST", "/admin/payment-collections", token, {
+      order_id: orderId,
+      amount: 1000,
+    })
+    const colId =
+      col.json && col.json.payment_collection && col.json.payment_collection.id
+    if (!regionId || !orderId || !colId) {
+      console.log(
+        "FAIL session.setup[" +
+          rotulo +
+          "] :: region=" +
+          regs.status +
+          " draft=" +
+          draft.status +
+          " collection=" +
+          col.status
+      )
+      return null
+    }
     const sess = await api(
       "POST",
       "/admin/payment-collections/" + colId + "/payment-sessions",
@@ -171,6 +188,7 @@ async function criarSessaoComCharge(token, rotulo) {
     const sessId = full && full.id
     const chargeId = full && full.data && full.data.charge_id
     if (sessId && chargeId) return { sessId, chargeId }
+    if (tent === 10) break
     console.log(
       "INFO session.retry[" +
         rotulo +
@@ -319,7 +337,11 @@ async function main() {
     log("recusado.simulate.failed", sf === 204, "http=" + sf)
     // O webhook pode demorar (fila): poll na rota admin do plugin, que
     // reconsulta a adquirente — estado + taxonomia normativa da recusa.
+    // Estado observado logado a cada transição: distingue timeout genuíno de
+    // ordem que chegou a OUTRO estado terminal (failed é o terminal esperado
+    // do Use case 2 — não se aceita canceled/expired como sinônimo).
     let view = null
+    let ultimoRec = null
     for (let i = 0; i < 10; i++) {
       await sleep(3000)
       const g = await api(
@@ -327,7 +349,17 @@ async function main() {
         "/admin/pos-payments/charges/" + rec.chargeId,
         token
       )
-      if (g.json && g.json.state === "failed") {
+      const st = g.json && g.json.state
+      if (st !== ultimoRec) {
+        console.log(
+          "INFO recusado.poll[" +
+            (i + 1) +
+            "] :: state=" +
+            (st || "http=" + g.status)
+        )
+        ultimoRec = st
+      }
+      if (st === "failed") {
         view = g.json
         break
       }
@@ -340,7 +372,7 @@ async function main() {
             (view.reasonCode || "-") +
             " retryClass=" +
             (view.retryClass || "-")
-        : "timeout sem failed"
+        : "timeout; ultimo estado=" + (ultimoRec || "-")
     )
     log(
       "recusado.taxonomia",
@@ -368,7 +400,11 @@ async function main() {
   } else {
     const sa = await simulate(aq.chargeId, "action_required")
     log("action_required.simulate", sa === 204, "http=" + sa)
+    // A ordem NÃO sai sozinha de action_required (mercado-pago.md §4.2 — é
+    // exatamente isso que o cenário prova); estado observado logado a cada
+    // transição para distinguir timeout de outro terminal.
     let viewAq = null
+    let ultimoAq = null
     for (let i = 0; i < 15; i++) {
       await sleep(3000)
       const g = await api(
@@ -376,7 +412,17 @@ async function main() {
         "/admin/pos-payments/charges/" + aq.chargeId,
         token
       )
-      if (g.json && g.json.state === "action_required") {
+      const st = g.json && g.json.state
+      if (st !== ultimoAq) {
+        console.log(
+          "INFO action_required.poll[" +
+            (i + 1) +
+            "] :: state=" +
+            (st || "http=" + g.status)
+        )
+        ultimoAq = st
+      }
+      if (st === "action_required") {
         viewAq = g.json
         break
       }
@@ -384,7 +430,9 @@ async function main() {
     log(
       "action_required.estado",
       !!viewAq,
-      viewAq ? "state=action_required (janela 40s respeitada)" : "timeout"
+      viewAq
+        ? "state=action_required (janela 40s respeitada)"
+        : "timeout; ultimo estado=" + (ultimoAq || "-")
     )
     const cx = await api(
       "POST",
@@ -413,7 +461,10 @@ async function main() {
   } else {
     const se = await simulate(ex.chargeId, "expired")
     log("expired.simulate", se === 204, "http=" + se)
+    // Estado observado logado a cada transição: expired é o terminal exato
+    // produzido pelo evento simulado — outro terminal é regressão, não timeout.
     let viewEx = null
+    let ultimoEx = null
     for (let i = 0; i < 15; i++) {
       await sleep(3000)
       const g = await api(
@@ -421,7 +472,17 @@ async function main() {
         "/admin/pos-payments/charges/" + ex.chargeId,
         token
       )
-      if (g.json && g.json.state === "expired") {
+      const st = g.json && g.json.state
+      if (st !== ultimoEx) {
+        console.log(
+          "INFO expired.poll[" +
+            (i + 1) +
+            "] :: state=" +
+            (st || "http=" + g.status)
+        )
+        ultimoEx = st
+      }
+      if (st === "expired") {
         viewEx = g.json
         break
       }
@@ -429,7 +490,7 @@ async function main() {
     log(
       "expired.estado",
       !!viewEx,
-      viewEx ? "state=expired" : "timeout sem expired"
+      viewEx ? "state=expired" : "timeout; ultimo estado=" + (ultimoEx || "-")
     )
     await sleep(9000)
     const stEx = dbVal(
