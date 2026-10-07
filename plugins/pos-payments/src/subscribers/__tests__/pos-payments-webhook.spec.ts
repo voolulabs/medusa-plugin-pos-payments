@@ -323,3 +323,26 @@ describe("subscriber — options quebradas (adapter lazy)", () => {
     expect(graph).not.toHaveBeenCalled()
   })
 })
+
+describe("subscriber — cancelado no terminal (A1.7)", () => {
+  it("charge canceled → log info, nenhum refund, retorno normal", async () => {
+    const d = deps({
+      getAdapter: vi.fn(() =>
+        adapterFake({
+          state: "canceled",
+          rawStatus: "canceled",
+          reasonCode: "canceled_on_terminal",
+        })
+      ),
+    })
+    await createHandler(d)({
+      event: { data: evento("pp_pos-terminal_mercadopago", "ORD1") },
+    })
+    expect(d.findPaymentBySession).not.toHaveBeenCalled()
+    expect(d.refundTotal).not.toHaveBeenCalled()
+    expect(d.logger.info).toHaveBeenCalledWith(
+      "mercadopago: cobranca cancelada no terminal — nada a reconciliar",
+      expect.objectContaining({ charge_id: "ORD1" })
+    )
+  })
+})
