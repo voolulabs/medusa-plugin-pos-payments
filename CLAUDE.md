@@ -105,6 +105,11 @@ no P5. Requer auth (agentic key ou `coderabbit auth login`).
   está provado — provar por mutation (controle positivo E negativo).
 - Revisão adversarial local (agente fresco, read-only) antes de TODO push, sem exceção —
   "trivial" é exatamente o perfil da mudança que mata gate.
+- **Adversarial após cada alteração**: toda alteração posterior à primeira revisão (conserto
+  de achado, review CodeRabbit aplicado, rebase) reabre a revisão adversarial local sobre o
+  DELTA — loop até veredito SHIP sem achados bloqueantes; só então commit → `pnpm ci:local`
+  → push. Revisor em aberto = não push (uma ida-e-volta de CI descobrindo o que o adversarial
+  pegaria é desperdício evitável).
 - Um PR, uma natureza: PR de feature (demanda) contém só o produto; artefatos de processo
   (`.adlc/`, chores de CI/docs de processo) vão em série e PR próprios (`chore/adlc-*`).
 - Specs de ticket são registro histórico por ticket (`.adlc/specs/`): concluído o ciclo,
