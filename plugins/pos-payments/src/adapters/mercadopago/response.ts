@@ -30,7 +30,7 @@ export async function parseMpResponse(
       `Mercado Pago ${method} ${path}: ${retryableError}`,
       response.status,
       parsed,
-      // 429 e 423 podem carregar Retry-After — hint respeitado quando presente.
+      // Só 423/500 chegam aqui — o hint Retry-After é repassado quando presente.
       response.headers.get("Retry-After") ?? undefined
     )
   }
