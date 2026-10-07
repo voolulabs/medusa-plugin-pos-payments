@@ -1,5 +1,16 @@
-/** Mapeia a Response bruta: 409 de colisão tipado, não-2xx → MpApiError, 2xx → payload. */
-import { MpApiError, MpIdempotencyConflictError } from "./types"
+/** Mapeia a Response bruta: colisões de idempotência tipadas, não-2xx → MpApiError, 2xx → payload. */
+import {
+  MpApiError,
+  MpIdempotencyConflictError,
+  MpIdempotencyRetryableError,
+} from "./types"
+
+/** Pares (status, error) que a doc oficial da Orders API classifica como
+ * "Idempotency Error" retentável (integration-errors, 2026-10-07). */
+const RETRYABLE_IDEMPOTENCY: ReadonlyMap<number, string> = new Map([
+  [423, "resource_locked"],
+  [500, "idempotency_validation_failed"],
+])
 
 export async function parseMpResponse(
   response: Response,
@@ -11,6 +22,16 @@ export async function parseMpResponse(
     throw new MpIdempotencyConflictError(
       `Mercado Pago ${method} ${path}: idempotency_key_already_used`,
       parsed
+    )
+  }
+  const retryableError = RETRYABLE_IDEMPOTENCY.get(response.status)
+  if (retryableError !== undefined && matchesMpError(parsed, retryableError)) {
+    throw new MpIdempotencyRetryableError(
+      `Mercado Pago ${method} ${path}: ${retryableError}`,
+      response.status,
+      parsed,
+      // 429 e 423 podem carregar Retry-After — hint respeitado quando presente.
+      response.headers.get("Retry-After") ?? undefined
     )
   }
   if (!response.ok) {
@@ -27,10 +48,14 @@ export async function parseMpResponse(
   return parsed
 }
 
-function isIdempotencyConflict(body: unknown): boolean {
+function matchesMpError(body: unknown, mpError: string): boolean {
   return (
     typeof body === "object" &&
     body !== null &&
-    (body as { error?: unknown }).error === "idempotency_key_already_used"
+    (body as { error?: unknown }).error === mpError
   )
+}
+
+function isIdempotencyConflict(body: unknown): boolean {
+  return matchesMpError(body, "idempotency_key_already_used")
 }
