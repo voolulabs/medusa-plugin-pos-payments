@@ -27,7 +27,9 @@ function toCanonical(bytes: Buffer): string {
 }
 
 export function uuidV5(name: string, namespace: string): string {
-  const hash = createHash("sha1")
+  // FP auditado: SHA-1 e EXIGIDO pela RFC 4122 4.3 para UUIDv5 — nao e hash
+  // de senha; SHA-256 produziria UUID nao conforme.
+  const hash = createHash("sha1") // snyk:ignore
     .update(namespaceToBytes(namespace))
     .update(Buffer.from(name, "utf8"))
     .digest()
