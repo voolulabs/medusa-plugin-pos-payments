@@ -48,16 +48,37 @@ export function createReconcileRunner(deps: RunnerDeps) {
       const base = { paymentId: payment.id, chargeId: payment.chargeId }
       try {
         const fetched = await adapter.getCharge(payment.chargeId)
-        // A sessão é o eco de correlação da MP (external_reference, ADR 0007);
-        // se a ordem não a trouxer, o vínculo local do payment alimenta a
-        // decisão (payment_session_id é a coluna autoritativa do vínculo).
+        // Divergência é anomalia (o charge da MP aponta para OUTRA sessão):
+        // fail-closed — warn, skip, SEM refund (reembolsar poderia estornar
+        // cobrança de outra sessão). Só ausência do eco alimenta o vínculo
+        // local (payment_session_id é a coluna autoritativa — ADR 0007).
+        if (
+          fetched.externalReference !== undefined &&
+          fetched.externalReference !== payment.sessionId
+        ) {
+          deps.logger.warn(
+            "mercadopago: conciliação pulada — charge da adquirente aponta para outra sessão",
+            {
+              payment_id: payment.id,
+              session_id: payment.sessionId,
+              charge_id: payment.chargeId,
+              external_reference: fetched.externalReference,
+            }
+          )
+          outcomes.push({
+            ...base,
+            action: "skipped",
+            motivo: "external_reference divergente",
+          })
+          continue
+        }
         const view =
-          fetched.externalReference === payment.sessionId
-            ? fetched
-            : ({
+          fetched.externalReference === undefined
+            ? ({
                 ...fetched,
                 externalReference: payment.sessionId,
               } as typeof fetched)
+            : fetched
         const outcome = await reconcileTerminalRefund(view, {
           findPaymentBySession: async () =>
             deps.findPaymentByPaymentId(payment.id),

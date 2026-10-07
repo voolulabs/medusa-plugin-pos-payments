@@ -12,10 +12,12 @@ import posPaymentsReconcileJob, {
 } from "../pos-payments-reconcile"
 import type { PaymentLike } from "../../providers/pos-terminal/webhook-reconcile"
 
+const { runMock } = vi.hoisted(() => ({
+  runMock: vi.fn().mockResolvedValue({}),
+}))
+
 vi.mock("@medusajs/medusa/core-flows", () => ({
-  refundPaymentWorkflow: vi.fn(() => ({
-    run: vi.fn().mockResolvedValue({}),
-  })),
+  refundPaymentWorkflow: vi.fn(() => ({ run: runMock })),
 }))
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
@@ -116,6 +118,32 @@ describe("createReconcileRunner (A7/W2.2 — refund de terminal perdido no event
     expect(outcomes[0]).toMatchObject({ action: "noop" })
   })
 
+  it("external_reference DIVERGENTE na adquirente → skipped SEM refund (fail-closed)", async () => {
+    const { deps, refundTotal } = makeDeps({
+      getCharge: async () => ({
+        state: "refunded",
+        externalReference: "sess_OUTRA",
+      }),
+    })
+    const outcomes = await createReconcileRunner(deps)()
+    expect(refundTotal).not.toHaveBeenCalled()
+    expect(outcomes[0]).toMatchObject({
+      action: "skipped",
+      motivo: "external_reference divergente",
+    })
+  })
+
+  it("external_reference AUSENTE na adquirente → vínculo local alimenta e refund dispara", async () => {
+    const { deps, refundTotal } = makeDeps({
+      getCharge: async () => ({ state: "refunded" }),
+    })
+    const outcomes = await createReconcileRunner(deps)()
+    expect(refundTotal).toHaveBeenCalledWith("pay_1")
+    expect(outcomes).toEqual([
+      { paymentId: "pay_1", chargeId: "ORD-1", action: "refunded" },
+    ])
+  })
+
   it("falha em UM payment não derruba a varredura (warn e segue)", async () => {
     const refundTotal = vi.fn().mockResolvedValue(undefined)
     let first = true
@@ -198,7 +226,46 @@ describe("fiação do job (default export + config)", () => {
     await posPaymentsReconcileJob(container as never)
   })
 
-  it("com mercadopago: varre payments na janela, re-fetcha e reconcilia", async () => {
+  it("com mercadopago mas SEM logger no container: falha alto (não roda às cegas — CONSTRAINTS 4)", async () => {
+    const container = {
+      resolve: (key: string) => {
+        if (key === ContainerRegistrationKeys.CONFIG_MODULE)
+          return {
+            plugins: [
+              {
+                resolve: "@voolulabs/medusajs-plugin-pos-payments",
+                options: {
+                  posTerminal: {
+                    acquirer: "mercadopago",
+                    accessToken: "tok-fixture",
+                  },
+                },
+              },
+            ],
+          }
+        if (key === ContainerRegistrationKeys.LOGGER) return undefined
+        throw new Error(`inesperado: ${key}`)
+      },
+    }
+    await expect(posPaymentsReconcileJob(container as never)).rejects.toThrow(
+      /logger indisponível/
+    )
+  })
+
+  it("com mercadopago: varre payments na janela, re-fetcha e reconcilia (workflow + fetch auditados)", async () => {
+    runMock.mockClear()
+    const fetchImpl = vi.fn(
+      async (_url: string) =>
+        new Response(
+          JSON.stringify({
+            id: "ORD-1",
+            status: "refunded",
+            type: "point",
+            external_reference: "sess_1",
+          }),
+          { status: 200 }
+        )
+    )
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -225,15 +292,7 @@ describe("fiação do job (default export + config)", () => {
                   posTerminal: {
                     acquirer: "mercadopago",
                     accessToken: "tok-fixture",
-                    fetchImpl: async () =>
-                      new Response(
-                        JSON.stringify({
-                          id: "ORD-1",
-                          status: "refunded",
-                          type: "point",
-                        }),
-                        { status: 200 }
-                      ),
+                    fetchImpl,
                   },
                 },
               },
@@ -246,13 +305,32 @@ describe("fiação do job (default export + config)", () => {
     }
     await posPaymentsReconcileJob(container as never)
     const [primeiraGraph] = graph.mock.calls[0] as [
-      { entity: string; filters: Record<string, unknown> },
+      {
+        entity: string
+        filters: Record<string, unknown>
+        pagination?: Record<string, unknown>
+      },
     ]
     expect(primeiraGraph.entity).toBe("payment")
     expect(primeiraGraph.filters.provider_id).toBe(
       "pp_pos-terminal_mercadopago"
     )
     expect(primeiraGraph.filters.captured_at).toHaveProperty("$gte")
+    expect(primeiraGraph.pagination).toMatchObject({
+      skip: 0,
+      take: 200,
+      order: { captured_at: "ASC", id: "ASC" },
+    })
+    // Re-fetch do charge na Orders API (endpoint e id auditados).
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "https://api.mercadopago.com/v1/orders/ORD-1"
+    )
+    // Mesmo workflow e MESMA transactionId do subscriber (ADR 0007).
+    expect(runMock).toHaveBeenCalledWith({
+      input: { payment_id: "pay_1" },
+      transactionId: "pos-payments-reconcile:pay_1",
+    })
     expect(logger.info).toHaveBeenCalledWith(
       expect.stringContaining("concluída"),
       expect.objectContaining({ reembolsados: 1 })
