@@ -16,7 +16,7 @@ describe("POST /admin/pos-payments/charges", () => {
     await POST(req, res)
     expect(calls[0]!.url).toContain("/v1/orders")
     expect(headerOf(calls[0]!.init, "X-Idempotency-Key")).toBe(
-      "pos-payments-mercadopago:ps_01ABC:charge"
+      "7b33a42c-61b1-58ef-ad0b-b21de6c07978"
     )
     expect(headerOf(calls[0]!.init, "Authorization")).toBe(
       "Bearer test-token-fixture"
@@ -65,7 +65,7 @@ describe("guard MP_POINT_TEST_MODE na rota (T6)", () => {
     await POST(req, res)
     expect(calls[0]!.url).toContain("/v1/orders")
     expect(headerOf(calls[0]!.init, "X-Idempotency-Key")).toBe(
-      "pos-payments-mercadopago:ps_01ABC:charge"
+      "7b33a42c-61b1-58ef-ad0b-b21de6c07978"
     )
     expect(headerOf(calls[0]!.init, "Authorization")).toBe(
       "Bearer test-token-fixture"
