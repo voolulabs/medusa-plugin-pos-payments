@@ -118,7 +118,9 @@ jobs:
       # push de develop/main e no cron semanal. Regra de ouro: serviço metered
       # não é gate em toda a superfície de trigger (decisão 2026-10-02).
       - name: Snyk (SAST + dependências)
-        if: github.event_name != 'pull_request'
+        # Também em pull_request: valida o gate (e o Consistent Ignore) ANTES
+        # da develop — foi o passo que derrubou a develop pós-T-CANCEL-CONTRACT.
+        # PRs deste repo são same-repo, então SNYK_TOKEN está disponível.
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
