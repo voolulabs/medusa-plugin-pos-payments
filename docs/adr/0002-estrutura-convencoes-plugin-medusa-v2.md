@@ -241,3 +241,22 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
 5. **`module`/`moduleResolution: node16`** no tsconfig (necessário para resolver o exports map
    do `@medusajs/framework` no typecheck); `verbatimModuleSyntax` continua fora
    (errata 2026-09-30).
+
+## Erratas 2026-10-07 (Onda 2 — conciliação periódica)
+
+6. **Jobs entram** — a errata 3 de 2026-10-01 deixava "jobs/links fora"; o job agendado
+   `pos-payments-reconcile` (`src/jobs/`, cron diário — A7 do diagnóstico de 2026-10-05)
+   elimina a aresta "refund de terminal perdido após esgotar o event bus" DENTRO da
+   janela de 30 dias do job (refund na MP vale até 90 dias p/ cartão físico — o
+   resíduo 31–90d segue dependendo do reenvio do MP; janela configurável é follow-up)
+   e reutiliza a decisão do subscriber (ADR 0007). Links continuam fora. Acesso a
+   dados no job: **graph sobre a entidade `payment`** — é o blob `payment.data` que
+   recebe as transições do charge gravadas por capture/refund do provider (a sessão
+   fica com o blob do authorize — blob do initiate + `authorized_at` — e nunca
+   recebe as transições do charge), com filtro de COLUNA `provider_id` + janela
+   temporal em `captured_at` (OperatorMap, types 2.19); o recorte JSONB
+   (`data.state`) é em memória (filtros padrão não consultam JSONB — regra §Reuso). Nota de verificação:
+   `payment_session` É alias válido do graph no 2.19 (o `defineJoinerConfig` auto-carrega
+   os models e computa aliases; prova de produção: `processPaymentWorkflow` do core-flows
+   consulta `entity: "payment_session"`) — uma versão anterior desta errata afirmava o
+   contrário, com verificação incompleta do joiner-config.
