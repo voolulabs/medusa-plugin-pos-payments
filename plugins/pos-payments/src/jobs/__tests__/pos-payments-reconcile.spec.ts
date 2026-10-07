@@ -117,7 +117,9 @@ describe("createReconcileRunner (A7/W2.2 — refund de terminal perdido no event
     expect(refundTotal).not.toHaveBeenCalled()
     expect(outcomes[0]).toMatchObject({ action: "noop" })
   })
+})
 
+describe("createReconcileRunner — correlação de external_reference e resiliência", () => {
   it("external_reference DIVERGENTE na adquirente → skipped SEM refund (fail-closed)", async () => {
     const { deps, refundTotal } = makeDeps({
       getCharge: async () => ({
@@ -207,7 +209,9 @@ describe("fiação do job (default export + config)", () => {
     expect(jobConfig.name).toBe("pos-payments-reconcile")
     expect(jobConfig.schedule).toBe("0 4 * * *")
   })
+})
 
+describe("fiação do job — guardas de presença e falha alta", () => {
   it("sem posTerminal mercadopago o job termina silencioso (não resolve LOGGER/QUERY)", async () => {
     const container = {
       resolve: (key: string) => {
@@ -251,8 +255,10 @@ describe("fiação do job (default export + config)", () => {
       /logger indisponível/
     )
   })
+})
 
-  it("com mercadopago: varre payments na janela, re-fetcha e reconcilia (workflow + fetch auditados)", async () => {
+describe("fiação do job — wiring com mercadopago (workflow + fetch auditados)", () => {
+  it("varre payments na janela, re-fetcha e reconcilia", async () => {
     runMock.mockClear()
     const fetchImpl = vi.fn(
       async (_url: string) =>
