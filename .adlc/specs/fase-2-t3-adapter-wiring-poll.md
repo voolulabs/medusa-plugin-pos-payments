@@ -29,6 +29,11 @@ credencial de ambiente (T6).
 ## Erratas 2026-10-03 (auditoria spec × código)
 
 - Prefixo real da chave de idempotência: `pos-payments-mercadopago:<id>:<propósito>`.
+  - **Errata 2026-10-07 (T-CANCEL-CONTRACT): formato SUBSTITUÍDO** — a chave agora é
+    UUID v5 canônico determinístico (`keyFor`, módulo `idempotency-key.ts`, namespace
+    fixo do plugin; doc MP aceita "UUID v4 ou random string"). O formato legado desta
+    linha saiu do código — ver CHANGELOG `[Unreleased]` e
+    `.adlc/specs/cancel-contrato-ponto-mp.md`.
 - `getPaymentStatus` mapeia os **8** estados (não 7).
 - Logs não têm campo `attempt`; `external_reference` só no log de criação; 5xx hoje é
   `warn` (o nível `error` de D2 fica para o wiring do T5).
