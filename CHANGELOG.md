@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Scheduled reconciliation job `pos-payments-reconcile` (daily at 04:00, first plugin job —
+  ADR 0002 errata 2026-10-07): scans captured payments of `pp_pos-terminal_mercadopago` from the
+  last 30 days (charge state lives in `payment.data`, written by the provider's capture/refund),
+  re-fetches each charge and reconciles terminal-originated refunds lost by an exhausted event
+  bus within that window (MP refunds are allowed up to 90 days for physical cards — days 31–90
+  still rely on the MP redelivery), reusing the subscriber's idempotent decision and transaction
+  id (parallel job×subscriber covered by the core refund row lock — ADR 0007 errata).
+- Provider options-consistency guard between the payment-module provider entry and the plugin
+  `posTerminal` block — divergence on a non-manual entry fails the provider resolution (lazy;
+  first session/webhook/capture) with the diverging key NAMES only, never values. Manual
+  providers are exempt (they do not consume the block). Unresolvable `CONFIG_MODULE` degrades
+  with an `info` log instead of breaking exotic embeds.
+- Poll (A11, defensive): a persisted `captured_at` in the provider data now wins —
+  `getPaymentStatus` reflects `captured` (not `authorized`). Verified against the core 2.19:
+  `getPaymentStatus` has no caller in the core/SDK (the POS-facing surface is the plugin's
+  `/admin/pos-payments/charges/:id` route) — this aligns the mapping for future callers and
+  harnesses; no runtime behavior change in 2.19.
+- Docs: README section for the webhook delivery budget (`webhook_retries` / `webhook_delay`
+  core options, verified against the `@medusajs/medusa` 2.19 hook route) and the reconciliation
+  job; CONSTRAINTS/CLAUDE now state the units rule explicitly (core = minor units verbatim;
+  conversion only at the adapter boundary).
+
+### Fixed
+
+- Idempotency collisions classified as "Idempotency Error" in the official Orders API error
+  tables are now typed: `423 resource_locked` and `500 idempotency_validation_failed` raise
+  `MpIdempotencyRetryableError` (`retryable: true`, carries `Retry-After` when present).
+  Plain 500s and other 423 bodies remain generic `MpApiError`; the caller decides the backoff
+  (poll degrades to pending; routes answer an honest 500).
+- E2E (L3): declined-payment scenario (official Use case 2) — new charge, `failed` simulation,
+  plugin poll route asserting the refusal taxonomy and a DB assert that the payment is never
+  captured.
+
 ## [0.1.0] - 2026-10-05
 
 ### Fixed
@@ -40,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NEWLAND_N950__SBX0000001`) fails closed before any network call unless the
   option `mpPointTestMode` is explicitly enabled — on the provider
   (`PosTerminalOptions`) or the plugin `posTerminal` block that feeds the admin
-  routes. Enabling is never silent — a loud warning is logged at provider boot
+  routes. Enabling is never silent — a loud warning is logged when the provider resolves (lazy construction)
   and, on the admin-route path, once per process on first use — and never
   exempts credentials (presence-gated registration preserved): test mode is
   never silent in production.

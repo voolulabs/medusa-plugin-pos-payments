@@ -61,3 +61,9 @@ terminal**, que o fluxo do caixa (poll + markAsPaid) não enxerga. Precisávamos
 - Duplicação deliberada da validação (provider + subscriber): cada consumidor do evento é
   responsável pela própria fronteira — remover qualquer uma das duas é regressão de
   segurança.
+- **Errata 2026-10-07 (Onda 2/W2.2): segunda origem de escrita do refund** — o job
+  `pos-payments-reconcile` também executa `refundPaymentWorkflow` com a MESMA
+  `transactionId` do subscriber (`pos-payments-reconcile:<payment_id>`); o paralelismo
+  job×subscriber fica protegido pelo row lock `FOR UPDATE` do `refundPayment_` do core
+  2.19 e pela idempotency key do refund na adquirente — resíduo T5 (sem exclusão mútua
+  explícita no engine), revisão com locking no T6.

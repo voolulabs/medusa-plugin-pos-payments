@@ -25,6 +25,7 @@ O typecheck pegou desvios reais de API que o swc deixaria passar (assinaturas 2.
 
 - **Dinheiro**: minor units (inteiros) + `MathBN` (`@medusajs/framework/utils`) — nunca float;
   conversão da unidade da adquirente documentada em um único lugar, com teste do caso de drift.
+  Core Medusa = minor units verbatim; conversão só na fronteira do adapter (G4).
 - **Estado**: `ALLOWED_TRANSITIONS` + mutator único `transition(from, to)`; webhook e poll
   convergem nele; `assertNever` em todo switch de status.
 - **Contrato do `data`**: todo método do provider devolve o blob COMPLETO (o módulo substitui o

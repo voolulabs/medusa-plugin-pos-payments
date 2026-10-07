@@ -5,7 +5,9 @@ Valem entre sessões e sobre qualquer diff. Mudar uma barreira exige errata data
 
 1. **Dinheiro nunca em float** — minor units (inteiros) + `MathBN`
    (`@medusajs/framework/utils`); conversão da unidade da adquirente documentada em
-   um único lugar, com teste do caso de drift (`19.99 * 100 !== 1999`).
+   um único lugar, com teste do caso de drift (`19.99 * 100 !== 1999`). O core
+   Medusa fala minor units VERBATIM: conversão só acontece na fronteira do adapter
+   (mercadopago `money.ts`) — nenhum outro módulo converte (G4, fechado 2026-10-06).
 2. **Toda transição de estado do charge tem teste** — `ALLOWED_TRANSITIONS` +
    mutator único `transition(from, to)`; webhook e poll convergem no mesmo mutator.
 3. **Zero `@ts-ignore`/`@ts-expect-error` em path de pagamento.**
