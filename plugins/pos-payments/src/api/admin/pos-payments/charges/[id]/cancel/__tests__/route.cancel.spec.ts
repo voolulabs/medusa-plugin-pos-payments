@@ -130,11 +130,13 @@ describe("409 semântico direto em res (MC4 — nunca 500)", () => {
     >
     // MUTAÇÃO (AC10): trocar o literal cannot_cancel_order na rota faz este
     // teste falhar — é o gate que prova o contrato público do corpo.
-    expect(body).toMatchObject({
+    // Igualdade ESTRITA: o corpo 409 é contrato público — campo extra ou
+    // ausente (inclusive message) tem que falhar (coderabbit, PR 62).
+    expect(body).toEqual({
       code: "cannot_cancel_order",
+      message: expect.any(String),
       state: "action_required",
     })
-    expect(typeof body.message).toBe("string")
   })
 
   it("AC4a — order_already_canceled + ordem canceled: 200 idempotente (re-fetch)", async () => {
@@ -176,8 +178,9 @@ describe("409 semântico direto em res (MC4 — nunca 500)", () => {
       string,
       unknown
     >
-    expect(body).toMatchObject({
+    expect(body).toEqual({
       code: "order_already_canceled",
+      message: expect.any(String),
       state: "awaiting_terminal",
     })
   })
