@@ -26,6 +26,18 @@ export interface MpOrder {
   transactions?: { payments?: MpOrderPayment[] }
 }
 
+/** Primeiro `code` string de um corpo envelopado {errors: [{code}]} —
+ * undefined caso contrário (array vazio, code não-string, envelope não-array). */
+function envelopedCode(body: object): string | undefined {
+  const errors = (body as { errors?: unknown }).errors
+  const first = Array.isArray(errors) ? errors[0] : undefined
+  const code =
+    first !== undefined && first !== null && typeof first === "object"
+      ? (first as { code?: unknown }).code
+      : undefined
+  return typeof code === "string" ? code : undefined
+}
+
 export class MpApiError extends Error {
   /** Presente em 429 — segundos sugeridos pelo server para retry (ADR 0001). */
   readonly retryAfter?: string
@@ -40,12 +52,16 @@ export class MpApiError extends Error {
     if (retryAfter !== undefined) this.retryAfter = retryAfter
   }
 
-  /** Código do erro no corpo MP ({error: "..."}), quando presente — insumo
-   * do contrato por estado da rota de cancelamento (cannot_cancel_order etc.). */
+  /** Código do erro no corpo MP, quando presente — insumo do contrato por
+   * estado da rota de cancelamento (cannot_cancel_order etc.). A Orders API
+   * ENVELOPA em array ({errors: [{code: "..."}]}) — forma observada ao vivo
+   * no sandbox (409 do cancel, 2026-10-07); a forma plana ({error: "..."})
+   * segue aceita por defensividade. */
   get code(): string | undefined {
     if (typeof this.body !== "object" || this.body === null) return undefined
-    const code = (this.body as { error?: unknown }).error
-    return typeof code === "string" ? code : undefined
+    const flat = (this.body as { error?: unknown }).error
+    if (typeof flat === "string") return flat
+    return envelopedCode(this.body)
   }
 }
 
