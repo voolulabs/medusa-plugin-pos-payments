@@ -79,7 +79,7 @@ describe("provider mercadopago (wiring T3)", () => {
       state: "pending",
       data_version: 1,
       amount_minor: 1999,
-      idempotency_key: "pos-payments-mercadopago:pay_01H:charge",
+      idempotency_key: "e14900ed-589d-5f0a-8cbc-7f384766990f", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
     })
     // replay do cliente não forja estado; dados próprios da sessão preservados
     expect(out.data?.state).toBe("pending")
@@ -539,7 +539,7 @@ describe("refund e validações de sessão do provider mercadopago", () => {
     const body = JSON.parse(String(calls[0]!.init.body))
     expect(body.transactions.payments[0].amount).toBe("19.99")
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01H:charge",
+      "X-Idempotency-Key": "e14900ed-589d-5f0a-8cbc-7f384766990f", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
     })
   })
 })
@@ -586,7 +586,7 @@ describe("seed de sessão — ordem do union (formas do core)", () => {
       data: { terminal_id: "NEWLAND_N950__S1", session_id: "payses_data" },
     } as never)
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:payses_data:charge",
+      "X-Idempotency-Key": "ee1d9676-8643-5363-a251-3e68ea6ef631", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
     })
     expect(JSON.parse(String(calls[0]!.init.body))).toMatchObject({
       external_reference: "payses_data",
@@ -611,7 +611,7 @@ describe("seed de sessão — ordem do union (formas do core)", () => {
     } as never)
     expect(out.data?.amount_minor).toBe(1999)
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:payses_ctx:charge",
+      "X-Idempotency-Key": "78a9d9d6-f74e-588a-8420-18d78c338fd8", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
     })
     // Header e ordem têm que concordar: external_reference = seed do header.
     expect(JSON.parse(String(calls[0]!.init.body))).toMatchObject({
@@ -630,7 +630,7 @@ describe("seed de sessão — ordem do union (formas do core)", () => {
       data: { terminal_id: "NEWLAND_N950__S1" },
     } as never)
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:payses_key:charge",
+      "X-Idempotency-Key": "5bbd3f92-eb2b-50fd-ac5b-4437af6a7c0b", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
     })
   })
 })
@@ -646,7 +646,7 @@ describe("seed de sessão — fallbacks e defesas de tipo", () => {
       data: { terminal_id: "NEWLAND_N950__S1" },
     } as never)
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:payses_tipado:charge",
+      "X-Idempotency-Key": "56df5914-dbc0-5d9b-a33d-93936570b932", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
     })
   })
 
@@ -660,7 +660,7 @@ describe("seed de sessão — fallbacks e defesas de tipo", () => {
       data: { terminal_id: "NEWLAND_N950__S1" },
     } as never)
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:payses_fallback:charge",
+      "X-Idempotency-Key": "8b0899d6-e63a-595d-9b79-d40dc684a57e", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
     })
     expect(JSON.parse(String(calls[0]!.init.body))).toMatchObject({
       external_reference: "payses_fallback",
@@ -676,7 +676,7 @@ describe("seed de sessão — fallbacks e defesas de tipo", () => {
       data: { terminal_id: "NEWLAND_N950__S1" },
     } as never)
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:payses_semctx:charge",
+      "X-Idempotency-Key": "a6e88f3e-6495-511c-9835-22655ef2f32e", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
     })
   })
 
@@ -691,7 +691,7 @@ describe("seed de sessão — fallbacks e defesas de tipo", () => {
     expect(out.id).toBe("ORD-SEED")
     expect(out.data?.terminal_id).toBeUndefined()
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:payses_nodata:charge",
+      "X-Idempotency-Key": "16c109f4-0344-59a9-8244-878aef403894", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
     })
   })
 })
@@ -793,7 +793,7 @@ describe("guard MP_POINT_TEST_MODE no provider (T6)", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1)
     expect(calls[0]!.url).toContain("/v1/orders")
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01SBX:charge",
+      "X-Idempotency-Key": "13bfafc2-736a-5916-a64c-1a5e28836a5d", // gitleaks:allow — golden uuidv5 de teste (python uuid.uuid5), nao e credencial
       Authorization: "Bearer test-token-fixture",
     })
     const payload = JSON.parse(String(calls[0]!.init.body)) as {

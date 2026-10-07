@@ -49,7 +49,7 @@ describe("POST /admin/pos-payments/charges/:id/cancel", () => {
       "at_terminal"
     )
     expect(headerOf(calls[0]!.init, "X-Idempotency-Key")).toBe(
-      "pos-payments-mercadopago:ORD-1:cancel"
+      "058ef3c5-a31e-505b-8c3a-e1693db35cca"
     )
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ chargeId: "ORD-1", state: "canceled" })

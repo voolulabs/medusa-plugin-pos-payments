@@ -35,7 +35,10 @@ function coerceRawData(raw: WebhookEvent["payload"]["rawData"]): Buffer {
 type HandlerDeps = {
   getAdapter(): PosPaymentsAdapter | undefined
   getSecret(): string
-  logger: { warn(msg: string, ctx?: Record<string, unknown>): void }
+  logger: {
+    warn(msg: string, ctx?: Record<string, unknown>): void
+    info(msg: string, ctx?: Record<string, unknown>): void
+  }
   findPaymentBySession(sessionId: string): Promise<SessionPayment | undefined>
   refundTotal(paymentId: string): Promise<unknown>
 }
@@ -75,6 +78,19 @@ export function createHandler(deps: HandlerDeps) {
     }
     try {
       const view = await adapter.getCharge(id!)
+      // A1.7/MC2: cancelado é desfecho esperado (terminal ou caixa) — o core
+      // descarta canceled (payment-webhook 2.19) e aqui não há refund a
+      // criar. Noop com log info, não WARN.
+      if (view.state === "canceled") {
+        deps.logger.info(
+          "mercadopago: cobranca cancelada no terminal — nada a reconciliar",
+          {
+            provider_id: event.data.provider,
+            charge_id: id,
+          }
+        )
+        return
+      }
       const outcome = await reconcileTerminalRefund(view, {
         findPaymentBySession: deps.findPaymentBySession,
         refundTotal: deps.refundTotal,

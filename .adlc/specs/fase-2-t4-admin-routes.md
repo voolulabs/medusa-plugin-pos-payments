@@ -42,6 +42,9 @@ espelha as options do provider no `medusa-config` (a spec do T6 unifica via env)
   `paymentMethodDefaultType` opcionais. Contrato HTTP **camelCase** (convenção do core).
 - **Idempotência determinística compartilhada com o provider**: chave
   `pos-payments-mercadopago:<external_reference>:charge` (mesma derivação do `mpInitiate`).
+  - **Errata 2026-10-07 (T-CANCEL-CONTRACT): formato SUBSTITUÍDO** — chave agora é UUID v5
+    canônico (`keyFor(<seed>:<purpose>, ns-do-plugin)`), MESMA derivação na rota e no
+    `mpInitiate` (dedup de replay mantido); ver CHANGELOG `[Unreleased]`.
   Replay do mesmo corpo devolve a MESMA ordem (dedup da MP + reuse-guard de valor e terminal
   do T3); corpo divergente falha alto (`UNEXPECTED_STATE`, mensagem nomeia a divergência).
 - Cancel com header `X-Allow-Cancelable-Status` **incondicional** (decisão do T3: a MP carrega

@@ -6,6 +6,7 @@ import type {
 } from "../../adapters/types"
 import { applyTransition } from "./charge-state"
 import { assertTerminalId, assertMinorAmount } from "./charge-input"
+import { keyFor } from "./idempotency-key"
 import type { StructuredLogger } from "./mp-status"
 
 export const PROVIDER_LOG_ID = "pp_pos-terminal_mercadopago"
@@ -49,10 +50,6 @@ function sessionSeed(input: {
   return seed
 }
 
-function idempotencyKey(seed: string, purpose: string): string {
-  return `pos-payments-mercadopago:${seed}:${purpose}`
-}
-
 /** External reference: <=64 chars [A-Za-z0-9-_], sem PII — fail-closed. */
 function assertExternalReference(seed: string): string {
   if (!/^[A-Za-z0-9-_]{1,64}$/.test(seed)) {
@@ -75,7 +72,7 @@ export async function mpInitiate(
   logger: StructuredLogger
 ): Promise<{ id: string; data: Record<string, unknown> }> {
   const seed = sessionSeed(input)
-  const key = idempotencyKey(seed, "charge")
+  const key = keyFor(seed, "charge")
   const createInput: CreateChargeInput = {
     amountMinor: assertMinorAmount(input.amount),
     externalReference: assertExternalReference(seed),

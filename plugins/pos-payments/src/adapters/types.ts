@@ -28,6 +28,9 @@ export interface ChargeStatusView {
   readonly externalReference?: string | undefined
   /** Amount da transação em minor units — insumo do captured do webhook (T5). */
   readonly amountMinor?: number | undefined
+  /** Cancelamento SOLICITADO e em curso no terminal (202 do cancel — E3:
+   * a ordem segue at_terminal e a captura ainda pode acontecer). */
+  readonly cancelRequested?: boolean | undefined
 }
 
 export interface CreateChargeInput {
@@ -71,7 +74,7 @@ export interface PosPaymentsAdapter {
     idempotencyKey: string
   ): Promise<{ chargeId: string; view: ChargeStatusView }>
   getCharge(chargeId: string): Promise<ChargeStatusView>
-  /** opts.allowAtTerminal = header condicional do contrato (cancel em at_terminal). */
+  /** opts = extensão p/ adapters futuros; a MP decide o header sozinha (incondicional). */
   cancelCharge(
     chargeId: string,
     idempotencyKey: string,

@@ -31,6 +31,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   core options, verified against the `@medusajs/medusa` 2.19 hook route) and the reconciliation
   job; CONSTRAINTS/CLAUDE now state the units rule explicitly (core = minor units verbatim;
   conversion only at the adapter boundary).
+- Cancellation is now first-class per the Mercado Pago Orders API contract (official .mx
+  docs, 2026-10-07): `POST /admin/pos-payments/charges/:id/cancel` answers **202** when
+  the charge is at the terminal (async cancellation — the order stays `at_terminal` and the
+  terminal may still capture), with `cancelRequested: true` when MP echoes
+  `cancellation_requested`; the poll view carries `cancelRequested` while the cancellation
+  is in flight. The `x-allow-cancelable-status:
+  at_terminal` header is now sent unconditionally (MP ignores it for `created`, requires it
+  for `at_terminal`).
+- Idempotency keys are now canonical UUIDv5 under a plugin-fixed namespace (the docs accept
+  "UUID v4 or random string"; v5 keeps the accepted format while staying deterministic across
+  retries and processes; implemented on `node:crypto` — no new dependency, per CONSTRAINTS).
+  ONE shared derivation for the routes and the provider (`mpInitiate` included) — a replay of
+  the same body dedupes at the acquirer across both surfaces; the legacy
+  `pos-payments-mercadopago:<seed>:<purpose>` format is gone. Note: retries that straddle the
+  deploy present a NEW key at the acquirer (acceptable pre-release; the package is unreleased).
+- Defensive cancel mapping: any other state echoed by a 2xx cancel answers **202** with the
+  state verbatim (a successful cancel over `at_terminal` is async by contract; MP docs
+  currently diverge by region and language).
 
 ### Fixed
 
@@ -42,6 +60,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - E2E (L3): declined-payment scenario (official Use case 2) — new charge, `failed` simulation,
   plugin poll route asserting the refusal taxonomy and a DB assert that the payment is never
   captured.
+- The cancel route no longer turns acquirer refusals into HTTP 500: `cannot_cancel_order` and
+  `order_already_canceled` now answer **409** with a stable public body directly from the
+  route (the core error handler overwrites `MedusaError` CONFLICT messages — verified in
+  2.19), e.g. `{"code": "cannot_cancel_order", "message": "A cobrança não pode mais ser
+  cancelada na adquirente.", "state": "action_required"}`. `order_already_canceled`
+  re-fetches and answers **200** when the charge is confirmed canceled (idempotent), per the
+  refund-resilience precedent (ADR 0001).
 
 ## [0.1.0] - 2026-10-05
 

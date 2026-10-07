@@ -86,11 +86,28 @@ export function mapOrderStatus(order: MpOrder): ChargeStatusView {
   if (state === "paid") {
     return paidView(eco, order.status, singlePayment(order))
   }
+  const payment = singlePayment(order)
+  // Errata 2026-10-07 (docs .mx, E3/E9): o 202 do cancel deixa a ordem
+  // at_terminal com cancellation_requested na transação — o cancelamento está
+  // SOLICITADO, não concluído: o terminal pode priorizar a cobrança e a
+  // captura ainda acontecer. Poll e cancel compartilham este caminho.
+  if (
+    state === "awaiting_terminal" &&
+    payment?.status_detail === "cancellation_requested"
+  ) {
+    return {
+      ...eco,
+      state,
+      rawStatus: order.status,
+      paymentId: payment.id,
+      cancelRequested: true,
+    }
+  }
   return {
     ...eco,
     state,
     rawStatus: order.status,
-    paymentId: singlePayment(order)?.id,
+    paymentId: payment?.id,
   }
 }
 

@@ -39,6 +39,14 @@ export class MpApiError extends Error {
     this.name = "MpApiError"
     if (retryAfter !== undefined) this.retryAfter = retryAfter
   }
+
+  /** Código do erro no corpo MP ({error: "..."}), quando presente — insumo
+   * do contrato por estado da rota de cancelamento (cannot_cancel_order etc.). */
+  get code(): string | undefined {
+    if (typeof this.body !== "object" || this.body === null) return undefined
+    const code = (this.body as { error?: unknown }).error
+    return typeof code === "string" ? code : undefined
+  }
 }
 
 /** 409 idempotency_key_already_used — o wiring re-consulta o recurso, nunca recria. */

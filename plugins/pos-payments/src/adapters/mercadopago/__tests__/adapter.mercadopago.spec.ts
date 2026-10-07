@@ -64,11 +64,11 @@ describe("busca na colisão de idempotência", () => {
           externalReference: "pay_01H",
           terminalId: "NEWLAND_N950__S1",
         },
-        "pos-payments-mercadopago:pay_01H:charge"
+        "idem-fixture:pay-01H"
       )
     ).rejects.toThrow(/não trouxe o terminal/)
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01H:charge",
+      "X-Idempotency-Key": "idem-fixture:pay-01H",
     })
     expect(calls[2]!.url).toContain("/v1/orders/ORD-77")
     expect(calls).toHaveLength(3)
@@ -95,7 +95,7 @@ describe("busca na colisão de idempotência", () => {
             externalReference: "pay_01H",
             terminalId: "NEWLAND_N950__S1",
           },
-          "pos-payments-mercadopago:pay_01H:charge"
+          "idem-fixture:pay-01H"
         )
       ).rejects.toThrow(MpContractError)
       expect(calls).toHaveLength(2)
@@ -151,7 +151,7 @@ describe("MpAdapter na interface comum", () => {
         description: "venda balcão",
         paymentMethodDefaultType: "credit_card",
       },
-      "pos-payments-mercadopago:pay_01H:charge"
+      "idem-fixture:pay-01H"
     )
     expect(out.chargeId).toBe("ORD-77")
     expect(out.view.state).toBe("pending")
@@ -162,7 +162,7 @@ describe("MpAdapter na interface comum", () => {
     expect(body.description).toBe("venda balcão")
     expect(body.config.payment_method.default_type).toBe("credit_card")
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01H:charge",
+      "X-Idempotency-Key": "idem-fixture:pay-01H",
     })
   })
 
@@ -205,13 +205,13 @@ describe("MpAdapter: colisão de idempotência e ciclo", () => {
         externalReference: "pay_01H",
         terminalId: "NEWLAND_N950__S1",
       },
-      "pos-payments-mercadopago:pay_01H:charge"
+      "idem-fixture:pay-01H"
     )
     expect(out.chargeId).toBe("ORD-77")
     const metodos = calls.map((c) => c.init.method ?? "GET")
     expect(metodos.filter((m) => m === "POST")).toHaveLength(1)
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01H:charge",
+      "X-Idempotency-Key": "idem-fixture:pay-01H",
     })
     const criado = JSON.parse(String(calls[0]!.init.body))
     expect(criado.transactions.payments[0].amount).toBe("19.99")
@@ -221,9 +221,9 @@ describe("MpAdapter: colisão de idempotência e ciclo", () => {
     expect(calls).toHaveLength(3)
   })
 
-  it("cancel em awaiting_terminal manda o header condicional do contrato", async () => {
+  it("cancel em awaiting_terminal manda o header incondicional do contrato", async () => {
     const { adapter, calls } = makeAdapter()
-    await adapter.cancelCharge("ORD-77", "k-cancel", { allowAtTerminal: true })
+    await adapter.cancelCharge("ORD-77", "k-cancel")
     expect(calls[0]!.init.headers).toMatchObject({
       "x-allow-cancelable-status": "at_terminal",
     })
@@ -274,13 +274,13 @@ describe("reuso com divergência na recuperação", () => {
           externalReference: "pay_01H",
           terminalId: "NEWLAND_N950__S1",
         },
-        "pos-payments-mercadopago:pay_01H:charge"
+        "idem-fixture:pay-01H"
       )
     ).rejects.toThrow(/amount 29.99 ≠ 19.99/)
     expect(calls).toHaveLength(3)
     expect(calls[0]!.init.method).toBe("POST")
     expect(calls[0]!.init.headers).toMatchObject({
-      "X-Idempotency-Key": "pos-payments-mercadopago:pay_01H:charge",
+      "X-Idempotency-Key": "idem-fixture:pay-01H",
     })
     expect(calls[1]!.url).toContain("external_reference=pay_01H")
     expect(calls[2]!.url).toContain("/v1/orders/ORD-77")

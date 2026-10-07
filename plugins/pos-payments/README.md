@@ -124,6 +124,29 @@ not consume the block.
 
 ---
 
+## Cancellation contract (mercadopago)
+
+`POST /admin/pos-payments/charges/:id/cancel` maps the Mercado Pago Orders API contract by
+charge state (official .mx docs, 2026-10-07 — note that Mercado Pago's docs currently diverge
+by region AND language; the .br pages are stale):
+
+| Charge state at MP | HTTP | Body |
+|---|---|---|
+| `created` | **200** | `{chargeId, ...view}` with `state: "canceled"` (synchronous cancel) |
+| `at_terminal` | **202** | `{chargeId, ...view}` with `state: "awaiting_terminal"` and `cancelRequested: true` — the cancellation is REQUESTED, not done: the order stays `at_terminal` until the webhook/poll confirms, and the terminal may prioritize the charge and capture anyway |
+| `action_required` / `expired` / `processed` | **409** | `{code: "cannot_cancel_order", message, state}` — refusal body is a public contract of this plugin |
+| already canceled | **200** | re-fetch confirms `state: "canceled"` (idempotent); a diverging re-fetch answers **409** with the real `state` (`state` is `"desconhecido"` when the re-fetch itself fails) |
+| any other state echoed by a 2xx cancel | **202** | defensive: a successful cancel over `at_terminal` is async by contract — the body carries the state verbatim |
+
+The `x-allow-cancelable-status: at_terminal` header is sent unconditionally (MP ignores it
+for `created` and requires it for `at_terminal`). Poll responses carry `cancelRequested:
+true` while the cancellation is in flight. Idempotency keys are canonical UUIDv5 under a
+plugin-fixed namespace — deterministic, so retrying the same operation reuses the same key
+(docs accept "UUID v4 or random string"): `<chargeId>:cancel` for cancel,
+`<sessionReference>:charge` for create, `<chargeId>:refund:<amountMinor>` for refund.
+
+---
+
 ## Test the Plugin
 
 1. Run your Medusa backend (`pnpm dev` / `pnpm start`).

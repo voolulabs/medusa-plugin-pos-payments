@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { makeClient } from "./helpers"
 import { cancelOrder, refundOrder } from "../orders"
 
-describe("cancel/refund — idempotência explícita e header condicional", () => {
+describe("cancel/refund — idempotência explícita e header do contrato", () => {
   it("cancelOrder faz POST /cancel com a chave recebida", async () => {
     const { client, calls, fixedKey } = makeClient()
     await cancelOrder(client, "ORD-1", fixedKey)
@@ -12,9 +12,9 @@ describe("cancel/refund — idempotência explícita e header condicional", () =
     ).toBe(fixedKey)
   })
 
-  it("allowAtTerminal envia o header com o ÚNICO valor do contrato", async () => {
+  it("header x-allow-cancelable-status vai SEMPRE (contrato 2026-10-07: ignorado em created, exigido em at_terminal)", async () => {
     const { client, calls, fixedKey } = makeClient()
-    await cancelOrder(client, "ORD-1", fixedKey, { allowAtTerminal: true })
+    await cancelOrder(client, "ORD-1", fixedKey)
     expect(
       (calls[0]!.init.headers as Record<string, string>)[
         "x-allow-cancelable-status"
@@ -22,14 +22,9 @@ describe("cancel/refund — idempotência explícita e header condicional", () =
     ).toBe("at_terminal")
   })
 
-  it("sem allowAtTerminal o header não vai (só created é cancelável)", async () => {
-    const { client, calls, fixedKey } = makeClient()
-    await cancelOrder(client, "ORD-1", fixedKey)
-    expect(
-      (calls[0]!.init.headers as Record<string, string>)[
-        "x-allow-cancelable-status"
-      ]
-    ).toBeUndefined()
+  it("a decisão do header saiu da chamada — assinatura sem options", () => {
+    // Header incondicional (D2a): a camada MP decide, o chamador não opina.
+    expect(cancelOrder).toHaveLength(3)
   })
 
   it("refundOrder faz POST /refund com a chave recebida e sem body", async () => {

@@ -3,11 +3,13 @@ import { MedusaError } from "@medusajs/framework/utils"
 import type { PosPaymentsAdapter } from "../../adapters/types"
 import type { StructuredLogger } from "./mp-status"
 import { applyTransition } from "./charge-state"
+
 import { PROVIDER_LOG_ID } from "./service-mp"
 
-export function keyFor(chargeId: string, purpose: string): string {
-  return `pos-payments-mercadopago:${chargeId}:${purpose}`
-}
+/** Chave de idempotência: módulo puro próprio — service-mp (PROVIDER_LOG_ID)
+ * e service-mp-ops se cruzam; um módulo único criaria ciclo de import. */
+import { keyFor } from "./idempotency-key"
+export { keyFor }
 
 export function unexpected(what: string, detail: string): MedusaError {
   const msg = `mercadopago: ${what} (${detail})`
@@ -58,12 +60,11 @@ export async function mpCancel(
   let view
   try {
     const chargeId = data.charge_id as string
-    // Header INCONDICIONAL: a MP carrega a ordem no terminal em segundos e o
-    // blob local chega atrasado; sem o header, created só cancela pré-carga.
-    view = await adapter.cancelCharge(chargeId, keyFor(chargeId, "cancel"), {
-      allowAtTerminal: true,
-    })
-    logger.info("mercadopago: cobrança cancelada na adquirente", {
+    // Header do contrato é decisão da camada MP (incondicional — errata
+    // 2026-10-07); 202 assíncrono chega aqui como view awaiting_terminal +
+    // cancelRequested (o desfecho confirma via poll/webhook).
+    view = await adapter.cancelCharge(chargeId, keyFor(chargeId, "cancel"))
+    logger.info("mercadopago: cancelamento aceito pela adquirente", {
       provider_id: PROVIDER_LOG_ID,
       charge_id: chargeId,
       to: view.state,

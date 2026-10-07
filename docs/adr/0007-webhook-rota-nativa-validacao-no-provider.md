@@ -72,3 +72,8 @@ terminal**, que o fluxo do caixa (poll + markAsPaid) não enxerga. Precisávamos
   com guarda de over-refund (:468-476); o lock nunca atravessa a chamada do provider]**,
   somado à idempotency key do refund na adquirente — resíduo T5 (sem exclusão mútua
   explícita no engine) segue registrado para a revisão com locking no T6.
+- **Errata 2026-10-07 (T-CANCEL-CONTRACT): cancelado é desfecho esperado, não anomalia** —
+  o subscriber trata charge `canceled` (origem terminal ou caixa) como noop com log `info`
+  e retorno, sem tentativa de refund. O core já descarta `canceled` no subscriber de
+  webhook (`payment-webhook` 2.19 — MC2); o WARN de "reconciliação pulada" fica para os
+  estados realmente anômalos (sem sessão, não capturado, já reembolsado).
