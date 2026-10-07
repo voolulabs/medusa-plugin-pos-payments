@@ -261,7 +261,7 @@ describe("fiação do job — wiring com mercadopago (workflow + fetch auditados
   it("varre payments na janela, re-fetcha e reconcilia", async () => {
     runMock.mockClear()
     const fetchImpl = vi.fn(
-      async (_url: string) =>
+      async (_url: string, _init?: RequestInit) =>
         new Response(
           JSON.stringify({
             id: "ORD-1",
@@ -327,11 +327,17 @@ describe("fiação do job — wiring com mercadopago (workflow + fetch auditados
       take: 200,
       order: { captured_at: "ASC", id: "ASC" },
     })
-    // Re-fetch do charge na Orders API (endpoint e id auditados).
+    // Re-fetch do charge na Orders API (endpoint, id, método e auth auditados).
     expect(fetchImpl).toHaveBeenCalledTimes(1)
     expect(fetchImpl.mock.calls[0]?.[0]).toBe(
       "https://api.mercadopago.com/v1/orders/ORD-1"
     )
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      method: "GET",
+      headers: expect.objectContaining({
+        Authorization: "Bearer tok-fixture",
+      }),
+    })
     // Mesmo workflow e MESMA transactionId do subscriber (ADR 0007).
     expect(runMock).toHaveBeenCalledWith({
       input: { payment_id: "pay_1" },
