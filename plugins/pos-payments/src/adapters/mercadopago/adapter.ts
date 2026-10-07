@@ -76,10 +76,12 @@ export class MercadoPagoAdapter implements PosPaymentsAdapter {
   async cancelCharge(
     chargeId: string,
     idempotencyKey: string,
-    opts?: { allowAtTerminal?: boolean }
+    // Interface comum mantém a assinatura p/ adapters futuros; a camada MP
+    // decide o header sozinha (incondicional — errata 2026-10-07).
+    _opts?: { allowAtTerminal?: boolean }
   ): Promise<ChargeStatusView> {
     return mapOrderStatus(
-      await cancelOrder(this.client, chargeId, idempotencyKey, opts)
+      await cancelOrder(this.client, chargeId, idempotencyKey)
     )
   }
 

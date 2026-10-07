@@ -6,19 +6,20 @@ import type { MpOrder } from "./types"
 export async function cancelOrder(
   client: MercadoPagoOrdersClient,
   orderId: string,
-  idempotencyKey: string,
-  opts: { allowAtTerminal?: boolean } = {}
+  idempotencyKey: string
 ): Promise<MpOrder> {
-  // Header condicional do contrato: o único valor documentado é "at_terminal"
-  // (sem o header, só ordens em `created` são canceláveis).
-  const extraHeaders = opts.allowAtTerminal
-    ? { "x-allow-cancelable-status": "at_terminal" }
-    : undefined
+  // Header INCONDICIONAL (errata 2026-10-07, docs .mx): exigido em
+  // `at_terminal` (202 assíncrono) e IGNORADO em `created` — a MP carrega a
+  // ordem no terminal em segundos e o blob local chega atrasado. A decisão
+  // é da camada MP; o chamador não opina.
   return parseOrder(
     await client.request(
       "POST",
       `/v1/orders/${encodeURIComponent(orderId)}/cancel`,
-      extraHeaders ? { idempotencyKey, extraHeaders } : { idempotencyKey }
+      {
+        idempotencyKey,
+        extraHeaders: { "x-allow-cancelable-status": "at_terminal" },
+      }
     )
   )
 }
