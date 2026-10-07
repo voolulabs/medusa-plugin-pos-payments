@@ -33,6 +33,8 @@ import { mpCancel, mpCapture } from "./service-mp-ops"
 import { mpRefund } from "./service-mp-refund"
 import { mpPoll } from "./mp-status"
 import { mpWebhookAction } from "./service-webhook"
+import { getPluginOptions } from "../../utils/plugin-options"
+import { assertOptionsConsistency } from "../../utils/options-consistency"
 
 type InjectedDependencies = {
   logger?: Logger
@@ -52,7 +54,8 @@ export type PosTerminalOptions = {
   webhookSecret?: string
   /**
    * Guard MP_POINT_TEST_MODE (T6): aceita terminal de sandbox (serial SBX*).
-   * Default false — produção. true NUNCA é silencioso (warn no boot) e não
+   * Default false — produção. true NUNCA é silencioso (warn na construção do
+   * provider) e não
    * isenta credenciais.
    */
   mpPointTestMode?: boolean
@@ -123,13 +126,37 @@ class PosTerminalProviderService extends AbstractPaymentProvider<PosTerminalOpti
     super(container, options)
     this.logger_ = (container.logger ?? console) as Logger
     this.options_ = options
-    // T6: nunca silencioso — teste sem hardware precisa gritar no boot.
+    // A6 (W2.1): as rotas admin e o subscriber leem o bloco `posTerminal` das
+    // options do plugin; o provider lê as options do registro do módulo payment.
+    // Divergência na entrada NÃO-manual falha alto na PRIMEIRA RESOLUÇÃO do
+    // provider (o loader do módulo é lazy — asFunction), citando só os NOMES
+    // das chaves. Sem CONFIG_MODULE resolvível (embeds exóticos/testes):
+    // degrada com info — a checagem é contra-drift, não barreira de segurança.
+    try {
+      const pluginOptions = getPluginOptions(container as never)
+      assertOptionsConsistency(
+        options,
+        pluginOptions.posTerminal,
+        `pp_pos-terminal${options.acquirer ? `_${options.acquirer}` : ""}`
+      )
+    } catch (error) {
+      if (error instanceof MedusaError) throw error
+      // info (não warn): em produção o CONFIG_MODULE SEMPRE resolve — este
+      // ramo só aparece em embeds exóticos/testes, onde o warn poluiria o
+      // contrato "boot sem guard não loga warn".
+      this.logger_.info(
+        "pos-terminal: checagem de consistência de options pulada (CONFIG_MODULE não resolvível neste container)"
+      )
+    }
+    // T6: nunca silencioso — teste sem hardware precisa gritar na construção
+    // do provider.
     if (options.mpPointTestMode === true) {
       this.logger_.warn(
         "pos-terminal: MP_POINT_TEST_MODE ativo — terminais de sandbox (serial SBX*) aceitos; NUNCA usar em produção (mercado-pago.md §8)"
       )
     }
-    // Construído UMA vez no boot (adapter stateless sobre o cliente T1).
+    // Construído UMA vez na resolução do provider (loader lazy asFunction —
+    // adapter stateless sobre o cliente T1).
     this.adapter_ = resolveAdapter(options.acquirer, {
       accessToken: options.accessToken,
       testMode: options.mpPointTestMode === true,
