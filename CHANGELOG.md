@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   re-fetches each charge and reconciles terminal-originated refunds lost by an exhausted event
   bus within that window (MP refunds are allowed up to 90 days for physical cards — days 31–90
   still rely on the MP redelivery), reusing the subscriber's idempotent decision and transaction
-  id (parallel job×subscriber covered by the core refund row lock — ADR 0007 errata).
+  id (job×subscriber parallelism serialized by the core's refund row lock, verified in
+  `@medusajs/payment` 2.19.0 — ADR 0007 errata).
 - Provider options-consistency guard between the payment-module provider entry and the plugin
   `posTerminal` block — divergence on a non-manual entry fails the provider resolution (lazy;
   first session/webhook/capture) with the diverging key NAMES only, never values. Manual

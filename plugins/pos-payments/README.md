@@ -107,9 +107,12 @@ refund could stay unreconciled. Two defenses, use both:
    scans captured payments of `pp_pos-terminal_mercadopago` from the last 30 days (the charge
    state lives in `payment.data`, written by the provider's capture/refund), re-fetches each
    charge from the Mercado Pago Orders API and reconciles refunds that were missed by the event
-   bus, reusing the exact same idempotent decision and transaction id as the webhook subscriber
-   (guard: the Medusa payment's refunds; parallel job×subscriber is covered by the core's refund
-   row lock). Volume: one GET per captured payment within the window, sequential, per daily run.
+   bus, reusing the exact same idempotent decision and transaction id as the webhook subscriber.
+   The guard is the Medusa payment's refunds list; job×subscriber parallelism is serialized by
+   the core's refund row lock (`FOR UPDATE` under a mandatory transaction, verified in
+   `@medusajs/payment` 2.19.0) plus the refund idempotency key at the acquirer — engine-level
+   mutual exclusion remains a T5 residual tracked in ADR 0007. Volume: one GET per captured
+   payment within the window, sequential, per daily run.
    The job is presence-gated: without the `posTerminal.acquirer: "mercadopago"` block it does
    nothing.
 

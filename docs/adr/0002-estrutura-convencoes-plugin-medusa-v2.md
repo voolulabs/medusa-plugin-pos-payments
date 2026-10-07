@@ -236,6 +236,8 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
 3. **Subscribers entram na Fase 2** para reconciliação de refund/cancel originados no terminal
    (`refundPaymentWorkflow`, nunca serviço do módulo — event-bus.md §2.3; ADR 0007 em preparo).
    O §9 passa a valer a workflows/subscribers de negócio próprios; jobs/links continuam fora.
+   *(Nota 2026-10-07: a parte de "jobs fora" foi revogada pela errata 6 de 2026-10-07 —
+   `src/jobs/` existe desde a Onda 2; links continuam fora.)*
 4. **`middlewares.ts` é condicional** (nasce com o primeiro validador/rate-limit próprio —
    ADR 0005); na Fase 1 o arquivo não existe e a auth é toda do core.
 5. **`module`/`moduleResolution: node16`** no tsconfig (necessário para resolver o exports map
@@ -247,9 +249,9 @@ As convenções abaixo foram verificadas em quatro fontes complementares (2026-0
 6. **Jobs entram** — a errata 3 de 2026-10-01 deixava "jobs/links fora"; o job agendado
    `pos-payments-reconcile` (`src/jobs/`, cron diário — A7 do diagnóstico de 2026-10-05)
    elimina a aresta "refund de terminal perdido após esgotar o event bus" DENTRO da
-   janela de 30 dias do job (refund na MP vale até 90 dias p/ cartão físico — o
-   resíduo 31–90d segue dependendo do reenvio do MP; janela configurável é follow-up)
-   e reutiliza a decisão do subscriber (ADR 0007). Links continuam fora. Acesso a
+   janela de 30 dias do job (refund na MP vale até 90 dias para cartão físico — o
+   resíduo 31–90d segue dependendo do reenvio do MP; janela configurável fica para o
+   backlog) e reutiliza a decisão do subscriber (ADR 0007). Links continuam fora. Acesso a
    dados no job: **graph sobre a entidade `payment`** — é o blob `payment.data` que
    recebe as transições do charge gravadas por capture/refund do provider (a sessão
    fica com o blob do authorize — blob do initiate + `authorized_at` — e nunca
