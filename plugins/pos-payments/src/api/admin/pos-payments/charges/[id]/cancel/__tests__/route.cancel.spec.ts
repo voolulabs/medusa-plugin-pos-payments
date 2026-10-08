@@ -112,9 +112,15 @@ describe("409 semântico direto em res (MC4 — nunca 500)", () => {
     vi.mocked(adapterForRequest).mockReturnValue(
       adapterMock({
         cancelCharge: async () => {
+          // Shape REAL da Orders API (observado ao vivo no sandbox 2026-10-07):
+          // o corpo vem ENVELOPADO em {errors: [{code, message}]}.
           throw mpError(409, {
-            error: "cannot_cancel_order",
-            message: "order is not cancelable in its current state",
+            errors: [
+              {
+                code: "cannot_cancel_order",
+                message: "order is not cancelable in its current state",
+              },
+            ],
           })
         },
         getCharge: async () =>
@@ -142,7 +148,9 @@ describe("409 semântico direto em res (MC4 — nunca 500)", () => {
   it("AC4a — order_already_canceled + ordem canceled: 200 idempotente (re-fetch)", async () => {
     const adapter = adapterMock({
       cancelCharge: async () => {
-        throw mpError(409, { error: "order_already_canceled" })
+        throw mpError(409, {
+          errors: [{ code: "order_already_canceled" }],
+        })
       },
       getCharge: async () =>
         view({
@@ -165,7 +173,9 @@ describe("409 semântico direto em res (MC4 — nunca 500)", () => {
     vi.mocked(adapterForRequest).mockReturnValue(
       adapterMock({
         cancelCharge: async () => {
-          throw mpError(409, { error: "order_already_canceled" })
+          throw mpError(409, {
+            errors: [{ code: "order_already_canceled" }],
+          })
         },
         getCharge: async () =>
           view({ state: "awaiting_terminal", rawStatus: "at_terminal" }),
@@ -186,6 +196,55 @@ describe("409 semântico direto em res (MC4 — nunca 500)", () => {
   })
 })
 
+describe("409 — shapes do corpo MP e re-fetch falho", () => {
+  it("AC4c — order_already_canceled + re-fetch indisponível: 409 com state desconhecido", async () => {
+    vi.mocked(adapterForRequest).mockReturnValue(
+      adapterMock({
+        cancelCharge: async () => {
+          throw mpError(409, {
+            errors: [{ code: "order_already_canceled" }],
+          })
+        },
+        getCharge: async () => {
+          throw new Error("re-fetch indisponível")
+        },
+      }) as never
+    )
+    const res = makeRes()
+    await POST(req(), res)
+    // Falha no re-fetch NÃO bloqueia o 409 (rota.ts:53) — o estado vira o
+    // placeholder "desconhecido" e o corpo segue contrato público.
+    expect(res.status).toHaveBeenCalledWith(409)
+    const body = vi.mocked(res.json).mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >
+    expect(body).toEqual({
+      code: "order_already_canceled",
+      message: expect.any(String),
+      state: "desconhecido",
+    })
+  })
+
+  it("forma plana legada {error: code} também é reconhecida (defensivo)", async () => {
+    vi.mocked(adapterForRequest).mockReturnValue(
+      adapterMock({
+        cancelCharge: async () => {
+          throw mpError(409, { error: "cannot_cancel_order" })
+        },
+        getCharge: async () =>
+          view({ state: "action_required", rawStatus: "action_required" }),
+      }) as never
+    )
+    const res = makeRes()
+    await POST(req(), res)
+    expect(res.status).toHaveBeenCalledWith(409)
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "cannot_cancel_order" })
+    )
+  })
+})
+
 describe("erros fora do contrato de cancelamento", () => {
   it("404 da adquirente segue pelo toMedusaError (NOT_FOUND lançado)", async () => {
     vi.mocked(adapterForRequest).mockReturnValue(
@@ -199,5 +258,37 @@ describe("erros fora do contrato de cancelamento", () => {
     await expect(POST(req(), res)).rejects.toMatchObject({
       type: MedusaError.Types.NOT_FOUND,
     })
+  })
+
+  it("409 com code FORA do contrato segue pelo toMedusaError (lançado, sem 409)", async () => {
+    vi.mocked(adapterForRequest).mockReturnValue(
+      adapterMock({
+        cancelCharge: async () => {
+          throw mpError(409, {
+            errors: [{ code: "internal_validation_error" }],
+          })
+        },
+      }) as never
+    )
+    const res = makeRes()
+    // respondRefusal devolve false → o erro sobe pelo toMedusaError; a rota
+    // NÃO responde o 409 semântico do contrato.
+    await expect(POST(req(), res)).rejects.toThrow()
+    expect(res.status).not.toHaveBeenCalled()
+  })
+
+  it("errors[0].code não-string não vira código do contrato (fora do contrato)", async () => {
+    vi.mocked(adapterForRequest).mockReturnValue(
+      adapterMock({
+        cancelCharge: async () => {
+          throw mpError(409, { errors: [{ code: 42 }] })
+        },
+      }) as never
+    )
+    const res = makeRes()
+    // O getter devolve undefined para code não-string (types.ts) — o 409 não
+    // é do contrato e sobe pelo toMedusaError.
+    await expect(POST(req(), res)).rejects.toThrow()
+    expect(res.status).not.toHaveBeenCalled()
   })
 })
