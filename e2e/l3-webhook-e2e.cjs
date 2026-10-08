@@ -676,7 +676,10 @@ async function main() {
         )
         ultimoAt = st
       }
-      if (st === "canceled" || st === "captured") {
+      // captured só é desfecho válido a jusante de um cancel 202 ACEITO (E9 —
+      // o terminal pode priorizar a cobrança): captura sem cancel aceito é
+      // regressão (E1: captura pós-cancelada) e tem que FAILar, não PASSar.
+      if (st === "canceled" || (st === "captured" && ca.status === 202)) {
         desfecho = st
         break
       }
@@ -762,7 +765,10 @@ async function main() {
       " PASS" +
       (skips > 0 ? " (" + skips + " skip-ambiente)" : "")
   )
-  process.exit(pass === avaliados ? 0 : 1)
+  if (pass !== avaliados) process.exit(1)
+  // L3_STRICT=1: run com skips NÃO é sucesso pleno — sai 2 (distinto de FAIL=1)
+  // para CI/operador distinguirem cobertura ausente de aprovação (coderabbit).
+  process.exit(skips > 0 && process.env.L3_STRICT === "1" ? 2 : 0)
 }
 
 main().catch((e) => {
