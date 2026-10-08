@@ -23,8 +23,12 @@ const BASE = path.join(
 const { MercadoPagoAdapter } = require(path.join(BASE, "adapter.js"))
 
 const token = process.env.MP_ACCESS_TOKEN
-if (!token || !token.startsWith("APP_USR-")) {
-  console.error("FAIL token: credencial de teste ausente ou com prefixo errado")
+// Prefixos aceitos = o que o template documenta (APP_USR- produção, TEST-
+// sandbox) — o contrato real do provider é só token não-vazio via Bearer.
+if (!token || !/^(APP_USR-|TEST-)/.test(token)) {
+  console.error(
+    "FAIL token: credencial ausente ou com prefixo inesperado (aceitos: APP_USR-, TEST-)"
+  )
   process.exit(1)
 }
 if (process.env.MP_POINT_TEST_MODE !== "true") {
