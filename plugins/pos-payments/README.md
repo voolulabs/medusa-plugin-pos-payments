@@ -189,6 +189,7 @@ POS_PAYMENTS_MP_CLIENT_ID=<app client id>          # OAuth app (Point solution) 
 POS_PAYMENTS_MP_CLIENT_SECRET=<app client secret>  # exists after production credentials activation
 POS_PAYMENTS_MP_REDIRECT_URI=https://<host>/pos-payments/callback/mercadopago  # EXACT match, registered in the app
 POS_PAYMENTS_MP_OAUTH_TEST_TOKEN=true              # sandbox exchanges (test_token=true) — dev only
+POS_PAYMENTS_ADMIN_PATH=/app                       # admin.path of the host (OAuth callback redirect base)
 ```
 
 Every value can also be provided as plugin options (`onboarding.mercadopago.*` in
