@@ -73,6 +73,32 @@ _In-person Brazilian card-terminal (maquininha) payments for Medusa v2._
 
 4. Enable the `pp_pos-terminal_*` providers on the region your POS uses (e.g. in the seed or via the admin API).
 
+### Mercado Pago (terminal charges — Fase 2)
+
+Register the `mercadopago` provider on the payment module (alongside or instead of the manual
+ones) and provide the credentials via environment (never literals — CONSTRAINTS 8):
+
+```js
+// in `modules`, on the payment module providers array:
+{
+  resolve: "@voolulabs/medusajs-plugin-pos-payments/providers/pos-terminal",
+  id: "mercadopago",
+  options: {
+    acquirer: "mercadopago",
+    accessToken: process.env.MP_ACCESS_TOKEN,     // App_USR-... (publisher/merchant token)
+    webhookSecret: process.env.MP_WEBHOOK_SECRET, // x-signature secret from the DevPanel
+    // mpPointTestMode: true, // sandbox virtual terminal (SBX*) — dev/homologation only
+  },
+}
+```
+
+```bash
+# .env
+MP_ACCESS_TOKEN=APP_USR-...
+MP_WEBHOOK_SECRET=...
+# POS_PAYMENTS_MP_TEST=true # alternative to the option above
+```
+
 ---
 
 ## Webhooks and Reconciliation (mercadopago)
