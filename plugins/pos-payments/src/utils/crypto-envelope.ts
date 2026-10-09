@@ -74,41 +74,52 @@ export function encryptSecret(plain: string, keys: MasterKeySet): string {
 /** Descriptografa casando o keyId do envelope com a chave (corrente ou
  * anterior). Envelope adulterado/desconhecido = CryptoError — nunca lixo. */
 export function decryptSecret(envelope: string, keys: MasterKeySet): string {
-  const parts = envelope.split(".")
-  const [, , keyId, ivS, tagS, ctS] = parts
-  if (
-    `${parts[0]}.${parts[1]}` !== PREFIX ||
-    parts.length !== 6 ||
-    !keyId ||
-    !ivS ||
-    !tagS ||
-    !ctS
-  ) {
-    throw new CryptoError("envelope inválido (prefixo/estrutura)")
-  }
-  const key =
-    keyId === keyIdOf(keys.current)
-      ? keys.current
-      : keys.previous && keyId === keyIdOf(keys.previous)
-        ? keys.previous
-        : undefined
-  if (!key) {
-    throw new CryptoError(
-      `envelope com keyId desconhecido (${keyId}) — rotação sem dual-key?`
-    )
-  }
+  const env = parseEnvelope(envelope)
+  const key = selectKey(env.keyId, keys)
   try {
     const decipher = createDecipheriv(
       "aes-256-gcm",
       key,
-      Buffer.from(ivS, "base64url")
+      Buffer.from(env.iv, "base64url")
     )
-    decipher.setAuthTag(Buffer.from(tagS, "base64url"))
+    decipher.setAuthTag(Buffer.from(env.tag, "base64url"))
     return Buffer.concat([
-      decipher.update(Buffer.from(ctS, "base64url")),
+      decipher.update(Buffer.from(env.ct, "base64url")),
       decipher.final(),
     ]).toString("utf8")
   } catch {
     throw new CryptoError("envelope não autenticado (tag GCM)")
   }
+}
+
+interface EnvelopeParts {
+  keyId: string
+  iv: string
+  tag: string
+  ct: string
+}
+
+function parseEnvelope(envelope: string): EnvelopeParts {
+  const parts = envelope.split(".")
+  const [, , keyId, iv, tag, ct] = parts
+  if (
+    `${parts[0]}.${parts[1]}` !== PREFIX ||
+    parts.length !== 6 ||
+    !keyId ||
+    !iv ||
+    !tag ||
+    !ct
+  ) {
+    throw new CryptoError("envelope inválido (prefixo/estrutura)")
+  }
+  return { keyId, iv, tag, ct }
+}
+
+/** Casamento keyId → chave (corrente ou anterior na rotação dual-key). */
+function selectKey(keyId: string, keys: MasterKeySet): Buffer {
+  if (keyId === keyIdOf(keys.current)) return keys.current
+  if (keys.previous && keyId === keyIdOf(keys.previous)) return keys.previous
+  throw new CryptoError(
+    `envelope com keyId desconhecido (${keyId}) — rotação sem dual-key?`
+  )
 }

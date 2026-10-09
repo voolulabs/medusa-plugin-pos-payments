@@ -13,6 +13,30 @@ const registerSchema = z.object({
   label: z.string().min(1).max(60).optional(),
 })
 
+/** Merge depth-1 do register no espelho (§5.4) — puro e testável. */
+export function mergeRegister(
+  metadata: unknown,
+  input: { registerId: string; label?: string }
+): Record<string, unknown> {
+  const meta = { ...((metadata ?? {}) as Record<string, unknown>) }
+  const pos = { ...((meta.pos ?? {}) as Record<string, unknown>) }
+  const payments = { ...((pos.payments ?? {}) as Record<string, unknown>) }
+  const registers = {
+    ...((payments.registers ?? {}) as Record<string, unknown>),
+  }
+  const existing = (registers[input.registerId] ?? {}) as Record<
+    string,
+    unknown
+  >
+  registers[input.registerId] = {
+    ...existing,
+    ...(input.label ? { label: input.label } : {}),
+  }
+  payments.registers = registers
+  pos.payments = payments
+  return { ...meta, pos }
+}
+
 /** Lê o mapa de caixas espelhado (não-sensível) de metadata.pos.payments. */
 export function registersOf(
   metadata: unknown

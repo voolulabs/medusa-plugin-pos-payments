@@ -16,6 +16,34 @@ const selectSchema = z.object({
   registerId: z.string().uuid().optional(),
 })
 
+/** Merge depth-1 do terminal no espelho (§5.4) — puro e testável. */
+export function mergeSelect(
+  metadata: unknown,
+  input: { acquirer: string; terminalId: string; registerId?: string }
+): Record<string, unknown> {
+  const meta = { ...((metadata ?? {}) as Record<string, unknown>) }
+  const pos = { ...((meta.pos ?? {}) as Record<string, unknown>) }
+  const payments = { ...((pos.payments ?? {}) as Record<string, unknown>) }
+  if (input.registerId) {
+    const registers = {
+      ...((payments.registers ?? {}) as Record<string, unknown>),
+    }
+    const current = (registers[input.registerId] ?? {}) as Record<
+      string,
+      unknown
+    >
+    registers[input.registerId] = {
+      ...current,
+      terminal: { acquirer: input.acquirer, id: input.terminalId },
+    }
+    payments.registers = registers
+  } else {
+    payments.terminal = { acquirer: input.acquirer, id: input.terminalId }
+  }
+  pos.payments = payments
+  return { ...meta, pos }
+}
+
 /** POST /admin/pos-payments/terminals/:id/select — grava o terminal
  * selecionado; com registerId = binding por caixa em
  * `metadata.pos.payments.registers` (merge depth-1 — o app de caixa sobrescreve
@@ -53,27 +81,12 @@ export async function POST(
         "store do backend não encontrada"
       )
     }
-    const metadata = (store.metadata ?? {}) as Record<string, unknown>
-    const pos = { ...((metadata.pos ?? {}) as Record<string, unknown>) }
-    const payments = { ...((pos.payments ?? {}) as Record<string, unknown>) }
-    if (parsed.data.registerId) {
-      const registers = {
-        ...((payments.registers ?? {}) as Record<string, unknown>),
-      }
-      const current = (registers[parsed.data.registerId] ?? {}) as Record<
-        string,
-        unknown
-      >
-      registers[parsed.data.registerId] = {
-        ...current,
-        terminal: { acquirer, id: terminalId },
-      }
-      payments.registers = registers
-    } else {
-      payments.terminal = { acquirer, id: terminalId }
-    }
-    pos.payments = payments
-    await storeModule.updateStores(store.id, { metadata: { ...metadata, pos } })
+    const metadata = mergeSelect(store.metadata, {
+      acquirer,
+      terminalId,
+      registerId: parsed.data.registerId,
+    } as never)
+    await storeModule.updateStores(store.id, { metadata })
     await recordAudit(module, {
       event: "terminalSelected",
       acquirer,

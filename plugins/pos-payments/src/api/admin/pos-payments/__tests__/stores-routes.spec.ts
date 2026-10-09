@@ -15,6 +15,22 @@ import {
   withOnboardingEnv,
 } from "./helpers"
 
+/** Respostas MP simuladas das rotas stores/pos (extraído p/ nesting ≤4). */
+const storesResponder = (call: { method: string; url: string }) => {
+  if (call.url.endsWith("/users/me")) return { body: { id: 42 } }
+  if (call.url.includes("/users/42/stores/search"))
+    return { body: { results: [{ id: 1, external_id: "unidade-1" }] } }
+  if (call.url === "https://api.mercadopago.com/users/42/stores")
+    return { body: { id: 1, name: "Loja" } }
+  if (call.url.startsWith("https://api.mercadopago.com/v2/pos/"))
+    return { body: {} }
+  if (call.url.startsWith("https://api.mercadopago.com/v2/pos"))
+    return call.method === "POST"
+      ? { status: 201, body: { id: 9 } }
+      : { body: { results: [{ id: 7 }] } }
+  return { body: {} }
+}
+
 describe("rotas stores/pos (AC8)", () => {
   let mod: ReturnType<typeof newModule>
   let scope: ReturnType<typeof fakeScope>
@@ -24,20 +40,7 @@ describe("rotas stores/pos (AC8)", () => {
     withTestKey()
     withOnboardingEnv()
     scope = fakeScope({ module: mod })
-    const { fetchImpl } = fakeFetch((call) => {
-      if (call.url.endsWith("/users/me")) return { body: { id: 42 } }
-      if (call.url.includes("/users/42/stores/search"))
-        return { body: { results: [{ id: 1, external_id: "unidade-1" }] } }
-      if (call.url === "https://api.mercadopago.com/users/42/stores")
-        return { body: { id: 1, name: "Loja" } }
-      if (call.url.startsWith("https://api.mercadopago.com/v2/pos/"))
-        return { body: {} }
-      if (call.url.startsWith("https://api.mercadopago.com/v2/pos"))
-        return call.method === "POST"
-          ? { status: 201, body: { id: 9 } }
-          : { body: { results: [{ id: 7 }] } }
-      return { body: {} }
-    })
+    const { fetchImpl } = fakeFetch(storesResponder)
     original = globalThis.fetch
     globalThis.fetch = fetchImpl
     await connectValidated(mod.svc as never, {

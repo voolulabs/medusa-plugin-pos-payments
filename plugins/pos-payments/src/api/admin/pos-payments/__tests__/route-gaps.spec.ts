@@ -42,10 +42,7 @@ describe("gaps de branches das rotas de onboarding", () => {
     globalThis.fetch = original
   })
 
-  it("stores GET sem filtro; POST com location/businessHours e corpo inválido", async () => {
-    const { fetchImpl } = fakeFetch(() => ({ body: { results: [] } }))
-    original = globalThis.fetch
-    globalThis.fetch = fetchImpl
+  async function seedConnected(user = "5") {
     await connectValidated(mod.svc as never, {
       acquirer: "mercadopago",
       secret: {
@@ -54,11 +51,25 @@ describe("gaps de branches das rotas de onboarding", () => {
       },
       actorId: null,
       from: "unconfigured",
-      validate: async () => ({ user_id: "5" }),
+      validate: async () => ({ user_id: user }),
     })
+  }
+
+  it("stores GET sem filtro devolve 200", async () => {
+    const { fetchImpl } = fakeFetch(() => ({ body: { results: [] } }))
+    original = globalThis.fetch
+    globalThis.fetch = fetchImpl
+    await seedConnected()
     const listed = fakeRes()
     await listStores(fakeReq({}, scope, { query: {} }), listed as never)
     expect(listed.code).toBe(200)
+  })
+
+  it("stores POST com location/businessHours aceita; corpo inválido → 400", async () => {
+    const { fetchImpl } = fakeFetch(() => ({ body: { results: [] } }))
+    original = globalThis.fetch
+    globalThis.fetch = fetchImpl
+    await seedConnected()
     const created = fakeRes()
     await createStoreRoute(
       fakeReq({}, scope, {
@@ -75,42 +86,6 @@ describe("gaps de branches das rotas de onboarding", () => {
     const invalid = fakeRes()
     await createStoreRoute(
       fakeReq({}, scope, { body: { name: "", externalId: "bad!" } }),
-      invalid as never
-    )
-    expect(invalid.code).toBe(400)
-  })
-
-  it("pos GET com store_id; POST com name; POST inválido (regex) → 400", async () => {
-    const { fetchImpl } = fakeFetch(() => ({ body: { results: [] } }))
-    original = globalThis.fetch
-    globalThis.fetch = fetchImpl
-    await connectValidated(mod.svc as never, {
-      acquirer: "mercadopago",
-      secret: {
-        access_token: "t",
-        expires_at: new Date(Date.now() + 3600_000).toISOString(),
-      },
-      actorId: null,
-      from: "unconfigured",
-      validate: async () => ({ user_id: "5" }),
-    })
-    const listed = fakeRes()
-    await listPos(
-      fakeReq({}, scope, { query: { store_id: "11", external_store_id: "x" } }),
-      listed as never
-    )
-    expect(listed.code).toBe(200)
-    const created = fakeRes()
-    await createPosRoute(
-      fakeReq({}, scope, {
-        body: { name: "CX", externalId: "s1", externalStoreId: "u1" },
-      }),
-      created as never
-    )
-    expect(created.code).toBe(201)
-    const invalid = fakeRes()
-    await createPosRoute(
-      fakeReq({}, scope, { body: { externalId: "bad!" } }),
       invalid as never
     )
     expect(invalid.code).toBe(400)
