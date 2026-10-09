@@ -87,3 +87,55 @@ describe("connections (AC6/AC7: validate-then-activate + purga)", () => {
     expect(mod.db.audits).toHaveLength(0)
   })
 })
+
+describe("connectValidated: reconexão e corrida (branches da r2)", () => {
+  it("reconexão sobre disconnected passa por unconfigured e conecta", async () => {
+    const mod = fakeModule()
+    withTestKey()
+    await connectValidated(mod.svc as never, {
+      acquirer: "mercadopago",
+      secret: { access_token: "a" },
+      actorId: null,
+      from: "unconfigured",
+      validate: async () => ({ user_id: "1" }),
+    })
+    await disconnectConnection(mod.svc as never, "mercadopago", null)
+    await connectValidated(mod.svc as never, {
+      acquirer: "mercadopago",
+      secret: { access_token: "b" },
+      actorId: null,
+      from: "unconfigured",
+      validate: async () => ({ user_id: "1" }),
+    })
+    expect(
+      (await findConnection(mod.svc as never, "mercadopago"))?.status
+    ).toBe("connected")
+  })
+
+  it("corrida de create (unique): re-lê a conexão existente e atualiza", async () => {
+    const mod = fakeModule()
+    withTestKey()
+    mod.db.connections.push({
+      id: "c-existing",
+      acquirer: "mercadopago",
+      status: "unconfigured",
+      actionReason: null,
+      externalRefs: {},
+      expiresAt: null,
+      lastValidatedAt: null,
+    })
+    const svc = mod.svc as unknown as Record<string, unknown>
+    svc.createPosPaymentsConnections = async () => {
+      throw new Error("duplicate key value violates unique constraint")
+    }
+    const conn = await connectValidated(svc as never, {
+      acquirer: "mercadopago",
+      secret: { access_token: "a" },
+      actorId: null,
+      from: "unconfigured",
+      validate: async () => ({ user_id: "1" }),
+    })
+    expect(conn.id).toBe("c-existing")
+    expect(conn.status).toBe("connected")
+  })
+})
