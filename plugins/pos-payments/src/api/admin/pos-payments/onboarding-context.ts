@@ -51,7 +51,11 @@ export async function merchantCredentials(
   }
   const refs = (conn.externalRefs ?? {}) as Record<string, unknown>
   if (typeof refs.user_id !== "string" || !refs.user_id) {
-    throw new OnboardingError("not_connected", 409, "user_id ausente na conexão")
+    throw new OnboardingError(
+      "not_connected",
+      409,
+      "user_id ausente na conexão"
+    )
   }
   const token = await getValidAccessToken({
     module: ctx.module,

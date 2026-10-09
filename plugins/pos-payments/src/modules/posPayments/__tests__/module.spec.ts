@@ -14,7 +14,10 @@ describe("módulo posPayments", () => {
   })
 
   it("MedusaService gera CRUD das 4 tabelas no protótipo", () => {
-    const proto = PosPaymentsModuleService.prototype as unknown as Record<string, unknown>
+    const proto = PosPaymentsModuleService.prototype as unknown as Record<
+      string,
+      unknown
+    >
     for (const method of [
       "createPosPaymentsConnections",
       "listPosPaymentsConnections",

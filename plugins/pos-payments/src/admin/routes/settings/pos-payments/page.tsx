@@ -21,7 +21,10 @@ interface ConnectionView {
 }
 
 interface RegisterMap {
-  [registerId: string]: { label?: string; terminal?: { acquirer: string; id: string } }
+  [registerId: string]: {
+    label?: string
+    terminal?: { acquirer: string; id: string }
+  }
 }
 
 type UiState = {
@@ -46,9 +49,13 @@ const PosPaymentsSettingsPage = () => {
   const reload = async () => {
     try {
       const [conns, regs, terms] = await Promise.all([
-        api<{ connections: ConnectionView[] }>("/admin/pos-payments/connections"),
+        api<{ connections: ConnectionView[] }>(
+          "/admin/pos-payments/connections"
+        ),
         api<{ registers: RegisterMap }>("/admin/pos-payments/registers"),
-        api<{ terminals: Array<{ id: string }> }>("/admin/pos-payments/terminals"),
+        api<{ terminals: Array<{ id: string }> }>(
+          "/admin/pos-payments/terminals"
+        ),
       ])
       setUi((s) => ({
         ...s,
@@ -108,12 +115,15 @@ const PosPaymentsSettingsPage = () => {
 
   const select = async (terminalId: string) => {
     setUi((s) => ({ ...s, busy: true }))
-    await fetch(`/admin/pos-payments/terminals/${encodeURIComponent(terminalId)}/select`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    })
+    await fetch(
+      `/admin/pos-payments/terminals/${encodeURIComponent(terminalId)}/select`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      }
+    )
     await reload()
     setUi((s) => ({ ...s, busy: false }))
   }
@@ -126,18 +136,28 @@ const PosPaymentsSettingsPage = () => {
         <div className="flex items-center justify-between px-6 py-4">
           <Heading level="h2">POS Payments — Mercado Pago</Heading>
           {mp?.status === "connected" ? (
-            <Button variant="secondary" size="small" disabled={ui.busy} onClick={() => void disconnect()}>
+            <Button
+              variant="secondary"
+              size="small"
+              disabled={ui.busy}
+              onClick={() => void disconnect()}
+            >
               Desconectar
             </Button>
           ) : (
-            <Button size="small" disabled={ui.busy} onClick={() => void connect()}>
+            <Button
+              size="small"
+              disabled={ui.busy}
+              onClick={() => void connect()}
+            >
               Conectar (OAuth)
             </Button>
           )}
         </div>
         <div className="px-6 py-4">
           <Text>
-            Estado: <Badge color={mp?.status === "connected" ? "green" : "orange"}>
+            Estado:{" "}
+            <Badge color={mp?.status === "connected" ? "green" : "orange"}>
               {connectionLabel((mp?.status ?? "unconfigured") as never, {
                 actionReason: mp?.actionReason ?? null,
               })}
@@ -149,14 +169,25 @@ const PosPaymentsSettingsPage = () => {
                 placeholder="token do lojista (credencial colada — opcional)"
                 value={ui.pastedToken}
                 type="password"
-                onChange={(e) => setUi((s) => ({ ...s, pastedToken: e.target.value }))}
+                onChange={(e) =>
+                  setUi((s) => ({ ...s, pastedToken: e.target.value }))
+                }
               />
-              <Button variant="secondary" size="small" disabled={ui.busy || ui.pastedToken.length < 20} onClick={() => void paste()}>
+              <Button
+                variant="secondary"
+                size="small"
+                disabled={ui.busy || ui.pastedToken.length < 20}
+                onClick={() => void paste()}
+              >
                 Validar e conectar
               </Button>
             </div>
           )}
-          {ui.error && <Text size="small" className="text-ui-fg-error">{ui.error}</Text>}
+          {ui.error && (
+            <Text size="small" className="text-ui-fg-error">
+              {ui.error}
+            </Text>
+          )}
         </div>
       </Container>
       <Container className="p-0">
@@ -165,15 +196,26 @@ const PosPaymentsSettingsPage = () => {
         </div>
         <div className="px-6 pb-4 flex flex-col gap-y-2">
           {ui.terminals.map((t) => (
-            <div key={t.id} className="flex items-center justify-between border rounded px-3 py-2">
+            <div
+              key={t.id}
+              className="flex items-center justify-between border rounded px-3 py-2"
+            >
               <Text size="small">{t.id}</Text>
-              <Button variant="secondary" size="small" disabled={ui.busy} onClick={() => void select(t.id)}>
+              <Button
+                variant="secondary"
+                size="small"
+                disabled={ui.busy}
+                onClick={() => void select(t.id)}
+              >
                 Selecionar
               </Button>
             </div>
           ))}
           {ui.terminals.length === 0 && (
-            <Text size="small">Nenhum terminal listado — conecte e pareie a maquininha no app Mercado Pago.</Text>
+            <Text size="small">
+              Nenhum terminal listado — conecte e pareie a maquininha no app
+              Mercado Pago.
+            </Text>
           )}
         </div>
       </Container>
@@ -183,12 +225,20 @@ const PosPaymentsSettingsPage = () => {
         </div>
         <div className="px-6 pb-4 flex flex-col gap-y-2">
           {Object.entries(ui.registers).map(([rid, info]) => (
-            <div key={rid} className="flex items-center justify-between border rounded px-3 py-2">
-              <Text size="small">{info.label ?? rid} → {info.terminal?.id ?? "sem terminal"}</Text>
+            <div
+              key={rid}
+              className="flex items-center justify-between border rounded px-3 py-2"
+            >
+              <Text size="small">
+                {info.label ?? rid} → {info.terminal?.id ?? "sem terminal"}
+              </Text>
             </div>
           ))}
           {Object.keys(ui.registers).length === 0 && (
-            <Text size="small">Os caixas aparecem aqui quando o app de caixa reporta o register_id.</Text>
+            <Text size="small">
+              Os caixas aparecem aqui quando o app de caixa reporta o
+              register_id.
+            </Text>
           )}
         </div>
       </Container>

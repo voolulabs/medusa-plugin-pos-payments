@@ -5,7 +5,13 @@ import {
   fakeFetch,
   withTestKey,
 } from "../../../../../services/onboarding/__tests__/helpers"
-import { fakeReq, fakeRes, fakeScope, newModule, withOnboardingEnv } from "../../../../admin/pos-payments/__tests__/helpers"
+import {
+  fakeReq,
+  fakeRes,
+  fakeScope,
+  newModule,
+  withOnboardingEnv,
+} from "../../../../admin/pos-payments/__tests__/helpers"
 
 const STATE_OK = "0".repeat(64)
 
@@ -28,7 +34,12 @@ describe("callback público (AC4: state antes da troca; sem vazar detalhe)", () 
 
   it("error do adquirente → redirect result=error sem trocar code", async () => {
     const res = fakeRes()
-    await callback(fakeReq({ acquirer: "mercadopago" }, fakeScope({ module: mod }), { query: { error: "access_denied", state: "x" } }), res as never)
+    await callback(
+      fakeReq({ acquirer: "mercadopago" }, fakeScope({ module: mod }), {
+        query: { error: "access_denied", state: "x" },
+      }),
+      res as never
+    )
     expect(res.redirected?.location).toContain("result=error")
     expect(mod.db.connections).toHaveLength(0)
   })
@@ -36,12 +47,20 @@ describe("callback público (AC4: state antes da troca; sem vazar detalhe)", () 
   it("state ausente/inválido → error; state válido troca code e conecta (ok)", async () => {
     const scope = fakeScope({ module: mod })
     const res = fakeRes()
-    await callback(fakeReq({ acquirer: "mercadopago" }, scope, { query: { code: "c" } }), res as never)
+    await callback(
+      fakeReq({ acquirer: "mercadopago" }, scope, { query: { code: "c" } }),
+      res as never
+    )
     expect(res.redirected?.location).toContain("result=error")
 
     const state = await issueState(mod.svc as never, "mercadopago", "admin-1")
     const ok = fakeRes()
-    await callback(fakeReq({ acquirer: "mercadopago" }, scope, { query: { state, code: "code-1" } }), ok as never)
+    await callback(
+      fakeReq({ acquirer: "mercadopago" }, scope, {
+        query: { state, code: "code-1" },
+      }),
+      ok as never
+    )
     expect(ok.redirected?.location).toContain("result=ok")
     expect(mod.db.connections[0]!.status).toBe("connected")
     expect(mod.db.connections[0]!.externalRefs).toMatchObject({ user_id: "42" })
@@ -51,19 +70,37 @@ describe("callback público (AC4: state antes da troca; sem vazar detalhe)", () 
   it("2ª callback com o MESMO state → error (single-use)", async () => {
     const scope = fakeScope({ module: mod })
     const state = await issueState(mod.svc as never, "mercadopago", "admin-1")
-    await callback(fakeReq({ acquirer: "mercadopago" }, scope, { query: { state, code: "c1" } }), fakeRes() as never)
+    await callback(
+      fakeReq({ acquirer: "mercadopago" }, scope, {
+        query: { state, code: "c1" },
+      }),
+      fakeRes() as never
+    )
     const second = fakeRes()
-    await callback(fakeReq({ acquirer: "mercadopago" }, scope, { query: { state, code: "c2" } }), second as never)
+    await callback(
+      fakeReq({ acquirer: "mercadopago" }, scope, {
+        query: { state, code: "c2" },
+      }),
+      second as never
+    )
     expect(second.redirected?.location).toContain("result=error")
     void STATE_OK
   })
 
   it("falha na troca (rede/adquirente) → result=error sem vazar detalhe", async () => {
-    globalThis.fetch = (async () => new Response(JSON.stringify({ error: "x" }), { status: 500 })) as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ error: "x" }), {
+        status: 500,
+      })) as typeof fetch
     const scope = fakeScope({ module: mod })
     const state = await issueState(mod.svc as never, "mercadopago", "admin-1")
     const res = fakeRes()
-    await callback(fakeReq({ acquirer: "mercadopago" }, scope, { query: { state, code: "c" } }), res as never)
+    await callback(
+      fakeReq({ acquirer: "mercadopago" }, scope, {
+        query: { state, code: "c" },
+      }),
+      res as never
+    )
     expect(res.redirected?.location).toContain("result=error")
     expect(res.redirected?.location).not.toContain("500")
   })

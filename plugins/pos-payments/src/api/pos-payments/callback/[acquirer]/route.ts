@@ -1,5 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
-import { exchangeCode, validateOnboardingConnection } from "../../../../adapters/mercadopago/onboarding"
+import {
+  exchangeCode,
+  validateOnboardingConnection,
+} from "../../../../adapters/mercadopago/onboarding"
 import { connectValidated } from "../../../../services/onboarding/connections"
 import { consumeState } from "../../../../services/onboarding/oauth-state"
 import { getPluginOptions } from "../../../../utils/plugin-options"
@@ -11,7 +14,11 @@ import { OnboardingError } from "../../../../services/onboarding/errors"
  * navegador. Protegida pelo state single-use (§7); valida ANTES da troca do
  * code; trata error do adquirente como result=error SEM detalhe interno;
  * 302 de volta ao Admin (/app/settings/pos-payments). */
-function redirect(res: MedusaResponse, acquirer: string, result: "ok" | "error"): void {
+function redirect(
+  res: MedusaResponse,
+  acquirer: string,
+  result: "ok" | "error"
+): void {
   res.redirect(
     302,
     `/app/settings/pos-payments?connection=${encodeURIComponent(acquirer)}&result=${result}`
@@ -20,7 +27,11 @@ function redirect(res: MedusaResponse, acquirer: string, result: "ok" | "error")
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const acquirer = req.params.acquirer ?? ""
-  const query = (req.query ?? {}) as { state?: unknown; code?: unknown; error?: unknown }
+  const query = (req.query ?? {}) as {
+    state?: unknown
+    code?: unknown
+    error?: unknown
+  }
   try {
     if (acquirer !== "mercadopago") return redirect(res, acquirer, "error")
     if (typeof query.error === "string" && query.error) {
@@ -35,17 +46,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       return redirect(res, acquirer, "error")
     }
     const module = req.scope.resolve("posPayments") as never
-    const consumed = await consumeState(
-      module,
-      query.state,
-      acquirer
-    )
+    const consumed = await consumeState(module, query.state, acquirer)
     if (!consumed.ok) return redirect(res, acquirer, "error")
     const cfg = mpOnboardingConfig(process.env, getPluginOptions(req.scope))
     const options = getPluginOptions(req.scope)
     const http = new OnboardingHttpClient({
       ...(options.onboarding?.mercadopago?.fetchImpl
-        ? { fetchImpl: options.onboarding.mercadopago.fetchImpl as typeof fetch }
+        ? {
+            fetchImpl: options.onboarding.mercadopago.fetchImpl as typeof fetch,
+          }
         : {}),
     })
     const secret = await exchangeCode(http, cfg, query.code)

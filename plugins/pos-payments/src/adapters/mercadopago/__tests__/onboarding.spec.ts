@@ -18,7 +18,9 @@ const cfg = {
 describe("oauth mp (AC4: urlencoded, plataforma só no backend)", () => {
   it("authorizeUrl com client_id/response_type/redirect_uri/state", () => {
     const url = new URL(authorizeUrl(cfg, "st-123"))
-    expect(url.origin + url.pathname).toBe("https://auth.mercadopago.com/authorization")
+    expect(url.origin + url.pathname).toBe(
+      "https://auth.mercadopago.com/authorization"
+    )
     expect(url.searchParams.get("response_type")).toBe("code")
     expect(url.searchParams.get("client_id")).toBe("cid")
     expect(url.searchParams.get("state")).toBe("st-123")
@@ -27,14 +29,20 @@ describe("oauth mp (AC4: urlencoded, plataforma só no backend)", () => {
 
   it("exchangeCode manda form-urlencoded com credenciais de plataforma", async () => {
     const { calls, fetchImpl } = fakeFetch(() => ({
-      body: { access_token: "AT", refresh_token: "RT", expires_in: 180 * 24 * 3600 },
+      body: {
+        access_token: "AT",
+        refresh_token: "RT",
+        expires_in: 180 * 24 * 3600,
+      },
     }))
     const http = new OnboardingHttpClient({ fetchImpl })
     const pair = await exchangeCode(http, cfg, "code-1")
     const call = calls[0]!
     expect(call.method).toBe("POST")
     expect(call.url).toBe("https://api.mercadopago.com/oauth/token")
-    expect(call.headers["content-type"]).toContain("application/x-www-form-urlencoded")
+    expect(call.headers["content-type"]).toContain(
+      "application/x-www-form-urlencoded"
+    )
     const form = new URLSearchParams(call.rawBody!)
     expect(form.get("grant_type")).toBe("authorization_code")
     expect(form.get("code")).toBe("code-1")
@@ -46,26 +54,38 @@ describe("oauth mp (AC4: urlencoded, plataforma só no backend)", () => {
   })
 
   it("testToken=true acrescenta test_token (sandbox)", async () => {
-    const { calls, fetchImpl } = fakeFetch(() => ({ body: { access_token: "T" } }))
+    const { calls, fetchImpl } = fakeFetch(() => ({
+      body: { access_token: "T" },
+    }))
     const http = new OnboardingHttpClient({ fetchImpl })
     await exchangeCode(http, { ...cfg, testToken: true }, "code")
-    expect(new URLSearchParams(calls[0]!.rawBody!).get("test_token")).toBe("true")
+    expect(new URLSearchParams(calls[0]!.rawBody!).get("test_token")).toBe(
+      "true"
+    )
   })
 
   it("refresh com invalid_grant (400) → OnboardingError reauthorize (AC5)", async () => {
-    const { fetchImpl } = fakeFetch(() => ({ status: 400, body: { error: "invalid_grant", message: "nope" } }))
+    const { fetchImpl } = fakeFetch(() => ({
+      status: 400,
+      body: { error: "invalid_grant", message: "nope" },
+    }))
     const http = new OnboardingHttpClient({ fetchImpl })
-    await expect(refreshOnboardingToken(http, cfg, "rt")).rejects.toMatchObject({
-      code: "reauthorize",
-    })
+    await expect(refreshOnboardingToken(http, cfg, "rt")).rejects.toMatchObject(
+      {
+        code: "reauthorize",
+      }
+    )
   })
 
   it("erro 5xx de rede NÃO vira reauthorize (degrada, não força reconexão)", async () => {
-    const { fetchImpl } = fakeFetch(() => ({ status: 502, body: { error: "internal" } }))
+    const { fetchImpl } = fakeFetch(() => ({
+      status: 502,
+      body: { error: "internal" },
+    }))
     const http = new OnboardingHttpClient({ fetchImpl })
-    await expect(refreshOnboardingToken(http, cfg, "rt")).rejects.toBeInstanceOf(
-      OnboardingHttpError
-    )
+    await expect(
+      refreshOnboardingToken(http, cfg, "rt")
+    ).rejects.toBeInstanceOf(OnboardingHttpError)
   })
 
   it("validateOnboardingConnection: 401 → invalid_credential 400; ok → user_id", async () => {
@@ -75,7 +95,9 @@ describe("oauth mp (AC4: urlencoded, plataforma só no backend)", () => {
         : { status: 401, body: { error: "unauthorized" } }
     )
     const http = new OnboardingHttpClient({ fetchImpl })
-    await expect(validateOnboardingConnection(http, "bad")).rejects.toMatchObject({
+    await expect(
+      validateOnboardingConnection(http, "bad")
+    ).rejects.toMatchObject({
       code: "invalid_credential",
       status: 400,
     })
@@ -87,6 +109,8 @@ describe("oauth mp (AC4: urlencoded, plataforma só no backend)", () => {
   it("resposta de token sem access_token → erro tipado (nunca segue vazio)", async () => {
     const { fetchImpl } = fakeFetch(() => ({ body: { error: "x" } }))
     const http = new OnboardingHttpClient({ fetchImpl })
-    await expect(exchangeCode(http, cfg, "c")).rejects.toBeInstanceOf(OnboardingError)
+    await expect(exchangeCode(http, cfg, "c")).rejects.toBeInstanceOf(
+      OnboardingError
+    )
   })
 })
