@@ -41,17 +41,7 @@ async function doRefresh(deps: RefreshDeps): Promise<OAuthSecret> {
     // Só limpa action_required quando o motivo era reauthorize (§4): outros
     // motivos (pairing/no_terminal/...) não se resolvem por refresh.
     const podeLimpar = !conn.actionReason || conn.actionReason === "reauthorize"
-    await deps.module.updatePosPaymentsConnections([
-      {
-        id: conn.id,
-        expiresAt: next.expires_at ? new Date(next.expires_at) : null,
-        // Motivo não-reauthorize não se resolve por refresh: estado e motivo
-        // permanecem (§4) — só a janela de token é renovada.
-        status: podeLimpar ? "connected" : conn.status,
-        actionReason: podeLimpar ? null : conn.actionReason,
-        updatedAt: new Date(),
-      } as never,
-    ])
+    await persistRefreshed(deps.module, conn, next, podeLimpar)
     await recordAudit(deps.module, {
       event: "reauthorized",
       acquirer: deps.acquirer,
@@ -66,6 +56,27 @@ async function doRefresh(deps: RefreshDeps): Promise<OAuthSecret> {
     }
     throw err
   }
+}
+
+/** Grava a janela nova do par, preservando estado/motivo quando o motivo não
+ * se resolve por refresh (§4). */
+async function persistRefreshed(
+  module: PosPaymentsModuleService,
+  conn: { id: string; status: string; actionReason: string | null },
+  next: OAuthSecret,
+  podeLimpar: boolean
+): Promise<void> {
+  await module.updatePosPaymentsConnections([
+    {
+      id: conn.id,
+      expiresAt: next.expires_at ? new Date(next.expires_at) : null,
+      // Motivo não-reauthorize não se resolve por refresh: estado e motivo
+      // permanecem (§4) — só a janela de token é renovada.
+      status: podeLimpar ? "connected" : conn.status,
+      actionReason: podeLimpar ? null : conn.actionReason,
+      updatedAt: new Date(),
+    } as never,
+  ])
 }
 
 /** Devolve um access token válido, renovando (uma única vez por processo)

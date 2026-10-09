@@ -62,6 +62,32 @@ export async function setStatus(
   conn.status = next
 }
 
+/** Estado final de uma conexão validada (puro — facilita o teste). */
+function buildConnectionValues(
+  existing: ConnectionRow | null,
+  input: {
+    externalRefs?: Record<string, unknown>
+    expiresAt?: Date | null
+    actorId: string | null
+  },
+  refs: Record<string, unknown>,
+  status: string
+): Record<string, unknown> {
+  return {
+    status,
+    actionReason: null,
+    externalRefs: {
+      ...((existing?.externalRefs ?? {}) as Record<string, unknown>),
+      ...(input.externalRefs ?? {}),
+      ...refs,
+    },
+    expiresAt: input.expiresAt ?? null,
+    lastValidatedAt: new Date(),
+    updatedBy: input.actorId,
+    updatedAt: new Date(),
+  }
+}
+
 /** validate-then-activate (§1.1): a chamada real acontece ANTES de qualquer
  * gravação — falha de validação não persiste nada (AC6). Re-conexão:
  * connected→connected é idempotente; disconnected volta por unconfigured
@@ -91,19 +117,7 @@ export async function connectValidated(
     fromNormalized === "connected"
       ? "connected"
       : transition(fromNormalized, "connected")
-  const values = {
-    status,
-    actionReason: null,
-    externalRefs: {
-      ...((existing?.externalRefs ?? {}) as Record<string, unknown>),
-      ...(input.externalRefs ?? {}),
-      ...refs,
-    },
-    expiresAt: input.expiresAt ?? null,
-    lastValidatedAt: new Date(),
-    updatedBy: input.actorId,
-    updatedAt: new Date(),
-  }
+  const values = buildConnectionValues(existing, input, refs, status)
   let conn = existing
   if (conn) {
     await module.updatePosPaymentsConnections([

@@ -19,6 +19,18 @@ import {
   sendOnboardingError,
 } from "../../../onboarding-context"
 
+/** §4: estados de onde o /test pode pousar em connected. */
+export function podePromover(
+  status: string,
+  actionReason: string | null
+): boolean {
+  return (
+    status === "connected" ||
+    status === "degraded" ||
+    (status === "action_required" && actionReason === "reauthorize")
+  )
+}
+
 /** POST /admin/pos-payments/connections/:acquirer/test (§5.1): revalida AGORA
  * com chamada barata → connected (lastValidatedAt) ou degraded/action_required.
  * Renovação lazy acontece aqui se o access token estiver perto do expiry. */
@@ -49,11 +61,7 @@ export async function POST(
       await validateOnboardingConnection(ctx.http, token)
       // Só promove a connected a partir de connected/degraded — outros estados
       // (action_required com motivo não-reauthorize) não se resolvem aqui (§4).
-      const promovivel =
-        conn.status === "connected" ||
-        conn.status === "degraded" ||
-        (conn.status === "action_required" &&
-          conn.actionReason === "reauthorize")
+      const promovivel = podePromover(conn.status, conn.actionReason)
       await ctx.module.updatePosPaymentsConnections([
         {
           id: conn.id,

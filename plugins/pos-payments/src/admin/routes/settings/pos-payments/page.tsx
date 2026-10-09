@@ -4,8 +4,11 @@ import { BuildingTax } from "@medusajs/icons"
 import { ConnectionCard } from "./connection-card"
 import { RegistersCard, TerminalsCard } from "./lists-cards"
 import {
-  api,
+  disconnectAcquirer,
   loadOnboardingState,
+  pasteToken,
+  selectTerminal,
+  startOAuth,
   type OnboardingState,
 } from "./onboarding-data"
 
@@ -36,62 +39,34 @@ const PosPaymentsSettingsPage = () => {
     }
   }
 
-  const connect = async () => {
+  const act = async (acao: () => Promise<void>, erro: string) => {
     setBusy(true)
     try {
-      const { authorize_url } = await api<{ authorize_url: string }>(
-        "/admin/pos-payments/connections/mercadopago/start",
-        { method: "POST" }
-      )
-      window.location.href = authorize_url
-    } catch {
-      setError("falha ao iniciar OAuth")
-      setBusy(false)
-    }
-  }
-
-  const disconnect = async () => {
-    setBusy(true)
-    try {
-      await api("/admin/pos-payments/connections/mercadopago", {
-        method: "DELETE",
-      })
+      await acao()
       await reload()
       setError(null)
     } catch {
-      setError("falha ao desconectar")
+      setError(erro)
     }
     setBusy(false)
   }
 
-  const paste = async () => {
-    setBusy(true)
-    const res = await fetch("/admin/pos-payments/connections/mercadopago", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accessToken: pastedToken }),
-    })
-    setPastedToken("")
-    setError(res.ok ? null : "credencial recusada pela adquirente")
-    await reload()
-    setBusy(false)
-  }
+  const connect = () =>
+    act(async () => {
+      window.location.href = await startOAuth()
+    }, "falha ao iniciar OAuth")
 
-  const select = async (terminalId: string) => {
-    setBusy(true)
-    try {
-      await api(
-        `/admin/pos-payments/terminals/${encodeURIComponent(terminalId)}/select`,
-        { method: "POST", body: JSON.stringify({}) }
-      )
-      await reload()
-      setError(null)
-    } catch {
-      setError("falha ao selecionar terminal")
-    }
-    setBusy(false)
-  }
+  const disconnect = () => act(disconnectAcquirer, "falha ao desconectar")
+
+  const paste = () =>
+    act(async () => {
+      const ok = await pasteToken(pastedToken)
+      setPastedToken("")
+      if (!ok) throw new Error("recusada")
+    }, "credencial recusada pela adquirente")
+
+  const select = (terminalId: string) =>
+    act(() => selectTerminal(terminalId), "falha ao selecionar terminal")
 
   const mp = state.connections.find((c) => c.acquirer === "mercadopago")
   return (

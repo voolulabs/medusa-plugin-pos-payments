@@ -44,3 +44,35 @@ export async function loadOnboardingState(): Promise<OnboardingState> {
     terminals: terms.terminals ?? [],
   }
 }
+
+export async function startOAuth(): Promise<string> {
+  const { authorize_url } = await api<{ authorize_url: string }>(
+    "/admin/pos-payments/connections/mercadopago/start",
+    { method: "POST" }
+  )
+  return authorize_url
+}
+
+export async function pasteToken(token: string): Promise<boolean> {
+  const res = await fetch("/admin/pos-payments/connections/mercadopago", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accessToken: token }),
+  })
+  return res.ok
+}
+
+export async function disconnectAcquirer(): Promise<void> {
+  await api("/admin/pos-payments/connections/mercadopago", { method: "DELETE" })
+}
+
+export async function selectTerminal(terminalId: string): Promise<void> {
+  await api(
+    `/admin/pos-payments/terminals/${encodeURIComponent(terminalId)}/select`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    }
+  )
+}

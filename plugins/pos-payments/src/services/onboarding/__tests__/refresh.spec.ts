@@ -42,38 +42,49 @@ async function seedConnected(
   )
 }
 
+type RefreshFn = (rt: string) => Promise<{
+  access_token: string
+  refresh_token?: string
+  expires_at?: string
+}>
+
+function makeDeps(
+  mod: ReturnType<typeof setup>,
+  refresh: RefreshFn
+): RefreshDepsLike {
+  return {
+    module: mod.svc,
+    acquirer: "mercadopago",
+    refresh,
+  } as unknown as RefreshDepsLike
+}
+
 describe("refresh (AC5: single-flight, rotação atômica, invalid_grant)", () => {
   let mod: ReturnType<typeof setup>
   beforeEach(() => {
     mod = setup()
   })
 
-  it("token válido não refresca; perto do expiry refresca 1× mesmo com 2 chamadas concorrentes", async () => {
+  it("token válido não refresca", async () => {
     await seedConnected(mod, 60 * 60 * 1000)
-    const deps = {
-      module: mod.svc,
-      acquirer: "mercadopago",
-      refresh: async () => {
-        throw new Error("não deveria refrescar")
-      },
-    } as unknown as RefreshDepsLike
+    const deps = makeDeps(mod, async () => {
+      throw new Error("não deveria refrescar")
+    })
     await expect(getValidAccessToken(deps as never)).resolves.toBe("old")
+  })
 
+  it("perto do expiry refresca 1× mesmo com 2 chamadas concorrentes", async () => {
     await seedConnected(mod, 10 * 1000) // dentro da janela de renovação
     let refreshCalls = 0
-    const deps2 = {
-      module: mod.svc,
-      acquirer: "mercadopago",
-      refresh: async (rt: string) => {
-        refreshCalls++
-        expect(rt).toBe("rt-old")
-        return {
-          access_token: "new",
-          refresh_token: "rt-new",
-          expires_at: new Date(Date.now() + 3600_000).toISOString(),
-        }
-      },
-    } as unknown as RefreshDepsLike
+    const deps2 = makeDeps(mod, async (rt: string) => {
+      refreshCalls++
+      expect(rt).toBe("rt-old")
+      return {
+        access_token: "new",
+        refresh_token: "rt-new",
+        expires_at: new Date(Date.now() + 3600_000).toISOString(),
+      }
+    })
     const [a, b] = await Promise.all([
       getValidAccessToken(deps2 as never),
       getValidAccessToken(deps2 as never),
