@@ -4,7 +4,7 @@ import type {
 } from "@medusajs/framework"
 import { z } from "@medusajs/framework/zod"
 import { createPos, listPos } from "../../../../../adapters/mercadopago/stores"
-import { uuidV5 } from "../../../../../utils/uuid5"
+import { NAMESPACE_DNS, uuidV5 } from "../../../../../utils/uuid5"
 import { OnboardingError } from "../../../../../services/onboarding/errors"
 import {
   merchantCredentials,
@@ -78,7 +78,7 @@ export async function POST(
           ? { externalStoreId: parsed.data.externalStoreId }
           : {}),
       },
-      uuidV5(keySource, "6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+      uuidV5(keySource, NAMESPACE_DNS)
     )
     res.status(201).json({ pos })
   } catch (error) {
