@@ -45,13 +45,13 @@ export async function loadOnboardingState(): Promise<OnboardingState> {
   }
 }
 
-export async function startOAuth(): Promise<string> {
+export async function startOAuth(): Promise<URL> {
   const { authorize_url } = await api<{ authorize_url: string }>(
     "/admin/pos-payments/connections/mercadopago/start",
     { method: "POST" }
   )
-  // Open redirect: a URL só pode ser a autorização oficial do MP (base fixa
-  // do adapter) — resposta da API nunca vai ao navegador sem esta guarda.
+  // Open redirect: o alvo é RECONSTRUÍDO de constantes — só os parâmetros do
+  // authorize oficial do MP são copiados; qualquer outra URL é rejeitada.
   const url = new URL(authorize_url)
   if (
     url.origin !== "https://auth.mercadopago.com" ||
@@ -59,7 +59,15 @@ export async function startOAuth(): Promise<string> {
   ) {
     throw new Error("authorize_url inesperada")
   }
-  return authorize_url
+  const alvo = new URL("https://auth.mercadopago.com/authorization")
+  alvo.searchParams.set("client_id", url.searchParams.get("client_id") ?? "")
+  alvo.searchParams.set("response_type", "code")
+  alvo.searchParams.set(
+    "redirect_uri",
+    url.searchParams.get("redirect_uri") ?? ""
+  )
+  alvo.searchParams.set("state", url.searchParams.get("state") ?? "")
+  return alvo
 }
 
 export async function pasteToken(token: string): Promise<boolean> {

@@ -53,7 +53,7 @@ const PosPaymentsSettingsPage = () => {
 
   const connect = () =>
     act(async () => {
-      window.location.href = await startOAuth()
+      window.location.assign((await startOAuth()).toString())
     }, "falha ao iniciar OAuth")
 
   const disconnect = () => act(disconnectAcquirer, "falha ao desconectar")
