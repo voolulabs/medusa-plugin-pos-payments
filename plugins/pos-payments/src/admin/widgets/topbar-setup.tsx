@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react"
-import { defineWidgetConfig } from "@medusajs/admin-shared"
+import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import { Container, Text, Badge } from "@medusajs/ui"
 import { connectionLabel } from "../../services/onboarding/labels"
 
 /** Widget topbar (Fase 2b, ui-ux-admin.md §3): indicador de conexões
  * incompletas com deep-link para a página de settings. */
-function TopbarSetupWidget() {
+const TopbarSetupWidget = () => {
   const [pending, setPending] = useState<string | null>(null)
 
   useEffect(() => {
@@ -35,8 +35,8 @@ function TopbarSetupWidget() {
   )
 }
 
+export default TopbarSetupWidget
+
 export const config = defineWidgetConfig({
   zone: "topbar",
 })
-
-export default TopbarSetupWidget

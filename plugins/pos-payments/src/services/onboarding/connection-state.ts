@@ -1,3 +1,5 @@
+import { MedusaError } from "@medusajs/framework/utils"
+
 /** Máquina de estados da conexão (onboarding.md §4) — transição única, mesmo
  * padrão do charge (engenharia.md §1.2; CONSTRAINTS 2 aplicada ao ciclo de vida). */
 export type ConnectionStatus =
@@ -53,5 +55,8 @@ export function isConnectionStatus(v: unknown): v is ConnectionStatus {
 }
 
 export function assertNeverStatus(v: never): never {
-  throw new Error(`estado de conexão não coberto: ${String(v)}`)
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    `estado de conexão não coberto: ${String(v)}`
+  )
 }

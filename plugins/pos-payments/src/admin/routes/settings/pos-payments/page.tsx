@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { defineRouteConfig } from "@medusajs/admin-shared"
+import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { BuildingTax } from "@medusajs/icons"
 import { Container, Heading, Button, Text, Badge, Input } from "@medusajs/ui"
 import { connectionLabel } from "../../../../services/onboarding/labels"
@@ -7,11 +7,9 @@ import { connectionLabel } from "../../../../services/onboarding/labels"
 /** GET/POST helpers same-origin — o dashboard autentica por cookie de sessão
  * (ADR 0005: js-sdk session não envia Authorization). */
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    credentials: "include",
-    headers: init?.body ? { "Content-Type": "application/json" } : undefined,
-    ...init,
-  })
+  const headers: Record<string, string> = {}
+  if (init?.body) headers["Content-Type"] = "application/json"
+  const res = await fetch(path, { credentials: "include", headers, ...init })
   return (await res.json()) as T
 }
 
@@ -35,7 +33,7 @@ type UiState = {
   error: string | null
 }
 
-export default function PosPaymentsSettingsPage() {
+const PosPaymentsSettingsPage = () => {
   const [ui, setUi] = useState<UiState>({
     connections: [],
     registers: {},
@@ -141,7 +139,7 @@ export default function PosPaymentsSettingsPage() {
           <Text>
             Estado: <Badge color={mp?.status === "connected" ? "green" : "orange"}>
               {connectionLabel((mp?.status ?? "unconfigured") as never, {
-                actionReason: mp?.actionReason,
+                actionReason: mp?.actionReason ?? null,
               })}
             </Badge>
           </Text>
@@ -197,6 +195,8 @@ export default function PosPaymentsSettingsPage() {
     </div>
   )
 }
+
+export default PosPaymentsSettingsPage
 
 export const config = defineRouteConfig({
   label: "POS Payments",

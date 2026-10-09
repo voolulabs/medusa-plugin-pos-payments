@@ -3,7 +3,8 @@
     "target": "ES2021",
     "module": "node16",
     "moduleResolution": "node16",
-    "lib": ["ES2021"],
+    "lib": ["ES2021", "DOM"],
+    "jsx": "react-jsx",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,6 +15,5 @@
     "noImplicitOverride": true
   },
   "include": ["src"],
-  "//": "src/admin (UI) compila pelo admin-bundler (vite) e fora do tsc do pacote — os tipos JSX vêm do bundler; idem na cobertura do vitest",
-  "exclude": ["node_modules", "dist", ".medusa", "src/admin"]
+  "exclude": ["node_modules", "dist", ".medusa"]
 }

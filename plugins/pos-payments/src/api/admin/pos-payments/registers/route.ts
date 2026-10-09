@@ -1,9 +1,8 @@
+import { Modules } from "@medusajs/framework/utils"
 import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { Modules } from "@medusajs/framework/utils"
-import type { IStoreModuleService } from "@medusajs/framework/types"
 import { z } from "@medusajs/framework/zod"
 import { recordAudit } from "../../../../services/onboarding/audit"
 import { OnboardingError } from "../../../../services/onboarding/errors"
@@ -28,7 +27,12 @@ export function registersOf(metadata: unknown): Record<
  * (idempotente; alimenta "Terminais por caixa" — onboarding.md §5.4). */
 export async function GET(_req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   try {
-    const storeModule = _req.scope.resolve<IStoreModuleService>(Modules.STORE)
+    const storeModule = _req.scope.resolve(Modules.STORE) as unknown as {
+      listStores: (
+        selectors?: unknown,
+        config?: unknown
+      ) => Promise<Array<{ metadata: unknown }>>
+    }
     const [store] = await storeModule.listStores({}, { take: 1 })
     res.status(200).json({ registers: registersOf(store?.metadata) })
   } catch (error) {
@@ -43,7 +47,14 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       throw new OnboardingError("invalid_credential", 400, "corpo inválido")
     }
     const { module, actorId } = onboardingContext(req)
-    const storeModule = req.scope.resolve<IStoreModuleService>(Modules.STORE)
+    // Espelho de metadata (§5.4) — ver justificativa em terminals/[id]/select.
+    const storeModule = req.scope.resolve(Modules.STORE) as unknown as {
+      listStores: (
+        selectors?: unknown,
+        config?: unknown
+      ) => Promise<Array<{ id: string; metadata: unknown }>>
+      updateStores: (id: string, data: { metadata: Record<string, unknown> }) => Promise<unknown>
+    }
     const [store] = await storeModule.listStores({}, { take: 1 })
     if (!store) {
       throw new OnboardingError("not_connected", 409, "store do backend não encontrada")
@@ -59,13 +70,21 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     }
     payments.registers = registers
     pos.payments = payments
+     
     await storeModule.updateStores(store.id, { metadata: { ...metadata, pos } })
     await recordAudit(module, {
       event: "registerBound",
       actorId,
       payload: { registerId: parsed.data.registerId },
     })
-    res.status(200).json({ registers })
+        const readModule = req.scope.resolve(Modules.STORE) as unknown as {
+      listStores: (
+        selectors?: unknown,
+        config?: unknown
+      ) => Promise<Array<{ metadata: unknown }>>
+    }
+    const [store] = await readModule.listStores({}, { take: 1 })
+    res.status(200).json({ registers: registersOf(store?.metadata) })
   } catch (error) {
     sendOnboardingError(res, error)
   }

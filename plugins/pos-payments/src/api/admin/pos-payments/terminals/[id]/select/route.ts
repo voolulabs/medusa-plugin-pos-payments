@@ -3,7 +3,6 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { Modules } from "@medusajs/framework/utils"
-import type { IStoreModuleService } from "@medusajs/framework/types"
 import { z } from "@medusajs/framework/zod"
 import { recordAudit } from "../../../../../../services/onboarding/audit"
 import { OnboardingError } from "../../../../../../services/onboarding/errors"
@@ -27,7 +26,16 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     const terminalId = req.params.id
     const acquirer = "mercadopago"
     const { module, actorId } = onboardingContext(req)
-    const storeModule = req.scope.resolve<IStoreModuleService>(Modules.STORE)
+    // Espelho de metadata (onboarding.md §5.4) — escrita direta aceita no
+    // contrato: merge depth-1 e o audit fica na tabela do plugin (§8), não no
+    // core store. Mutações das TABELAS do plugin passam por serviços/workflows.
+    const storeModule = req.scope.resolve(Modules.STORE) as unknown as {
+      listStores: (
+        selectors?: unknown,
+        config?: unknown
+      ) => Promise<Array<{ id: string; metadata: unknown }>>
+      updateStores: (id: string, data: { metadata: Record<string, unknown> }) => Promise<unknown>
+    }
     const [store] = await storeModule.listStores({}, { take: 1 })
     if (!store) {
       throw new OnboardingError("not_connected", 409, "store do backend não encontrada")
@@ -38,12 +46,16 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     if (parsed.data.registerId) {
       const registers = { ...((payments.registers ?? {}) as Record<string, unknown>) }
       const current = (registers[parsed.data.registerId] ?? {}) as Record<string, unknown>
-      registers[parsed.data.registerId] = { ...current, terminal: { acquirer, id: terminalId } }
+      registers[parsed.data.registerId] = {
+        ...current,
+        terminal: { acquirer, id: terminalId },
+      }
       payments.registers = registers
     } else {
       payments.terminal = { acquirer, id: terminalId }
     }
     pos.payments = payments
+     
     await storeModule.updateStores(store.id, { metadata: { ...metadata, pos } })
     await recordAudit(module, {
       event: "terminalSelected",
