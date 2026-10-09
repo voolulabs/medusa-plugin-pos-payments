@@ -35,12 +35,18 @@ importers:
       '@medusajs/framework':
         specifier: ^2.19.0
         version: 2.21.2(@medusajs/cli@2.21.2(@types/node@22.20.4))(@types/node@22.20.4)(ioredis@5.11.1)(vite@5.4.21(@types/node@22.20.4))(zod@4.2.0)
+      '@medusajs/icons':
+        specifier: ^2.21.2
+        version: 2.21.2(react@18.3.1)
       '@medusajs/medusa':
         specifier: ^2.19.0
         version: 2.21.2(@medusajs/cli@2.21.2(@types/node@22.20.4))(@medusajs/dashboard@2.21.2(ajv@8.13.0)(typescript@5.9.3))(@medusajs/framework@2.21.2(@medusajs/cli@2.21.2(@types/node@22.20.4))(@types/node@22.20.4)(ioredis@5.11.1)(vite@5.4.21(@types/node@22.20.4))(zod@4.2.0))(@medusajs/icons@2.21.2(react@18.3.1))(@medusajs/test-utils@2.21.2)(@medusajs/ui@4.2.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@22.20.4)(ajv@8.13.0)(awilix@8.0.1)(jiti@1.21.7)(picomatch@4.0.7)(posthog-node@5.55.0(rxjs@7.8.2))(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(yaml@2.9.1)
       '@medusajs/test-utils':
         specifier: ^2.19.0
         version: 2.21.2(@medusajs/core-flows@2.21.2(@medusajs/framework@2.21.2(@medusajs/cli@2.21.2(@types/node@22.20.4))(@types/node@22.20.4)(ioredis@5.11.1)(vite@5.4.21(@types/node@22.20.4))(zod@4.2.0)))(@medusajs/framework@2.21.2(@medusajs/cli@2.21.2(@types/node@22.20.4))(@types/node@22.20.4)(ioredis@5.11.1)(vite@5.4.21(@types/node@22.20.4))(zod@4.2.0))(@medusajs/medusa@2.21.2)
+      '@medusajs/ui':
+        specifier: ^4.2.6
+        version: 4.2.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
       '@medusajs/utils':
         specifier: ^2.19.0
         version: 2.21.2(@types/node@22.20.4)(express@4.22.3)

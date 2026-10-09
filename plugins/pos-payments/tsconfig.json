@@ -14,5 +14,6 @@
     "noImplicitOverride": true
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", ".medusa"]
+  "//": "src/admin (UI) compila pelo admin-bundler (vite) e fora do tsc do pacote — os tipos JSX vêm do bundler; idem na cobertura do vitest",
+  "exclude": ["node_modules", "dist", ".medusa", "src/admin"]
 }

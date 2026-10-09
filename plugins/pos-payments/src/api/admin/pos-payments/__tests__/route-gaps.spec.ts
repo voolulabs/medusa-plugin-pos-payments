@@ -13,6 +13,7 @@ import { getValidAccessToken, resetInflight } from "../../../../services/onboard
 import { OnboardingError } from "../../../../services/onboarding/errors"
 import { fakeFetch, withTestKey } from "../../../../services/onboarding/__tests__/helpers"
 import { fakeReq, fakeRes, fakeScope, newModule, withOnboardingEnv } from "./helpers"
+import { GET as callbackGet } from "../../../pos-payments/callback/[acquirer]/route"
 
 describe("gaps de branches das rotas de onboarding", () => {
   let mod: ReturnType<typeof newModule>
@@ -163,10 +164,8 @@ describe("gaps de branches das rotas de onboarding", () => {
     const listed = fakeRes()
     await listRoute(fakeReq({}, scope), listed as never)
     expect((listed.body as { connections: unknown[] }).connections).toHaveLength(1)
-    const cbModule = await import("../../../pos-payments/callback/[acquirer]/route")
-    const callback = cbModule.GET
     const res = fakeRes()
-    await callback(fakeReq({ acquirer: "sumup" }, scope, { query: {} }), res as never)
+    await callbackGet(fakeReq({ acquirer: "sumup" }, scope, { query: {} }), res as never)
     expect(res.redirected?.location).toContain("result=error")
   })
 })
