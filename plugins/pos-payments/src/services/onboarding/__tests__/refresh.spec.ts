@@ -7,9 +7,7 @@ import { fakeModule, withTestKey } from "./helpers"
 interface RefreshDepsLike {
   module: never
   acquirer: string
-  refresh: (
-    rt: string
-  ) => Promise<{
+  refresh: (rt: string) => Promise<{
     access_token: string
     refresh_token?: string
     expires_at?: string
