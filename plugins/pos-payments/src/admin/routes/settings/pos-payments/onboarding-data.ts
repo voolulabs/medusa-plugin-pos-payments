@@ -50,6 +50,15 @@ export async function startOAuth(): Promise<string> {
     "/admin/pos-payments/connections/mercadopago/start",
     { method: "POST" }
   )
+  // Open redirect: a URL só pode ser a autorização oficial do MP (base fixa
+  // do adapter) — resposta da API nunca vai ao navegador sem esta guarda.
+  const url = new URL(authorize_url)
+  if (
+    url.origin !== "https://auth.mercadopago.com" ||
+    url.pathname !== "/authorization"
+  ) {
+    throw new Error("authorize_url inesperada")
+  }
   return authorize_url
 }
 
