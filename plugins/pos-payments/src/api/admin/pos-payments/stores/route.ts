@@ -31,7 +31,7 @@ export async function GET(
 ) {
   try {
     const ctx = onboardingContext(req)
-    const { token, userId } = await merchantCredentials(ctx)
+    const { token, userId } = await merchantCredentials(req, ctx)
     const externalId =
       typeof req.query.external_id === "string"
         ? req.query.external_id
@@ -59,7 +59,7 @@ export async function POST(
       throw new OnboardingError("invalid_credential", 400, "corpo inválido")
     }
     const ctx = onboardingContext(req)
-    const { token, userId } = await merchantCredentials(ctx)
+    const { token, userId } = await merchantCredentials(req, ctx)
     const store = await createStore(ctx.http, token, userId, {
       name: parsed.data.name,
       externalId: parsed.data.externalId,

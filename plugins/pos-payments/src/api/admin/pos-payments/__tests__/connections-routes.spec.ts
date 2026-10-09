@@ -54,7 +54,6 @@ describe("rotas de conexão (AC4/AC6/AC7/AC10)", () => {
         ? { body: { id: 77 } }
         : { status: 401, body: { error: "unauthorized" } }
     )
-    const options = { __x: true }
     const scope = scopeWith(mod)
     // fetch do onboarding: o contexto lê das options do plugin — injetamos via env? Não:
     // o helper de scope usa options fixas; o http usa fetch global. Substituímos global.
@@ -83,7 +82,6 @@ describe("rotas de conexão (AC4/AC6/AC7/AC10)", () => {
       expect(mod.db.credentials).toHaveLength(1)
     } finally {
       globalThis.fetch = originalFetch
-      void options
     }
   })
 

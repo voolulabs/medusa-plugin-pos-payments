@@ -4,7 +4,7 @@
  * action_required:reauthorize + audit — nunca fallback para token de
  * plataforma (CONSTRAINTS 4). */
 import type { PosPaymentsModuleService } from "../../modules/posPayments/service"
-import { readSecret, type OAuthSecret } from "./credentials"
+import { readSecret, upsertCredential, type OAuthSecret } from "./credentials"
 import { findConnection, setStatus } from "./connections"
 import { recordAudit } from "./audit"
 import { OnboardingError } from "./errors"
@@ -35,13 +35,18 @@ async function doRefresh(deps: RefreshDeps): Promise<OAuthSecret> {
   }
   try {
     const next = await deps.refresh(secret.refresh_token)
-    // Atômico: par novo numa única linha, gravado ANTES de invalidar o uso.
+    // Atômico: o par novo numa ÚNICA linha de credential (upsert), gravado
+    // ANTES de invalidar o uso — sem isso o lojista cai a cada janela de token.
+    await upsertCredential(deps.module, conn.id, { ...secret, ...next })
+    // Só limpa action_required quando o motivo era reauthorize (§4): outros
+    // motivos (pairing/no_terminal/...) não se resolvem por refresh.
+    const podeLimpar = !conn.actionReason || conn.actionReason === "reauthorize"
     await deps.module.updatePosPaymentsConnections([
       {
         id: conn.id,
         expiresAt: next.expires_at ? new Date(next.expires_at) : null,
         status: "connected",
-        actionReason: null,
+        actionReason: podeLimpar ? null : conn.actionReason,
         updatedAt: new Date(),
       } as never,
     ])

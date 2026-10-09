@@ -20,15 +20,28 @@ import { refreshOnboardingToken } from "../../../adapters/mercadopago/onboarding
 
 export interface OnboardingContext {
   module: PosPaymentsModuleService
-  cfg: MpOnboardingConfig
+  /** Preguiçosa: só rotas que falam com a MP precisam de config OAuth —
+   * operações locais (purga, health, binding) funcionam sem ela (runbook §6). */
+  cfg: MpOnboardingConfig | null
   http: OnboardingHttpClient
   actorId: string | null
+}
+
+/** Resolve a config de plataforma (fail-closed) — chamar nas rotas MP. */
+export function resolveMpConfig(
+  req: MedusaRequest,
+  ctx: OnboardingContext
+): MpOnboardingConfig {
+  if (!ctx.cfg) {
+    ctx.cfg = mpOnboardingConfig(process.env, getPluginOptions(req.scope))
+  }
+  return ctx.cfg
 }
 
 export function onboardingContext(req: MedusaRequest): OnboardingContext {
   const module = req.scope.resolve("posPayments") as PosPaymentsModuleService
   const options = getPluginOptions(req.scope)
-  const cfg = mpOnboardingConfig(process.env, options)
+  const cfg: MpOnboardingConfig | null = null
   const http = new OnboardingHttpClient({
     ...(options.onboarding?.mercadopago?.fetchImpl
       ? { fetchImpl: options.onboarding.mercadopago.fetchImpl as typeof fetch }
@@ -42,9 +55,11 @@ export function onboardingContext(req: MedusaRequest): OnboardingContext {
 /** Token do LOJISTA + user_id (refs da conexão) — pré-requisito das rotas de
  * loja/POS; renovação lazy acontece aqui. */
 export async function merchantCredentials(
+  req: MedusaRequest,
   ctx: OnboardingContext,
   acquirer = "mercadopago"
 ): Promise<{ token: string; userId: string }> {
+  resolveMpConfig(req, ctx)
   const conn = await findConnection(ctx.module, acquirer)
   if (!conn || conn.status !== "connected") {
     throw new OnboardingError("not_connected", 409, "conexão não ativa")
@@ -57,10 +72,11 @@ export async function merchantCredentials(
       "user_id ausente na conexão"
     )
   }
+  const cfg = resolveMpConfig(req, ctx)
   const token = await getValidAccessToken({
     module: ctx.module,
     acquirer,
-    refresh: (rt) => refreshOnboardingToken(ctx.http, ctx.cfg, rt),
+    refresh: (rt) => refreshOnboardingToken(ctx.http, cfg, rt),
   })
   return { token, userId: refs.user_id }
 }

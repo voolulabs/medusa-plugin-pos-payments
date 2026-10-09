@@ -52,10 +52,15 @@ const PosPaymentsSettingsPage = () => {
 
   const disconnect = async () => {
     setBusy(true)
-    await api("/admin/pos-payments/connections/mercadopago", {
-      method: "DELETE",
-    })
-    await reload()
+    try {
+      await api("/admin/pos-payments/connections/mercadopago", {
+        method: "DELETE",
+      })
+      await reload()
+      setError(null)
+    } catch {
+      setError("falha ao desconectar")
+    }
     setBusy(false)
   }
 
@@ -75,14 +80,16 @@ const PosPaymentsSettingsPage = () => {
 
   const select = async (terminalId: string) => {
     setBusy(true)
-    await api(
-      `/admin/pos-payments/terminals/${encodeURIComponent(terminalId)}/select`,
-      {
-        method: "POST",
-        body: JSON.stringify({}),
-      }
-    )
-    await reload()
+    try {
+      await api(
+        `/admin/pos-payments/terminals/${encodeURIComponent(terminalId)}/select`,
+        { method: "POST", body: JSON.stringify({}) }
+      )
+      await reload()
+      setError(null)
+    } catch {
+      setError("falha ao selecionar terminal")
+    }
     setBusy(false)
   }
 

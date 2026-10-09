@@ -20,7 +20,7 @@ export class Migration20261009000000 extends Migration {
     })
     await k.schema.createTable("pos_payments_credential", (t) => {
       t.string("id").primary()
-      t.string("connection_id").notNullable()
+      t.string("connection_id").notNullable().unique()
       t.text("payload").notNullable()
       t.timestamp("created_at", { useTz: true }).nullable()
       t.timestamp("updated_at", { useTz: true }).nullable()

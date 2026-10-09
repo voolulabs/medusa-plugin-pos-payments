@@ -13,8 +13,6 @@ import {
   withOnboardingEnv,
 } from "../../../../admin/pos-payments/__tests__/helpers"
 
-const STATE_OK = "0".repeat(64)
-
 describe("callback público (AC4: state antes da troca; sem vazar detalhe)", () => {
   let mod: ReturnType<typeof newModule>
   beforeEach(() => {
@@ -84,7 +82,6 @@ describe("callback público (AC4: state antes da troca; sem vazar detalhe)", () 
       second as never
     )
     expect(second.redirected?.location).toContain("result=error")
-    void STATE_OK
   })
 
   it("falha na troca (rede/adquirente) → result=error sem vazar detalhe", async () => {

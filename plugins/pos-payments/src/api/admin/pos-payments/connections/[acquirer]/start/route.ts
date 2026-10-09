@@ -8,6 +8,7 @@ import { recordAudit } from "../../../../../../services/onboarding/audit"
 import { OnboardingError } from "../../../../../../services/onboarding/errors"
 import {
   onboardingContext,
+  resolveMpConfig,
   sendOnboardingError,
 } from "../../../onboarding-context"
 
@@ -26,12 +27,13 @@ export async function POST(
       )
       return
     }
-    const { module, cfg, actorId } = onboardingContext(req)
-    const state = await issueState(module, "mercadopago", actorId)
-    await recordAudit(module, {
+    const ctx = onboardingContext(req)
+    const cfg = resolveMpConfig(req, ctx)
+    const state = await issueState(ctx.module, "mercadopago", ctx.actorId)
+    await recordAudit(ctx.module, {
       event: "started",
       acquirer: "mercadopago",
-      actorId,
+      actorId: ctx.actorId,
     })
     res.status(200).json({ authorize_url: authorizeUrl(cfg, state) })
   } catch (error) {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { connectValidated } from "../connections"
 import { OnboardingError } from "../errors"
 import { getValidAccessToken, resetInflight } from "../refresh"
+import { decryptSecret, keySetFromEnv } from "../../../utils/crypto-envelope"
 import { fakeModule, withTestKey } from "./helpers"
 
 interface RefreshDepsLike {
@@ -94,6 +95,14 @@ describe("refresh (AC5: single-flight, rotação atômica, invalid_grant)", () =
     } as unknown as RefreshDepsLike
     await getValidAccessToken(deps as never)
     expect(mod.db.credentials).toHaveLength(1)
+    const persistido = JSON.parse(
+      decryptSecret(
+        String(mod.db.credentials[0]!.payload),
+        keySetFromEnv(process.env)
+      )
+    )
+    expect(persistido.access_token).toBe("new")
+    expect(persistido.refresh_token).toBe("rt-new")
     expect(mod.db.audits.map((a) => a.event)).toContain(
       "connection.reauthorized"
     )

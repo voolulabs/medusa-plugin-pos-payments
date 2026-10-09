@@ -66,9 +66,9 @@ describe("gaps de branches das rotas de onboarding", () => {
     sendOnboardingError(res2 as never, new Error("cru"))
     expect(res2.code).toBe(502)
     await expect(
-      merchantCredentials({
+      merchantCredentials(fakeReq({}, scope), {
         module: mod.svc as never,
-        cfg: {} as never,
+        cfg: null,
         http: {} as never,
         actorId: null,
       })

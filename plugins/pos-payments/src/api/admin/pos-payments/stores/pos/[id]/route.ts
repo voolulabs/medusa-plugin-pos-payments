@@ -16,7 +16,7 @@ export async function DELETE(
 ) {
   try {
     const ctx = onboardingContext(req)
-    const { token } = await merchantCredentials(ctx)
+    const { token } = await merchantCredentials(req, ctx)
     await deletePos(ctx.http, token, req.params.id ?? "")
     res.status(200).json({ deleted: true })
   } catch (error) {

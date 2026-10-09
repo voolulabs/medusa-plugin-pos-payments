@@ -33,7 +33,7 @@ export async function GET(
 ) {
   try {
     const ctx = onboardingContext(req)
-    const { token } = await merchantCredentials(ctx)
+    const { token } = await merchantCredentials(req, ctx)
     const q = req.query as Record<string, string | undefined>
     const pos = await listPos(ctx.http, token, {
       ...(q.external_id ? { externalId: q.external_id } : {}),
@@ -65,7 +65,7 @@ export async function POST(
       )
     }
     const ctx = onboardingContext(req)
-    const { token } = await merchantCredentials(ctx)
+    const { token } = await merchantCredentials(req, ctx)
     const keySource = `${parsed.data.externalId}:${parsed.data.storeId ?? parsed.data.externalStoreId}`
     const pos = await createPos(
       ctx.http,

@@ -110,14 +110,25 @@ export async function connectValidated(
       { id: conn.id, ...values } as never,
     ])
   } else {
-    const created = (await module.createPosPaymentsConnections([
-      {
-        acquirer: input.acquirer,
-        createdBy: input.actorId,
-        ...values,
-      } as never,
-    ])) as unknown as ConnectionRow[]
-    conn = created[0]!
+    try {
+      const created = (await module.createPosPaymentsConnections([
+        {
+          acquirer: input.acquirer,
+          createdBy: input.actorId,
+          ...values,
+        } as never,
+      ])) as unknown as ConnectionRow[]
+      conn = created[0]!
+    } catch (err) {
+      // Corrida entre processos (unique de acquirer): a conexão já existe —
+      // re-ler e seguir como update (idempotente na prática).
+      const existingNow = await findConnection(module, input.acquirer)
+      if (!existingNow) throw err
+      await module.updatePosPaymentsConnections([
+        { id: existingNow.id, ...values } as never,
+      ])
+      conn = existingNow
+    }
   }
   await upsertCredential(module, conn.id, input.secret)
   await recordAudit(module, {

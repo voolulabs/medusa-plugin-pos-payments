@@ -15,6 +15,7 @@ import { getValidAccessToken } from "../../../../../../services/onboarding/refre
 import { OnboardingError } from "../../../../../../services/onboarding/errors"
 import {
   onboardingContext,
+  resolveMpConfig,
   sendOnboardingError,
 } from "../../../onboarding-context"
 
@@ -34,33 +35,44 @@ export async function POST(
         "adquirente não suportado"
       )
     }
-    const { module, cfg, http, actorId } = onboardingContext(req)
-    const conn = await findConnection(module, acquirer)
+    const ctx = onboardingContext(req)
+    const cfg = resolveMpConfig(req, ctx)
+    const conn = await findConnection(ctx.module, acquirer)
     if (!conn)
       throw new OnboardingError("not_connected", 404, "conexão inexistente")
     try {
       const token = await getValidAccessToken({
-        module,
+        module: ctx.module,
         acquirer,
-        refresh: (rt) => refreshOnboardingToken(http, cfg, rt),
+        refresh: (rt) => refreshOnboardingToken(ctx.http, cfg, rt),
       })
-      await validateOnboardingConnection(http, token)
-      await module.updatePosPaymentsConnections([
+      await validateOnboardingConnection(ctx.http, token)
+      // Só promove a connected a partir de connected/degraded — outros estados
+      // (action_required com motivo não-reauthorize) não se resolvem aqui (§4).
+      const promovivel =
+        conn.status === "connected" ||
+        conn.status === "degraded" ||
+        (conn.status === "action_required" &&
+          conn.actionReason === "reauthorize")
+      await ctx.module.updatePosPaymentsConnections([
         {
           id: conn.id,
-          status: "connected",
-          actionReason: null,
+          ...(promovivel ? { status: "connected", actionReason: null } : {}),
           lastValidatedAt: new Date(),
-          updatedBy: actorId,
+          updatedBy: ctx.actorId,
         } as never,
       ])
-      res.status(200).json({ status: "connected" })
+      res.status(200).json({ status: promovivel ? "connected" : conn.status })
     } catch (error) {
       if (error instanceof OnboardingError && error.code === "reauthorize") {
         throw error // refresh já marcou action_required:reauthorize + audit
       }
-      await setStatus(module, conn, "degraded")
-      await recordAudit(module, { event: "degraded", acquirer, actorId })
+      await setStatus(ctx.module, conn, "degraded")
+      await recordAudit(ctx.module, {
+        event: "degraded",
+        acquirer,
+        actorId: ctx.actorId,
+      })
       res.status(200).json({ status: "degraded" })
     }
   } catch (error) {
