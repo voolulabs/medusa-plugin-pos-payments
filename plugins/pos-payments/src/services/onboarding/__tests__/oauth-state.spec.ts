@@ -37,20 +37,26 @@ describe("oauth-state (AC2: single-use/expira)", () => {
         usedAt: null,
       },
     ])
-    expect(await consumeState(mod.svc as never, "velho", "mercadopago")).toEqual({
+    expect(
+      await consumeState(mod.svc as never, "velho", "mercadopago")
+    ).toEqual({
       ok: false,
       reason: "expired",
     })
   })
 
   it("state inexistente ou de outro adquirente rejeita (not_found)", async () => {
-    expect(await consumeState(mod.svc as never, "fantasma", "mercadopago")).toEqual({
+    expect(
+      await consumeState(mod.svc as never, "fantasma", "mercadopago")
+    ).toEqual({
       ok: false,
       reason: "not_found",
     })
     await issueState(mod.svc as never, "mercadopago", "admin-1")
     const row = (mod.db.states as Array<Record<string, unknown>>).slice(-1)[0]!
-    expect(await consumeState(mod.svc as never, row.state as string, "sumup")).toEqual({
+    expect(
+      await consumeState(mod.svc as never, row.state as string, "sumup")
+    ).toEqual({
       ok: false,
       reason: "not_found",
     })

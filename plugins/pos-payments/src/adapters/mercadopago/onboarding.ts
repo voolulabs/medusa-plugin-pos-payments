@@ -47,11 +47,17 @@ interface MpTokenResponse {
 function parseTokenPair(body: unknown): OAuthSecret {
   const t = (body ?? {}) as MpTokenResponse
   if (typeof t.access_token !== "string" || !t.access_token) {
-    throw new OnboardingError("invalid_credential", 502, "resposta de token inválida")
+    throw new OnboardingError(
+      "invalid_credential",
+      502,
+      "resposta de token inválida"
+    )
   }
   return {
     access_token: t.access_token,
-    ...(typeof t.refresh_token === "string" ? { refresh_token: t.refresh_token } : {}),
+    ...(typeof t.refresh_token === "string"
+      ? { refresh_token: t.refresh_token }
+      : {}),
     ...(typeof t.expires_in === "number"
       ? { expires_at: new Date(Date.now() + t.expires_in * 1000).toISOString() }
       : {}),
@@ -79,12 +85,22 @@ export async function refreshOnboardingToken(
   let body: unknown
   try {
     ;({ body } = await http.request("POST", "/oauth/token", {
-      form: tokenForm(cfg, { grant_type: "refresh_token", refresh_token: refreshToken }),
+      form: tokenForm(cfg, {
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }),
     }))
   } catch (err) {
     const e = err as { status?: number; mpError?: string }
-    if (e.status === 400 && (e.mpError === "invalid_grant" || e.mpError === "bad_request")) {
-      throw new OnboardingError("reauthorize", 409, "refresh recusado — reconectar")
+    if (
+      e.status === 400 &&
+      (e.mpError === "invalid_grant" || e.mpError === "bad_request")
+    ) {
+      throw new OnboardingError(
+        "reauthorize",
+        409,
+        "refresh recusado — reconectar"
+      )
     }
     throw err
   }
@@ -112,7 +128,11 @@ export async function validateOnboardingConnection(
   } catch (err) {
     const e = err as { status?: number }
     if (e.status === 401 || e.status === 403) {
-      throw new OnboardingError("invalid_credential", 400, "credencial recusada pela adquirente")
+      throw new OnboardingError(
+        "invalid_credential",
+        400,
+        "credencial recusada pela adquirente"
+      )
     }
     throw err
   }

@@ -3,7 +3,10 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { z } from "@medusajs/framework/zod"
-import { createStore, searchStores } from "../../../../adapters/mercadopago/stores"
+import {
+  createStore,
+  searchStores,
+} from "../../../../adapters/mercadopago/stores"
 import { findConnection } from "../../../../services/onboarding/connections"
 import { getValidAccessToken } from "../../../../services/onboarding/refresh"
 import { OnboardingError } from "../../../../services/onboarding/errors"
@@ -22,13 +25,23 @@ const createSchema = z.object({
 })
 
 /** GET /admin/pos-payments/stores?external_id= — busca de lojas (§10.1). */
-export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
+export async function GET(
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse
+) {
   try {
     const ctx = onboardingContext(req)
     const { token, userId } = await merchantCredentials(ctx)
     const externalId =
-      typeof req.query.external_id === "string" ? req.query.external_id : undefined
-    const stores = await searchStores(ctx.http, token, userId, externalId ? { externalId } : {})
+      typeof req.query.external_id === "string"
+        ? req.query.external_id
+        : undefined
+    const stores = await searchStores(
+      ctx.http,
+      token,
+      userId,
+      externalId ? { externalId } : {}
+    )
     res.status(200).json({ stores })
   } catch (error) {
     sendOnboardingError(res, error)
@@ -36,7 +49,10 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
 }
 
 /** POST /admin/pos-payments/stores — cadastra a loja física (§10.1). */
-export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
+export async function POST(
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse
+) {
   try {
     const parsed = createSchema.safeParse(req.body)
     if (!parsed.success) {
@@ -48,7 +64,9 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       name: parsed.data.name,
       externalId: parsed.data.externalId,
       ...(parsed.data.location ? { location: parsed.data.location } : {}),
-      ...(parsed.data.businessHours ? { businessHours: parsed.data.businessHours } : {}),
+      ...(parsed.data.businessHours
+        ? { businessHours: parsed.data.businessHours }
+        : {}),
     })
     res.status(201).json({ store })
   } catch (error) {

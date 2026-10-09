@@ -41,7 +41,10 @@ export async function consumeState(
   state: string,
   acquirer: string
 ): Promise<ConsumeResult> {
-  const [row] = (await module.listPosPaymentsOauthStates({ state, acquirer })) as Array<{
+  const [row] = (await module.listPosPaymentsOauthStates({
+    state,
+    acquirer,
+  })) as Array<{
     id: string
     usedAt: Date | null
     expiresAt: Date
@@ -49,7 +52,10 @@ export async function consumeState(
   }>
   if (!row) return { ok: false, reason: "not_found" }
   if (row.usedAt) return { ok: false, reason: "used" }
-  if (row.expiresAt.getTime() <= Date.now()) return { ok: false, reason: "expired" }
-  await module.updatePosPaymentsOauthStates([{ id: row.id, usedAt: new Date() } as never])
+  if (row.expiresAt.getTime() <= Date.now())
+    return { ok: false, reason: "expired" }
+  await module.updatePosPaymentsOauthStates([
+    { id: row.id, usedAt: new Date() } as never,
+  ])
   return { ok: true, actorId: row.actorId }
 }

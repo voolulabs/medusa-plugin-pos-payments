@@ -22,12 +22,18 @@ const cfg = {
 }
 
 function httpFor(
-  responder: (call: { method: string; url: string }) => { status?: number; body?: unknown }
+  responder: (call: { method: string; url: string }) => {
+    status?: number
+    body?: unknown
+  }
 ) {
   const f = fakeFetch((call) =>
     responder({ method: call.method, url: call.url })
   )
-  return { calls: f.calls, http: new OnboardingHttpClient({ fetchImpl: f.fetchImpl }) }
+  return {
+    calls: f.calls,
+    http: new OnboardingHttpClient({ fetchImpl: f.fetchImpl }),
+  }
 }
 
 describe("gaps de branches do onboarding/stores (cobertura)", () => {
@@ -79,12 +85,14 @@ describe("gaps de branches do onboarding/stores (cobertura)", () => {
         ? { status: 400, body: { error: "bad_request" } }
         : { status: 500, body: { error: "internal" } }
     )
-    await expect(refreshOnboardingToken(http, cfg, "rt")).rejects.toMatchObject({
-      code: "reauthorize",
-    })
-    await expect(validateOnboardingConnection(http, "t")).rejects.toBeInstanceOf(
-      OnboardingHttpError
+    await expect(refreshOnboardingToken(http, cfg, "rt")).rejects.toMatchObject(
+      {
+        code: "reauthorize",
+      }
     )
+    await expect(
+      validateOnboardingConnection(http, "t")
+    ).rejects.toBeInstanceOf(OnboardingHttpError)
   })
 
   it("validate: id numérico sem nickname; client: corpo não-JSON em erro", async () => {
@@ -111,6 +119,8 @@ describe("gaps de branches do onboarding/stores (cobertura)", () => {
 
   it("exchange sem access_token lança OnboardingError (nunca segue vazio)", async () => {
     const { http } = httpFor(() => ({ body: { unexpected: true } }))
-    await expect(exchangeCode(http, cfg, "c")).rejects.toBeInstanceOf(OnboardingError)
+    await expect(exchangeCode(http, cfg, "c")).rejects.toBeInstanceOf(
+      OnboardingError
+    )
   })
 })
