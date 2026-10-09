@@ -1,11 +1,15 @@
-# Config do Gitleaks (CI — step "Gitleaks" no ci.yml). Extende as regras
-# default e allowlista o ledger ADLC: o manifest carrega hashes SHA-256 de
-# evidência (chain + rail files) que a regra generic-api-key interpretaria
-# como segredos. Nenhum segredo real vive no repo — o scan continua valendo
-# para todo o resto da árvore e do histórico.
+# Estende as regras default com um allowlist estavel (por caminho, imune a
+# rewrite de historico): o unico FP do repo e o namespace DNS PUBLICO do
+# RFC 4122 que o commit de introducao carregou em stores/pos/route.ts —
+# hoje o codigo usa a constante NAMESPACE_DNS (sem literal).
 [extend]
 useDefault = true
 
-[allowlist]
-description = "Ledger ADLC: hashes SHA-256 de evidência, não credenciais"
-paths = ['''^\.adlc/manifest\.jsonl$''']
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+paths = [
+  'plugins/pos-payments/src/api/admin/pos-payments/stores/pos/route[.]ts',
+  # assinaturas HMAC do ledger ADLC sao provas, nao credenciais
+  '[.]adlc/manifest[.]jsonl',
+]
