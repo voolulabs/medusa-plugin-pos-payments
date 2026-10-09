@@ -4,13 +4,13 @@
 import { OnboardingError } from "../../services/onboarding/errors"
 import type { OnboardingHttpClient } from "./onboarding-client"
 
-export interface MpStore {
+interface MpStore {
   id: unknown
   name?: unknown
   external_id?: unknown
 }
 
-export interface MpPos {
+interface MpPos {
   id: unknown
   name?: unknown
   status?: unknown
@@ -75,27 +75,18 @@ export async function searchStores(
 export async function listPos(
   http: OnboardingHttpClient,
   merchantToken: string,
-  filters: {
-    externalId?: string
-    storeId?: string
-    externalStoreId?: string
-  } = {}
+  filters: { externalId?: string; storeId?: string; externalStoreId?: string } = {}
 ): Promise<MpPos[]> {
   const qs = new URLSearchParams()
   if (filters.externalId) qs.set("external_id", filters.externalId)
   if (filters.storeId) qs.set("store_id", filters.storeId)
-  if (filters.externalStoreId)
-    qs.set("external_store_id", filters.externalStoreId)
+  if (filters.externalStoreId) qs.set("external_store_id", filters.externalStoreId)
   const suffix = qs.size ? `?${qs.toString()}` : ""
   const { body } = await http.request("GET", `/v2/pos${suffix}`, {
     headers: auth(merchantToken),
   })
   const results = (body as { results?: MpPos[] })?.results
-  return Array.isArray(results)
-    ? results
-    : Array.isArray(body)
-      ? (body as MpPos[])
-      : []
+  return Array.isArray(results) ? results : Array.isArray(body) ? (body as MpPos[]) : []
 }
 
 /** POST /v2/pos — X-Idempotency-Key OBRIGATÓRIO (1–64 chars, spec §10.1). */
@@ -111,18 +102,10 @@ export async function createPos(
   idempotencyKey: string
 ): Promise<MpPos> {
   if (!/^[0-9a-fA-F-]{8,64}$/.test(idempotencyKey)) {
-    throw new OnboardingError(
-      "invalid_credential",
-      400,
-      "idempotency key inválida"
-    )
+    throw new OnboardingError("invalid_credential", 400, "idempotency key inválida")
   }
   if (!input.storeId && !input.externalStoreId) {
-    throw new OnboardingError(
-      "invalid_credential",
-      400,
-      "store_id ou external_store_id obrigatório"
-    )
+    throw new OnboardingError("invalid_credential", 400, "store_id ou external_store_id obrigatório")
   }
   const { body } = await http.request("POST", "/v2/pos", {
     headers: { ...auth(merchantToken), "X-Idempotency-Key": idempotencyKey },
@@ -130,9 +113,7 @@ export async function createPos(
       ...(input.name ? { name: input.name } : {}),
       external_id: input.externalId,
       ...(input.storeId ? { store_id: input.storeId } : {}),
-      ...(input.externalStoreId
-        ? { external_store_id: input.externalStoreId }
-        : {}),
+      ...(input.externalStoreId ? { external_store_id: input.externalStoreId } : {}),
     },
   })
   return body as MpPos

@@ -14,11 +14,7 @@ const http = () => {
     if (call.url.includes("/stores/search"))
       return { body: { results: [{ id: 1, external_id: "unidade-1" }] } }
     if (call.url.includes("/v2/pos?"))
-      return {
-        body: {
-          results: [{ id: 7, external_id: "stock-1", status: "active" }],
-        },
-      }
+      return { body: { results: [{ id: 7, external_id: "stock-1", status: "active" }] } }
     if (call.method === "POST" && call.url.endsWith("/v2/pos"))
       return { status: 201, body: { id: 9, external_id: "stock-1" } }
     return { body: { id: 5 } }
@@ -44,56 +40,33 @@ describe("stores/pos CRUD (AC8: mercado-pago.md §10.1)", () => {
 
   it("searchStores devolve results; external_id vai na query", async () => {
     const { calls, client } = http()
-    const stores = await searchStores(client, "tok", "42", {
-      externalId: "unidade-1",
-    })
-    expect(calls[0]!.url).toContain(
-      "/users/42/stores/search?external_id=unidade-1"
-    )
+    const stores = await searchStores(client, "tok", "42", { externalId: "unidade-1" })
+    expect(calls[0]!.url).toContain("/users/42/stores/search?external_id=unidade-1")
     expect(stores).toHaveLength(1)
   })
 
   it("listPos: filtro external_id na query (lookup do vínculo)", async () => {
     const { calls, client } = http()
     const pos = await listPos(client, "tok", { externalId: "stock-1" })
-    expect(calls[0]!.url).toBe(
-      "https://api.mercadopago.com/v2/pos?external_id=stock-1"
-    )
+    expect(calls[0]!.url).toBe("https://api.mercadopago.com/v2/pos?external_id=stock-1")
     expect(pos[0]!.id).toBe(7)
   })
 
   it("createPos: X-Idempotency-Key obrigatório + store externa; sem store → erro", async () => {
     const { calls, client } = http()
-    await createPos(
-      client,
-      "tok",
-      { externalId: "stock-1", externalStoreId: "unidade-1" },
-      "2b7f1e2a-1111-4222-8333-444455556666"
-    )
+    await createPos(client, "tok", { externalId: "stock-1", externalStoreId: "unidade-1" }, "2b7f1e2a-1111-4222-8333-444455556666")
     const call = calls[0]!
     expect(call.method).toBe("POST")
-    expect(call.headers["x-idempotency-key"]).toBe(
-      "2b7f1e2a-1111-4222-8333-444455556666"
-    )
+    expect(call.headers["x-idempotency-key"]).toBe("2b7f1e2a-1111-4222-8333-444455556666")
     expect(JSON.parse(call.rawBody!)).toMatchObject({
       external_id: "stock-1",
       external_store_id: "unidade-1",
     })
     await expect(
-      createPos(
-        client,
-        "tok",
-        { externalId: "stock-2" },
-        "2b7f1e2a-1111-4222-8333-444455556666"
-      )
+      createPos(client, "tok", { externalId: "stock-2" }, "2b7f1e2a-1111-4222-8333-444455556666")
     ).rejects.toMatchObject({ code: "invalid_credential" })
     await expect(
-      createPos(
-        client,
-        "tok",
-        { externalId: "s", externalStoreId: "x" },
-        "curta"
-      )
+      createPos(client, "tok", { externalId: "s", externalStoreId: "x" }, "curta")
     ).rejects.toMatchObject({ code: "invalid_credential" })
   })
 

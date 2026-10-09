@@ -13,65 +13,42 @@ export function fakeModule() {
   const match = (row: Record<string, unknown>, f: Record<string, unknown>) =>
     Object.entries(f).every(([k, v]) => row[k] === v)
   const svc = {
-    createPosPaymentsConnections: async (
-      data: Array<Record<string, unknown>>
-    ) => {
+    createPosPaymentsConnections: async (data: Array<Record<string, unknown>>) => {
       const rows = data.map((d) => ({ id: id("c"), ...d }))
       db.connections.push(...rows)
       return rows
     },
     listPosPaymentsConnections: async (f: Record<string, unknown>) =>
       db.connections.filter((r) => match(r, f)),
-    updatePosPaymentsConnections: async (
-      data: Array<Record<string, unknown>>
-    ) => {
-      for (const d of data)
-        Object.assign(
-          db.connections.find((r) => r.id === d.id)!,
-          d
-        )
+    updatePosPaymentsConnections: async (data: Array<Record<string, unknown>>) => {
+      for (const d of data) Object.assign(db.connections.find((r) => r.id === d.id)!, d)
     },
-    createPosPaymentsCredentials: async (
-      data: Array<Record<string, unknown>>
-    ) => void db.credentials.push(...data.map((d) => ({ id: id("k"), ...d }))),
+    createPosPaymentsCredentials: async (data: Array<Record<string, unknown>>) =>
+      void db.credentials.push(...data.map((d) => ({ id: id("k"), ...d }))),
     listPosPaymentsCredentials: async (f: Record<string, unknown>) =>
       db.credentials.filter((r) => match(r, f)),
-    updatePosPaymentsCredentials: async (
-      data: Array<Record<string, unknown>>
-    ) => {
-      for (const d of data)
-        Object.assign(
-          db.credentials.find((r) => r.id === d.id)!,
-          d
-        )
+    updatePosPaymentsCredentials: async (data: Array<Record<string, unknown>>) => {
+      for (const d of data) Object.assign(db.credentials.find((r) => r.id === d.id)!, d)
     },
     deletePosPaymentsCredentials: async (rid: string) => {
       db.credentials = db.credentials.filter((r) => r.id !== rid)
     },
-    createPosPaymentsOauthStates: async (
-      data: Array<Record<string, unknown>>
-    ) => void db.states.push(...data.map((d) => ({ id: id("s"), ...d }))),
+    createPosPaymentsOauthStates: async (data: Array<Record<string, unknown>>) =>
+      void db.states.push(...data.map((d) => ({ id: id("s"), ...d }))),
     listPosPaymentsOauthStates: async (f: Record<string, unknown>) =>
       db.states.filter((r) => match(r, f)),
-    updatePosPaymentsOauthStates: async (
-      data: Array<Record<string, unknown>>
-    ) => {
-      for (const d of data)
-        Object.assign(
-          db.states.find((r) => r.id === d.id)!,
-          d
-        )
+    updatePosPaymentsOauthStates: async (data: Array<Record<string, unknown>>) => {
+      for (const d of data) Object.assign(db.states.find((r) => r.id === d.id)!, d)
     },
-    createPosPaymentsAuditEvents: async (
-      data: Array<Record<string, unknown>>
-    ) => void db.audits.push(...data.map((d) => ({ id: id("a"), ...d }))),
+    createPosPaymentsAuditEvents: async (data: Array<Record<string, unknown>>) =>
+      void db.audits.push(...data.map((d) => ({ id: id("a"), ...d }))),
   }
   return { svc, db }
 }
 
 export type FakeModule = ReturnType<typeof fakeModule>
 
-export type CapturedCall = {
+type CapturedCall = {
   method: string
   url: string
   headers: Record<string, string>
@@ -84,9 +61,10 @@ export function fakeFetch(
   const calls: CapturedCall[] = []
   const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
     const headers = Object.fromEntries(
-      Object.entries((init?.headers ?? {}) as Record<string, string>).map(
-        ([k, v]) => [k.toLowerCase(), v]
-      )
+      Object.entries((init?.headers ?? {}) as Record<string, string>).map(([k, v]) => [
+        k.toLowerCase(),
+        v,
+      ])
     )
     const call: CapturedCall = {
       method: (init?.method ?? "GET").toUpperCase(),
@@ -104,7 +82,7 @@ export function fakeFetch(
   return { calls, fetchImpl }
 }
 
-export const TEST_KEY = "c".repeat(64)
+const TEST_KEY = "c".repeat(64)
 
 export function withTestKey(): void {
   process.env.POS_PAYMENTS_MASTER_KEY = TEST_KEY

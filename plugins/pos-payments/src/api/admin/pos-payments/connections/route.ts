@@ -13,9 +13,9 @@ export async function GET(
 ) {
   try {
     const { module } = onboardingContext(_req)
-    const rows = (await module.listPosPaymentsConnections(
-      {}
-    )) as unknown as Array<Record<string, unknown>>
+    const rows = (await module.listPosPaymentsConnections({})) as unknown as Array<
+      Record<string, unknown>
+    >
     res.status(200).json({
       connections: rows.map((row) => ({
         acquirer: row.acquirer,

@@ -16,7 +16,7 @@ export interface OAuthSecret {
   expires_at?: string
 }
 
-export function masterKeys(): MasterKeySet {
+function masterKeys(): MasterKeySet {
   return keySetFromEnv(process.env)
 }
 

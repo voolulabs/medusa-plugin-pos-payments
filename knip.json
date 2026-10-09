@@ -9,15 +9,17 @@
       "entry": [
         "src/index.ts",
         "src/api/**/*.ts",
-        "src/admin/**/*.ts",
+        "src/admin/**/*.{ts,tsx}",
         "src/providers/**/index.ts",
         "src/subscribers/**/*.ts",
-        "src/jobs/**/*.ts"
+        "src/jobs/**/*.ts",
+        "src/modules/**/migrations/**/*.ts"
       ],
       "ignoreDependencies": [
         "@medusajs/admin-shared",
-        "ts-node",
-        "@medusajs/test-utils"
+        "@medusajs/test-utils",
+        "@types/react",
+        "ts-node"
       ]
     },
     "packages/*": {}

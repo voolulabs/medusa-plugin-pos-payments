@@ -14,26 +14,18 @@ const registerSchema = z.object({
 })
 
 /** Lê o mapa de caixas espelhado (não-sensível) de metadata.pos.payments. */
-export function registersOf(
-  metadata: unknown
-): Record<
+export function registersOf(metadata: unknown): Record<
   string,
   { label?: string; terminal?: { acquirer: string; id: string } }
 > {
-  const pos = ((metadata as Record<string, unknown>)?.pos ?? {}) as Record<
-    string,
-    unknown
-  >
+  const pos = ((metadata as Record<string, unknown>)?.pos ?? {}) as Record<string, unknown>
   const payments = (pos.payments ?? {}) as Record<string, unknown>
   return (payments.registers ?? {}) as never
 }
 
 /** GET/POST /admin/pos-payments/registers — caixas reportados pelo app
  * (idempotente; alimenta "Terminais por caixa" — onboarding.md §5.4). */
-export async function GET(
-  _req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function GET(_req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   try {
     const storeModule = _req.scope.resolve(Modules.STORE) as unknown as {
       listStores: (
@@ -48,10 +40,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   try {
     const parsed = registerSchema.safeParse(req.body)
     if (!parsed.success) {
@@ -64,29 +53,17 @@ export async function POST(
         selectors?: unknown,
         config?: unknown
       ) => Promise<Array<{ id: string; metadata: unknown }>>
-      updateStores: (
-        id: string,
-        data: { metadata: Record<string, unknown> }
-      ) => Promise<unknown>
+      updateStores: (id: string, data: { metadata: Record<string, unknown> }) => Promise<unknown>
     }
     const [store] = await storeModule.listStores({}, { take: 1 })
     if (!store) {
-      throw new OnboardingError(
-        "not_connected",
-        409,
-        "store do backend não encontrada"
-      )
+      throw new OnboardingError("not_connected", 409, "store do backend não encontrada")
     }
     const metadata = (store.metadata ?? {}) as Record<string, unknown>
     const pos = { ...((metadata.pos ?? {}) as Record<string, unknown>) }
     const payments = { ...((pos.payments ?? {}) as Record<string, unknown>) }
-    const registers = {
-      ...((payments.registers ?? {}) as Record<string, unknown>),
-    }
-    const existing = (registers[parsed.data.registerId] ?? {}) as Record<
-      string,
-      unknown
-    >
+    const registers = { ...((payments.registers ?? {}) as Record<string, unknown>) }
+    const existing = (registers[parsed.data.registerId] ?? {}) as Record<string, unknown>
     registers[parsed.data.registerId] = {
       ...existing,
       ...(parsed.data.label ? { label: parsed.data.label } : {}),

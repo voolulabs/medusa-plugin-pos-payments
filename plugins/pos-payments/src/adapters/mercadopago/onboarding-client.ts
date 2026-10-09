@@ -5,7 +5,7 @@
 
 const DEFAULT_TIMEOUT_MS = 15_000
 
-export interface OnboardingHttpResult {
+interface OnboardingHttpResult {
   status: number
   body: unknown
 }
@@ -21,7 +21,7 @@ export class OnboardingHttpError extends Error {
   }
 }
 
-export interface OnboardingHttpOptions {
+interface OnboardingHttpOptions {
   baseUrl?: string
   fetchImpl?: typeof fetch
   timeoutMs?: number
@@ -51,12 +51,8 @@ export class OnboardingHttpClient {
     const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
       method,
       headers: {
-        ...(init.form
-          ? { "Content-Type": "application/x-www-form-urlencoded" }
-          : {}),
-        ...(init.json !== undefined
-          ? { "Content-Type": "application/json" }
-          : {}),
+        ...(init.form ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
+        ...(init.json !== undefined ? { "Content-Type": "application/json" } : {}),
         ...init.headers,
       },
       signal: AbortSignal.timeout(this.timeoutMs),

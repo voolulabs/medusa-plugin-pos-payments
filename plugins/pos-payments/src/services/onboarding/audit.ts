@@ -2,7 +2,7 @@
  * timestamp; payload mínimo SEM segredos (LGPD art. 37). */
 import type { PosPaymentsModuleService } from "../../modules/posPayments/service"
 
-export const AUDIT = {
+const AUDIT = {
   started: "connection.started",
   connected: "connection.connected",
   validationFailed: "connection.validation_failed",
@@ -17,7 +17,7 @@ export const AUDIT = {
   registerUnbound: "register.unbound",
 } as const
 
-export type AuditInput = {
+type AuditInput = {
   event: keyof typeof AUDIT
   acquirer?: string | null
   actorId?: string | null

@@ -11,10 +11,7 @@ import {
 } from "../../../../../services/onboarding/connections"
 import { recordAudit } from "../../../../../services/onboarding/audit"
 import { OnboardingError } from "../../../../../services/onboarding/errors"
-import {
-  onboardingContext,
-  sendOnboardingError,
-} from "../../onboarding-context"
+import { onboardingContext, sendOnboardingError } from "../../onboarding-context"
 
 const ACQUIRERS = new Set(["mercadopago"])
 
@@ -23,9 +20,7 @@ const pastedSchema = z.object({
   accessToken: z.string().min(20),
 })
 
-function acquirerOf(req: {
-  params: Record<string, string | undefined>
-}): string {
+function acquirerOf(req: { params: Record<string, string | undefined> }): string {
   const acquirer = req.params.acquirer ?? ""
   if (!ACQUIRERS.has(acquirer)) {
     throw new OnboardingError("not_connected", 404, "adquirente não suportado")
@@ -34,15 +29,11 @@ function acquirerOf(req: {
 }
 
 /** GET — detalhe não-sensível da conexão (§5.1). */
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   try {
     const { module } = onboardingContext(req)
     const conn = await findConnection(module, acquirerOf(req))
-    if (!conn)
-      throw new OnboardingError("not_connected", 404, "conexão inexistente")
+    if (!conn) throw new OnboardingError("not_connected", 404, "conexão inexistente")
     res.status(200).json({
       connection: {
         acquirer: conn.acquirer,
@@ -59,10 +50,7 @@ export async function GET(
 }
 
 /** POST — credencial colada: valida com chamada real ANTES de ativar (§5.1). */
-export async function POST(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const acquirer = acquirerOf(req)
   const parsed = pastedSchema.safeParse(req.body)
   if (!parsed.success) {
@@ -79,8 +67,7 @@ export async function POST(
       secret: { access_token: parsed.data.accessToken },
       actorId,
       from: "unconfigured",
-      validate: () =>
-        validateOnboardingConnection(http, parsed.data.accessToken),
+      validate: () => validateOnboardingConnection(http, parsed.data.accessToken),
     })
     res.status(200).json({ status: conn.status })
   } catch (error) {
@@ -95,10 +82,7 @@ export async function POST(
 }
 
 /** DELETE — desconecta: purga segredos, mantém audit (§5.1/§8). */
-export async function DELETE(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function DELETE(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   try {
     const acquirer = acquirerOf(req)
     const { module, actorId } = onboardingContext(req)

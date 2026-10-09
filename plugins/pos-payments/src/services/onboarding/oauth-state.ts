@@ -2,9 +2,9 @@
 import { randomBytes } from "node:crypto"
 import type { PosPaymentsModuleService } from "../../modules/posPayments/service"
 
-export const STATE_TTL_MS = 10 * 60 * 1000
+const STATE_TTL_MS = 10 * 60 * 1000
 
-export function newOauthState(): string {
+function newOauthState(): string {
   return randomBytes(32).toString("hex")
 }
 
@@ -26,7 +26,7 @@ export async function issueState(
   return state
 }
 
-export type ConsumeResult =
+type ConsumeResult =
   | { ok: true; actorId: string | null }
   | { ok: false; reason: "not_found" | "expired" | "used" }
 
@@ -41,10 +41,7 @@ export async function consumeState(
   state: string,
   acquirer: string
 ): Promise<ConsumeResult> {
-  const [row] = (await module.listPosPaymentsOauthStates({
-    state,
-    acquirer,
-  })) as Array<{
+  const [row] = (await module.listPosPaymentsOauthStates({ state, acquirer })) as Array<{
     id: string
     usedAt: Date | null
     expiresAt: Date
@@ -52,10 +49,7 @@ export async function consumeState(
   }>
   if (!row) return { ok: false, reason: "not_found" }
   if (row.usedAt) return { ok: false, reason: "used" }
-  if (row.expiresAt.getTime() <= Date.now())
-    return { ok: false, reason: "expired" }
-  await module.updatePosPaymentsOauthStates([
-    { id: row.id, usedAt: new Date() } as never,
-  ])
+  if (row.expiresAt.getTime() <= Date.now()) return { ok: false, reason: "expired" }
+  await module.updatePosPaymentsOauthStates([{ id: row.id, usedAt: new Date() } as never])
   return { ok: true, actorId: row.actorId }
 }
