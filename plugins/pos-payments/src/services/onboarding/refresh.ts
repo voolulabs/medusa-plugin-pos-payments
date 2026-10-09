@@ -45,7 +45,9 @@ async function doRefresh(deps: RefreshDeps): Promise<OAuthSecret> {
       {
         id: conn.id,
         expiresAt: next.expires_at ? new Date(next.expires_at) : null,
-        status: "connected",
+        // Motivo não-reauthorize não se resolve por refresh: estado e motivo
+        // permanecem (§4) — só a janela de token é renovada.
+        status: podeLimpar ? "connected" : conn.status,
         actionReason: podeLimpar ? null : conn.actionReason,
         updatedAt: new Date(),
       } as never,
