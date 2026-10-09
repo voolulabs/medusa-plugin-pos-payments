@@ -15,3 +15,4 @@ class PosPaymentsModuleService extends MedusaService({
 }) {}
 
 export default PosPaymentsModuleService
+export { PosPaymentsModuleService }

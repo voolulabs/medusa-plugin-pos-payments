@@ -37,8 +37,8 @@ describe("crypto-envelope", () => {
   it("envelope adulterado (tag GCM) falha sem vazar plaintext", () => {
     const env = encryptSecret("segredo", keys1)
     const parts = env.split(".")
-    const ct = Buffer.from(parts[4], "base64url")
-    ct[0] = ct[0] ^ 0xff
+    const ct = Buffer.from(parts[4]!, "base64url")
+    ct[0] = ct[0]! ^ 0xff
     const tampered = [...parts.slice(0, 4), ct.toString("base64url")].join(".")
     expect(() => decryptSecret(tampered, keys1)).toThrow(CryptoError)
   })
@@ -61,6 +61,6 @@ describe("crypto-envelope", () => {
     const a = encryptSecret("mesmo-texto", keys1)
     const b = encryptSecret("mesmo-texto", keys1)
     expect(a).not.toBe(b) // iv aleatório
-    expect(Buffer.from(a.split(".")[3], "base64url").length).toBe(12)
+    expect(Buffer.from(a.split(".")[3]!, "base64url").length).toBe(12)
   })
 })

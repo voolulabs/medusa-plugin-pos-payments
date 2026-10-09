@@ -22,6 +22,22 @@ export type PosPaymentsPluginOptions = {
     /** Seam de teste — fetch injetado (produção usa o global). */
     fetchImpl?: typeof fetch
   }
+  /**
+   * Onboarding (Fase 2b, onboarding.md §5.2): config de PLATAFORMA (do deploy,
+   * não do lojista). Env tem precedência: POS_PAYMENTS_MP_CLIENT_ID/SECRET/
+   * REDIRECT_URI. Master key da credencial: POS_PAYMENTS_MASTER_KEY (env).
+   */
+  onboarding?: {
+    mercadopago?: {
+      clientId?: string
+      clientSecret?: string
+      redirectUri?: string
+      /** test_token=true na troca (sandbox). Env: POS_PAYMENTS_MP_OAUTH_TEST_TOKEN. */
+      testToken?: boolean
+      /** Seam de teste — fetch injetado (produção usa o global). */
+      fetchImpl?: typeof fetch
+    }
+  }
 }
 
 // Contrato do session data do provider (ADR 0002: contrato sai por ./types)

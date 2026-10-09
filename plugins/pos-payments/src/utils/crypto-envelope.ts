@@ -65,7 +65,14 @@ export function encryptSecret(plain: string, keys: MasterKeySet): string {
 export function decryptSecret(envelope: string, keys: MasterKeySet): string {
   const parts = envelope.split(".")
   const [, , keyId, ivS, tagS, ctS] = parts
-  if (`${parts[0]}.${parts[1]}` !== PREFIX || parts.length !== 6) {
+  if (
+    `${parts[0]}.${parts[1]}` !== PREFIX ||
+    parts.length !== 6 ||
+    !keyId ||
+    !ivS ||
+    !tagS ||
+    !ctS
+  ) {
     throw new CryptoError("envelope inválido (prefixo/estrutura)")
   }
   const key =

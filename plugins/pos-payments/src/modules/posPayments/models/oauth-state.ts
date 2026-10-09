@@ -9,5 +9,5 @@ export const PosPaymentsOauthState = model.define("pos_payments_oauth_state", {
   actorId: model.text().nullable(),
   expiresAt: model.dateTime(),
   usedAt: model.dateTime().nullable(),
-  createdAt: model.dateTime().defaultNow(),
+  createdAt: model.dateTime().nullable(),
 })

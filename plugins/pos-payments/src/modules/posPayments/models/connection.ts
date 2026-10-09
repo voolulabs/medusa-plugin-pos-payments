@@ -18,6 +18,6 @@ export const PosPaymentsConnection = model.define("pos_payments_connection", {
   /** Ator admin da criação/última atualização (audit §8). */
   createdBy: model.text().nullable(),
   updatedBy: model.text().nullable(),
-  createdAt: model.dateTime().defaultNow(),
-  updatedAt: model.dateTime().defaultNow(),
+  createdAt: model.dateTime().nullable(),
+  updatedAt: model.dateTime().nullable(),
 })

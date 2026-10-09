@@ -7,5 +7,5 @@ export const PosPaymentsAuditEvent = model.define("pos_payments_audit_event", {
   acquirer: model.text().nullable(),
   actorId: model.text().nullable(),
   payload: model.json().nullable(),
-  createdAt: model.dateTime().defaultNow(),
+  createdAt: model.dateTime().nullable(),
 })

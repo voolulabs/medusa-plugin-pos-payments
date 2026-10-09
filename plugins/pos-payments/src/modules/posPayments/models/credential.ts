@@ -8,6 +8,6 @@ export const PosPaymentsCredential = model.define("pos_payments_credential", {
   connectionId: model.text(),
   /** Envelope `posp.v1.<keyId>.<iv>.<tag>.<ct>` (base64url). */
   payload: model.text(),
-  createdAt: model.dateTime().defaultNow(),
-  updatedAt: model.dateTime().defaultNow(),
+  createdAt: model.dateTime().nullable(),
+  updatedAt: model.dateTime().nullable(),
 })
