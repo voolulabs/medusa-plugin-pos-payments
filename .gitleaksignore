@@ -1,2 +1,2 @@
 # FP: namespace DNS PUBLICO do RFC 4122 (constante padrao, nao e segredo) passado ao uuidV5
-d2506dff6d5d3d416456e0c3da190e1d5f619e3b:plugins/pos-payments/src/api/admin/pos-payments/stores/pos/route.ts:generic-api-key:67
+f2a266b:plugins/pos-payments/src/api/admin/pos-payments/stores/pos/route.ts:generic-api-key:67
