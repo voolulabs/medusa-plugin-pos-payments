@@ -101,7 +101,7 @@ export async function POST(
         "store do backend não encontrada"
       )
     }
-    const metadata = mergeRegister(store.metadata, parsed.data)
+    const metadata = mergeRegister(store.metadata, parsed.data as never)
     await storeModule.updateStores(store.id, { metadata })
     await recordAudit(module, {
       event: "registerBound",
