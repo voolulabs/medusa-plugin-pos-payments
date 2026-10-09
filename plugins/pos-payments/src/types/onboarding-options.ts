@@ -11,11 +11,7 @@ export interface MpOnboardingConfig {
   testToken: boolean
 }
 
-function envOr(
-  env: Record<string, string | undefined>,
-  envKey: string,
-  value: string | undefined
-): string | undefined {
+function envOr(env: Record<string, string | undefined>, envKey: string, value: string | undefined): string | undefined {
   return env[envKey] ?? value
 }
 
@@ -27,16 +23,8 @@ export function mpOnboardingConfig(
 ): MpOnboardingConfig {
   const mp = options?.onboarding?.mercadopago
   const clientId = envOr(env, "POS_PAYMENTS_MP_CLIENT_ID", mp?.clientId)
-  const clientSecret = envOr(
-    env,
-    "POS_PAYMENTS_MP_CLIENT_SECRET",
-    mp?.clientSecret
-  )
-  const redirectUri = envOr(
-    env,
-    "POS_PAYMENTS_MP_REDIRECT_URI",
-    mp?.redirectUri
-  )
+  const clientSecret = envOr(env, "POS_PAYMENTS_MP_CLIENT_SECRET", mp?.clientSecret)
+  const redirectUri = envOr(env, "POS_PAYMENTS_MP_REDIRECT_URI", mp?.redirectUri)
   const missing = [
     ...(clientId ? [] : ["POS_PAYMENTS_MP_CLIENT_ID"]),
     ...(clientSecret ? [] : ["POS_PAYMENTS_MP_CLIENT_SECRET"]),
@@ -54,6 +42,7 @@ export function mpOnboardingConfig(
     clientSecret: clientSecret as string,
     redirectUri: redirectUri as string,
     testToken:
-      env.POS_PAYMENTS_MP_OAUTH_TEST_TOKEN === "true" || mp?.testToken === true,
+      env.POS_PAYMENTS_MP_OAUTH_TEST_TOKEN === "true" ||
+      mp?.testToken === true,
   }
 }

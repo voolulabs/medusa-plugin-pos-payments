@@ -6,10 +6,7 @@ import { Modules } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import { recordAudit } from "../../../../../../services/onboarding/audit"
 import { OnboardingError } from "../../../../../../services/onboarding/errors"
-import {
-  onboardingContext,
-  sendOnboardingError,
-} from "../../../onboarding-context"
+import { onboardingContext, sendOnboardingError } from "../../../onboarding-context"
 
 const selectSchema = z.object({
   /** Sem registerId = default global (1 caixa, retrocompatível — §5.4). */
@@ -20,10 +17,7 @@ const selectSchema = z.object({
  * selecionado; com registerId = binding por caixa em
  * `metadata.pos.payments.registers` (merge depth-1 — o app de caixa sobrescreve
  * metadata.pos inteiro ao salvar Settings, o plugin JAMAIS o substitui: §5.4/§7.1). */
-export async function POST(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   try {
     const parsed = selectSchema.safeParse(req.body)
     if (!parsed.success) {
@@ -40,30 +34,18 @@ export async function POST(
         selectors?: unknown,
         config?: unknown
       ) => Promise<Array<{ id: string; metadata: unknown }>>
-      updateStores: (
-        id: string,
-        data: { metadata: Record<string, unknown> }
-      ) => Promise<unknown>
+      updateStores: (id: string, data: { metadata: Record<string, unknown> }) => Promise<unknown>
     }
     const [store] = await storeModule.listStores({}, { take: 1 })
     if (!store) {
-      throw new OnboardingError(
-        "not_connected",
-        409,
-        "store do backend não encontrada"
-      )
+      throw new OnboardingError("not_connected", 409, "store do backend não encontrada")
     }
     const metadata = (store.metadata ?? {}) as Record<string, unknown>
     const pos = { ...((metadata.pos ?? {}) as Record<string, unknown>) }
     const payments = { ...((pos.payments ?? {}) as Record<string, unknown>) }
     if (parsed.data.registerId) {
-      const registers = {
-        ...((payments.registers ?? {}) as Record<string, unknown>),
-      }
-      const current = (registers[parsed.data.registerId] ?? {}) as Record<
-        string,
-        unknown
-      >
+      const registers = { ...((payments.registers ?? {}) as Record<string, unknown>) }
+      const current = (registers[parsed.data.registerId] ?? {}) as Record<string, unknown>
       registers[parsed.data.registerId] = {
         ...current,
         terminal: { acquirer, id: terminalId },
@@ -73,7 +55,7 @@ export async function POST(
       payments.terminal = { acquirer, id: terminalId }
     }
     pos.payments = payments
-
+    // eslint-disable-next-line @medusajs/no-service-mutations-in-api-route -- espelho §5.4 (ver acima)
     await storeModule.updateStores(store.id, { metadata: { ...metadata, pos } })
     await recordAudit(module, {
       event: "terminalSelected",

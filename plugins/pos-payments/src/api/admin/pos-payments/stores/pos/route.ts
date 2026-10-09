@@ -16,21 +16,12 @@ const createSchema = z.object({
   name: z.string().min(1).max(45).optional(),
   /** external_id = id do stock location no Medusa (≤40 alfanumérico, §10.1). */
   externalId: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
-  storeId: z
-    .string()
-    .regex(/^[0-9]{1,20}$/)
-    .optional(),
-  externalStoreId: z
-    .string()
-    .regex(/^[A-Za-z0-9_-]{1,60}$/)
-    .optional(),
+  storeId: z.string().regex(/^[0-9]{1,20}$/).optional(),
+  externalStoreId: z.string().regex(/^[A-Za-z0-9_-]{1,60}$/).optional(),
 })
 
 /** GET /admin/pos-payments/stores/pos?external_id=|store_id= (§10.1). */
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   try {
     const ctx = onboardingContext(req)
     const { token } = await merchantCredentials(ctx)
@@ -48,10 +39,7 @@ export async function GET(
 
 /** POST /admin/pos-payments/stores/pos — X-Idempotency-Key determinística
  * (uuidv5 de externalId+loja): retry devolve o MESMO POS (§10.1 exige header). */
-export async function POST(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   try {
     const parsed = createSchema.safeParse(req.body)
     if (!parsed.success) {
@@ -74,9 +62,7 @@ export async function POST(
         ...(parsed.data.name ? { name: parsed.data.name } : {}),
         externalId: parsed.data.externalId,
         ...(parsed.data.storeId ? { storeId: parsed.data.storeId } : {}),
-        ...(parsed.data.externalStoreId
-          ? { externalStoreId: parsed.data.externalStoreId }
-          : {}),
+        ...(parsed.data.externalStoreId ? { externalStoreId: parsed.data.externalStoreId } : {}),
       },
       uuidV5(keySource, "6ba7b810-9dad-11d1-80b4-00c04fd430c8")
     )

@@ -45,9 +45,8 @@ describe("crypto-envelope", () => {
 
   it("envelope com keyId desconhecido falha (rotação sem dual-key)", () => {
     const env = encryptSecret("segredo", keys1)
-    expect(() =>
-      decryptSecret(env, keySetFromEnv({ POS_PAYMENTS_MASTER_KEY: K2 }))
-    ).toThrow(/keyId desconhecido/)
+    expect(() => decryptSecret(env, keySetFromEnv({ POS_PAYMENTS_MASTER_KEY: K2 })))
+      .toThrow(/keyId desconhecido/)
   })
 
   it("fail-closed: sem master key, parse e cifra levantam CryptoError", () => {

@@ -8,11 +8,7 @@ import {
   type ConnectionStatus,
 } from "./connection-state"
 import { recordAudit } from "./audit"
-import {
-  purgeCredential,
-  upsertCredential,
-  type OAuthSecret,
-} from "./credentials"
+import { purgeCredential, upsertCredential, type OAuthSecret } from "./credentials"
 
 export interface ConnectionRow {
   id: string
@@ -80,17 +76,12 @@ export async function connectValidated(
 ): Promise<ConnectionRow> {
   const refs = await input.validate()
   const existing = await findConnection(module, input.acquirer)
-  const from = (
-    existing && isConnectionStatus(existing.status)
-      ? existing.status
-      : input.from
-  ) as ConnectionStatus
+  const from = (existing && isConnectionStatus(existing.status)
+    ? existing.status
+    : input.from) as ConnectionStatus
   const fromNormalized: ConnectionStatus =
     from === "disconnected" ? "unconfigured" : from
-  const status =
-    fromNormalized === "connected"
-      ? "connected"
-      : transition(fromNormalized, "connected")
+  const status = fromNormalized === "connected" ? "connected" : transition(fromNormalized, "connected")
   const values = {
     status,
     actionReason: null,
@@ -106,16 +97,10 @@ export async function connectValidated(
   }
   let conn = existing
   if (conn) {
-    await module.updatePosPaymentsConnections([
-      { id: conn.id, ...values } as never,
-    ])
+    await module.updatePosPaymentsConnections([{ id: conn.id, ...values } as never])
   } else {
     const created = (await module.createPosPaymentsConnections([
-      {
-        acquirer: input.acquirer,
-        createdBy: input.actorId,
-        ...values,
-      } as never,
+      { acquirer: input.acquirer, createdBy: input.actorId, ...values } as never,
     ])) as unknown as ConnectionRow[]
     conn = created[0]!
   }
@@ -143,10 +128,7 @@ export async function disconnectConnection(
   await module.updatePosPaymentsConnections([
     {
       id: conn.id,
-      status:
-        from === "disconnected"
-          ? "disconnected"
-          : transition(from, "disconnected"),
+      status: from === "disconnected" ? "disconnected" : transition(from, "disconnected"),
       actionReason: null,
       updatedBy: actorId,
       updatedAt: new Date(),

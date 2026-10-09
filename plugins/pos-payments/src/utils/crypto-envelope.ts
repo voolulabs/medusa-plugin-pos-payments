@@ -35,16 +35,11 @@ function parseKey(raw: string | undefined, label: string): Buffer {
 export function keySetFromEnv(
   env: Record<string, string | undefined>
 ): MasterKeySet {
-  const current = parseKey(
-    env.POS_PAYMENTS_MASTER_KEY,
-    "POS_PAYMENTS_MASTER_KEY"
-  )
+  const current = parseKey(env.POS_PAYMENTS_MASTER_KEY, "POS_PAYMENTS_MASTER_KEY")
   const prev = env.POS_PAYMENTS_MASTER_KEY_PREVIOUS
   return {
     current,
-    ...(prev
-      ? { previous: parseKey(prev, "POS_PAYMENTS_MASTER_KEY_PREVIOUS") }
-      : {}),
+    ...(prev ? { previous: parseKey(prev, "POS_PAYMENTS_MASTER_KEY_PREVIOUS") } : {}),
   }
 }
 
@@ -62,13 +57,7 @@ export function encryptSecret(plain: string, keys: MasterKeySet): string {
   const cipher = createCipheriv("aes-256-gcm", keys.current, iv)
   const ct = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()])
   const tag = cipher.getAuthTag()
-  return [
-    PREFIX,
-    keyIdOf(keys.current),
-    b64url(iv),
-    b64url(tag),
-    b64url(ct),
-  ].join(".")
+  return [PREFIX, keyIdOf(keys.current), b64url(iv), b64url(tag), b64url(ct)].join(".")
 }
 
 /** Descriptografa casando o keyId do envelope com a chave (corrente ou
@@ -98,11 +87,7 @@ export function decryptSecret(envelope: string, keys: MasterKeySet): string {
     )
   }
   try {
-    const decipher = createDecipheriv(
-      "aes-256-gcm",
-      key,
-      Buffer.from(ivS, "base64url")
-    )
+    const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivS, "base64url"))
     decipher.setAuthTag(Buffer.from(tagS, "base64url"))
     return Buffer.concat([
       decipher.update(Buffer.from(ctS, "base64url")),

@@ -1,4 +1,3 @@
-import { Modules } from "@medusajs/framework/utils"
 import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
@@ -35,7 +34,7 @@ export async function GET(
   res: MedusaResponse
 ) {
   try {
-    const storeModule = _req.scope.resolve(Modules.STORE) as unknown as {
+    const storeModule = _req.scope.resolve("store") as unknown as {
       listStores: (
         selectors?: unknown,
         config?: unknown
@@ -93,14 +92,14 @@ export async function POST(
     }
     payments.registers = registers
     pos.payments = payments
-
+    // eslint-disable-next-line @medusajs/no-service-mutations-in-api-route -- espelho §5.4 (ver acima)
     await storeModule.updateStores(store.id, { metadata: { ...metadata, pos } })
     await recordAudit(module, {
       event: "registerBound",
       actorId,
       payload: { registerId: parsed.data.registerId },
     })
-    const readModule = req.scope.resolve(Modules.STORE) as unknown as {
+    const readModule = req.scope.resolve("store") as unknown as {
       listStores: (
         selectors?: unknown,
         config?: unknown

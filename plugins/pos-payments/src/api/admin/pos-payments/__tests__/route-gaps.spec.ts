@@ -9,22 +9,10 @@ import { GET as registersGet, POST as registersPost } from "../registers/route"
 import { registersOf } from "../registers/route"
 import { sendOnboardingError, merchantCredentials } from "../onboarding-context"
 import { connectValidated } from "../../../../services/onboarding/connections"
-import {
-  getValidAccessToken,
-  resetInflight,
-} from "../../../../services/onboarding/refresh"
+import { getValidAccessToken, resetInflight } from "../../../../services/onboarding/refresh"
 import { OnboardingError } from "../../../../services/onboarding/errors"
-import {
-  fakeFetch,
-  withTestKey,
-} from "../../../../services/onboarding/__tests__/helpers"
-import {
-  fakeReq,
-  fakeRes,
-  fakeScope,
-  newModule,
-  withOnboardingEnv,
-} from "./helpers"
+import { fakeFetch, withTestKey } from "../../../../services/onboarding/__tests__/helpers"
+import { fakeReq, fakeRes, fakeScope, newModule, withOnboardingEnv } from "./helpers"
 import { GET as callbackGet } from "../../../pos-payments/callback/[acquirer]/route"
 
 describe("gaps de branches das rotas de onboarding", () => {
@@ -48,10 +36,7 @@ describe("gaps de branches das rotas de onboarding", () => {
     globalThis.fetch = fetchImpl
     await connectValidated(mod.svc as never, {
       acquirer: "mercadopago",
-      secret: {
-        access_token: "t",
-        expires_at: new Date(Date.now() + 3600_000).toISOString(),
-      },
+      secret: { access_token: "t", expires_at: new Date(Date.now() + 3600_000).toISOString() },
       actorId: null,
       from: "unconfigured",
       validate: async () => ({ user_id: "5" }),
@@ -62,21 +47,13 @@ describe("gaps de branches das rotas de onboarding", () => {
     const created = fakeRes()
     await createStoreRoute(
       fakeReq({}, scope, {
-        body: {
-          name: "L",
-          externalId: "u1",
-          location: { city_name: "x" },
-          businessHours: { mon: [] },
-        },
+        body: { name: "L", externalId: "u1", location: { city_name: "x" }, businessHours: { mon: [] } },
       }),
       created as never
     )
     expect(created.code).toBe(201)
     const invalid = fakeRes()
-    await createStoreRoute(
-      fakeReq({}, scope, { body: { name: "", externalId: "bad!" } }),
-      invalid as never
-    )
+    await createStoreRoute(fakeReq({}, scope, { body: { name: "", externalId: "bad!" } }), invalid as never)
     expect(invalid.code).toBe(400)
   })
 
@@ -86,33 +63,22 @@ describe("gaps de branches das rotas de onboarding", () => {
     globalThis.fetch = fetchImpl
     await connectValidated(mod.svc as never, {
       acquirer: "mercadopago",
-      secret: {
-        access_token: "t",
-        expires_at: new Date(Date.now() + 3600_000).toISOString(),
-      },
+      secret: { access_token: "t", expires_at: new Date(Date.now() + 3600_000).toISOString() },
       actorId: null,
       from: "unconfigured",
       validate: async () => ({ user_id: "5" }),
     })
     const listed = fakeRes()
-    await listPos(
-      fakeReq({}, scope, { query: { store_id: "11", external_store_id: "x" } }),
-      listed as never
-    )
+    await listPos(fakeReq({}, scope, { query: { store_id: "11", external_store_id: "x" } }), listed as never)
     expect(listed.code).toBe(200)
     const created = fakeRes()
     await createPosRoute(
-      fakeReq({}, scope, {
-        body: { name: "CX", externalId: "s1", externalStoreId: "u1" },
-      }),
+      fakeReq({}, scope, { body: { name: "CX", externalId: "s1", externalStoreId: "u1" } }),
       created as never
     )
     expect(created.code).toBe(201)
     const invalid = fakeRes()
-    await createPosRoute(
-      fakeReq({}, scope, { body: { externalId: "bad!" } }),
-      invalid as never
-    )
+    await createPosRoute(fakeReq({}, scope, { body: { externalId: "bad!" } }), invalid as never)
     expect(invalid.code).toBe(400)
   })
 
@@ -129,38 +95,23 @@ describe("gaps de branches das rotas de onboarding", () => {
     globalThis.fetch = fetchImpl
     await connectValidated(mod.svc as never, {
       acquirer: "mercadopago",
-      secret: {
-        access_token: "old",
-        refresh_token: "rt",
-        expires_at: new Date(Date.now() + 1000).toISOString(),
-      },
+      secret: { access_token: "old", refresh_token: "rt", expires_at: new Date(Date.now() + 1000).toISOString() },
       actorId: null,
       from: "unconfigured",
       validate: async () => ({ user_id: "5" }),
     })
     const degraded = fakeRes()
-    await testRoute(
-      fakeReq({ acquirer: "mercadopago" }, scope),
-      degraded as never
-    )
+    await testRoute(fakeReq({ acquirer: "mercadopago" }, scope), degraded as never)
     expect(degraded.body).toEqual({ status: "degraded" })
     expect(mod.db.audits.map((a) => a.event)).toContain("connection.degraded")
   })
 
   it("select com corpo inválido; registers POST sem label; registersOf vazio", async () => {
     const invalid = fakeRes()
-    await selectRoute(
-      fakeReq({ id: "t1" }, scope, { body: { registerId: "não-uuid" } }),
-      invalid as never
-    )
+    await selectRoute(fakeReq({ id: "t1" }, scope, { body: { registerId: "não-uuid" } }), invalid as never)
     expect(invalid.code).toBe(400)
     const reg = fakeRes()
-    await registersPost(
-      fakeReq({}, scope, {
-        body: { registerId: "11111111-1111-4111-8111-111111111111" },
-      }),
-      reg as never
-    )
+    await registersPost(fakeReq({}, scope, { body: { registerId: "11111111-1111-4111-8111-111111111111" } }), reg as never)
     expect(reg.code).toBe(200)
     expect(registersOf(undefined)).toEqual({})
     const listed = fakeRes()
@@ -170,22 +121,12 @@ describe("gaps de branches das rotas de onboarding", () => {
 
   it("sendOnboardingError mapeia tipado vs 502; merchantCredentials fail-closed", async () => {
     const res = fakeRes()
-    sendOnboardingError(
-      res as never,
-      new OnboardingError("invalid_credential", 400, "x")
-    )
+    sendOnboardingError(res as never, new OnboardingError("invalid_credential", 400, "x"))
     expect(res.code).toBe(400)
     const res2 = fakeRes()
     sendOnboardingError(res2 as never, new Error("cru"))
     expect(res2.code).toBe(502)
-    await expect(
-      merchantCredentials({
-        module: mod.svc as never,
-        cfg: {} as never,
-        http: {} as never,
-        actorId: null,
-      })
-    ).rejects.toMatchObject({
+    await expect(merchantCredentials({ module: mod.svc as never, cfg: {} as never, http: {} as never, actorId: null })).rejects.toMatchObject({
       code: "not_connected",
     })
   })
@@ -193,10 +134,7 @@ describe("gaps de branches das rotas de onboarding", () => {
   it("refresh: conexão desconectada → not_connected; sem refresh_token → reauthorize", async () => {
     await connectValidated(mod.svc as never, {
       acquirer: "mercadopago",
-      secret: {
-        access_token: "t",
-        expires_at: new Date(Date.now() - 1000).toISOString(),
-      },
+      secret: { access_token: "t", expires_at: new Date(Date.now() - 1000).toISOString() },
       actorId: null,
       from: "unconfigured",
       validate: async () => ({ user_id: "5" }),
@@ -206,9 +144,7 @@ describe("gaps de branches das rotas de onboarding", () => {
       acquirer: "mercadopago",
       refresh: async () => ({ access_token: "n" }),
     }
-    await expect(
-      getValidAccessToken(deps as never, { forceRefresh: true })
-    ).rejects.toMatchObject({
+    await expect(getValidAccessToken(deps as never, { forceRefresh: true })).rejects.toMatchObject({
       code: "reauthorize",
     })
     const { fetchImpl } = fakeFetch(() => ({ body: {} }))
@@ -224,24 +160,12 @@ describe("gaps de branches das rotas de onboarding", () => {
   })
 
   it("connections GET lista conexões existentes; callback: adquirente estranho → error", async () => {
-    mod.db.connections.push({
-      acquirer: "mercadopago",
-      status: "connected",
-      actionReason: null,
-      externalRefs: {},
-      expiresAt: null,
-      lastValidatedAt: null,
-    })
+    mod.db.connections.push({ acquirer: "mercadopago", status: "connected", actionReason: null, externalRefs: {}, expiresAt: null, lastValidatedAt: null })
     const listed = fakeRes()
     await listRoute(fakeReq({}, scope), listed as never)
-    expect(
-      (listed.body as { connections: unknown[] }).connections
-    ).toHaveLength(1)
+    expect((listed.body as { connections: unknown[] }).connections).toHaveLength(1)
     const res = fakeRes()
-    await callbackGet(
-      fakeReq({ acquirer: "sumup" }, scope, { query: {} }),
-      res as never
-    )
+    await callbackGet(fakeReq({ acquirer: "sumup" }, scope, { query: {} }), res as never)
     expect(res.redirected?.location).toContain("result=error")
   })
 })

@@ -11,26 +11,16 @@ const TopbarSetupWidget = () => {
   useEffect(() => {
     fetch("/admin/pos-payments/connections", { credentials: "include" })
       .then((r) => r.json())
-      .then(
-        (d: {
-          connections?: Array<{
-            acquirer: string
-            status: string
-            actionReason: string | null
-          }>
-        }) => {
-          const incomplete = (d.connections ?? []).find(
-            (c) => c.status !== "connected" && c.status !== "unconfigured"
-          )
-          if (incomplete) {
-            setPending(
-              connectionLabel(incomplete.status as never, {
-                actionReason: incomplete.actionReason,
-              })
-            )
-          }
+      .then((d: { connections?: Array<{ acquirer: string; status: string; actionReason: string | null }> }) => {
+        const incomplete = (d.connections ?? []).find(
+          (c) => c.status !== "connected" && c.status !== "unconfigured"
+        )
+        if (incomplete) {
+          setPending(connectionLabel(incomplete.status as never, {
+            actionReason: incomplete.actionReason,
+          }))
         }
-      )
+      })
       .catch(() => undefined)
   }, [])
 

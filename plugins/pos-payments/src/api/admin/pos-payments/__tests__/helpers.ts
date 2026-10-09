@@ -1,10 +1,7 @@
 /** Fakes de req/res/scope para os handlers de rota (sem servidor HTTP). */
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { PLUGIN_NAME } from "../../../../utils/plugin-options"
-import {
-  fakeModule,
-  type FakeModule,
-} from "../../../../services/onboarding/__tests__/helpers"
+import { fakeModule, type FakeModule } from "../../../../services/onboarding/__tests__/helpers"
 
 export function fakeScope(opts: {
   module: FakeModule
@@ -12,10 +9,7 @@ export function fakeScope(opts: {
 }) {
   const store = {
     id: "store_1",
-    metadata: (opts.onboardingOptions?.__metadata ?? {}) as Record<
-      string,
-      unknown
-    >,
+    metadata: (opts.onboardingOptions?.__metadata ?? {}) as Record<string, unknown>,
   }
   const storeModule = {
     listStores: async () => [store],
@@ -32,8 +26,7 @@ export function fakeScope(opts: {
             mercadopago: {
               clientId: "cid",
               clientSecret: "csecret",
-              redirectUri:
-                "https://pos.example.com/pos-payments/callback/mercadopago",
+              redirectUri: "https://pos.example.com/pos-payments/callback/mercadopago",
             },
           },
         },
@@ -73,17 +66,8 @@ export function fakeRes() {
   return out
 }
 
-export function fakeReq(
-  params: Record<string, string>,
-  scope: unknown,
-  extra: Record<string, unknown> = {}
-) {
-  return {
-    params,
-    scope,
-    auth_context: { actor_id: "admin-1" },
-    ...extra,
-  } as never
+export function fakeReq(params: Record<string, string>, scope: unknown, extra: Record<string, unknown> = {}) {
+  return { params, scope, auth_context: { actor_id: "admin-1" }, ...extra } as never
 }
 
 export function newModule(): FakeModule {

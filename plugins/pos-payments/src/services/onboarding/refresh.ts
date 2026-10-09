@@ -53,9 +53,7 @@ async function doRefresh(deps: RefreshDeps): Promise<OAuthSecret> {
     return { ...secret, ...next }
   } catch (err) {
     if (err instanceof OnboardingError && err.code === "reauthorize") {
-      await setStatus(deps.module, conn, "action_required", {
-        reason: "reauthorize",
-      })
+      await setStatus(deps.module, conn, "action_required", { reason: "reauthorize" })
     }
     throw err
   }
@@ -68,15 +66,12 @@ export async function getValidAccessToken(
   opts: { forceRefresh?: boolean } = {}
 ): Promise<string> {
   const conn = await findConnection(deps.module, deps.acquirer)
-  if (!conn)
-    throw new OnboardingError("not_connected", 409, "conexão inexistente")
+  if (!conn) throw new OnboardingError("not_connected", 409, "conexão inexistente")
   const secret = await readSecret(deps.module, conn.id)
   if (!secret?.access_token) {
     throw new OnboardingError("reauthorize", 409, "sem credencial")
   }
-  const validUntil = secret.expires_at
-    ? Date.parse(secret.expires_at)
-    : Infinity
+  const validUntil = secret.expires_at ? Date.parse(secret.expires_at) : Infinity
   if (!opts.forceRefresh && validUntil - RENEW_BEFORE_MS > Date.now()) {
     return secret.access_token
   }
