@@ -1,0 +1,58 @@
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework"
+import { Modules } from "@medusajs/framework/utils"
+import type { IStoreModuleService } from "@medusajs/framework/types"
+import { z } from "@medusajs/framework/zod"
+import { recordAudit } from "../../../../../../services/onboarding/audit"
+import { OnboardingError } from "../../../../../../services/onboarding/errors"
+import { onboardingContext, sendOnboardingError } from "../../../onboarding-context"
+
+const selectSchema = z.object({
+  /** Sem registerId = default global (1 caixa, retrocompatível — §5.4). */
+  registerId: z.string().uuid().optional(),
+})
+
+/** POST /admin/pos-payments/terminals/:id/select — grava o terminal
+ * selecionado; com registerId = binding por caixa em
+ * `metadata.pos.payments.registers` (merge depth-1 — o app de caixa sobrescreve
+ * metadata.pos inteiro ao salvar Settings, o plugin JAMAIS o substitui: §5.4/§7.1). */
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
+  try {
+    const parsed = selectSchema.safeParse(req.body)
+    if (!parsed.success) {
+      throw new OnboardingError("invalid_credential", 400, "corpo inválido")
+    }
+    const terminalId = req.params.id
+    const acquirer = "mercadopago"
+    const { module, actorId } = onboardingContext(req)
+    const storeModule = req.scope.resolve<IStoreModuleService>(Modules.STORE)
+    const [store] = await storeModule.listStores({}, { take: 1 })
+    if (!store) {
+      throw new OnboardingError("not_connected", 409, "store do backend não encontrada")
+    }
+    const metadata = (store.metadata ?? {}) as Record<string, unknown>
+    const pos = { ...((metadata.pos ?? {}) as Record<string, unknown>) }
+    const payments = { ...((pos.payments ?? {}) as Record<string, unknown>) }
+    if (parsed.data.registerId) {
+      const registers = { ...((payments.registers ?? {}) as Record<string, unknown>) }
+      const current = (registers[parsed.data.registerId] ?? {}) as Record<string, unknown>
+      registers[parsed.data.registerId] = { ...current, terminal: { acquirer, id: terminalId } }
+      payments.registers = registers
+    } else {
+      payments.terminal = { acquirer, id: terminalId }
+    }
+    pos.payments = payments
+    await storeModule.updateStores(store.id, { metadata: { ...metadata, pos } })
+    await recordAudit(module, {
+      event: "terminalSelected",
+      acquirer,
+      actorId,
+      payload: { terminalId, registerId: parsed.data.registerId ?? null },
+    })
+    res.status(200).json({ selected: terminalId })
+  } catch (error) {
+    sendOnboardingError(res, error)
+  }
+}
