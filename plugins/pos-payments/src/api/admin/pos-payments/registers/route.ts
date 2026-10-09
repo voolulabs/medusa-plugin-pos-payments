@@ -99,14 +99,7 @@ export async function POST(
       actorId,
       payload: { registerId: parsed.data.registerId },
     })
-    const readModule = req.scope.resolve("store") as unknown as {
-      listStores: (
-        selectors?: unknown,
-        config?: unknown
-      ) => Promise<Array<{ metadata: unknown }>>
-    }
-    const [store] = await readModule.listStores({}, { take: 1 })
-    res.status(200).json({ registers: registersOf(store?.metadata) })
+    res.status(200).json({ registers })
   } catch (error) {
     sendOnboardingError(res, error)
   }
