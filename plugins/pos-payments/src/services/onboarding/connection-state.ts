@@ -11,13 +11,12 @@ export type ConnectionStatus =
   | "disconnected"
 
 export type ActionReason =
-  | "reauthorize"
-  | "pairing"
-  | "no_terminal"
-  | "recipient_kyc"
-  | "activation"
+  "reauthorize" | "pairing" | "no_terminal" | "recipient_kyc" | "activation"
 
-export const CONNECTION_TRANSITIONS: Record<ConnectionStatus, ConnectionStatus[]> = {
+export const CONNECTION_TRANSITIONS: Record<
+  ConnectionStatus,
+  ConnectionStatus[]
+> = {
   unconfigured: ["connecting", "connected"],
   connecting: ["connected", "unconfigured"],
   connected: ["action_required", "degraded", "disconnected"],
@@ -49,8 +48,7 @@ export function transition(
 
 export function isConnectionStatus(v: unknown): v is ConnectionStatus {
   return (
-    typeof v === "string" &&
-    Object.keys(CONNECTION_TRANSITIONS).includes(v)
+    typeof v === "string" && Object.keys(CONNECTION_TRANSITIONS).includes(v)
   )
 }
 

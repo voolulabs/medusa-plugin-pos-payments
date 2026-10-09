@@ -28,7 +28,8 @@ export function connectionLabel(
     return `${CONNECTION_STATUS_LABELS.connected} (renovando)`
   }
   if (status === "action_required") {
-    const reason = opts.actionReason as keyof typeof ACTION_REASON_LABELS | undefined
+    const reason = opts.actionReason as
+      keyof typeof ACTION_REASON_LABELS | undefined
     const detail = reason ? ACTION_REASON_LABELS[reason] : undefined
     return detail
       ? `${CONNECTION_STATUS_LABELS.action_required}: ${detail}`

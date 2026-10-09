@@ -1,10 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { connectValidated } from "../../../../services/onboarding/connections"
-import { fakeFetch, withTestKey } from "../../../../services/onboarding/__tests__/helpers"
+import {
+  fakeFetch,
+  withTestKey,
+} from "../../../../services/onboarding/__tests__/helpers"
 import { GET as listStores, POST as createStoreRoute } from "../stores/route"
 import { GET as listPos, POST as createPosRoute } from "../stores/pos/route"
 import { DELETE as deletePosRoute } from "../stores/pos/[id]/route"
-import { fakeReq, fakeRes, fakeScope, newModule, withOnboardingEnv } from "./helpers"
+import {
+  fakeReq,
+  fakeRes,
+  fakeScope,
+  newModule,
+  withOnboardingEnv,
+} from "./helpers"
 
 describe("rotas stores/pos (AC8)", () => {
   let mod: ReturnType<typeof newModule>
@@ -46,12 +55,17 @@ describe("rotas stores/pos (AC8)", () => {
 
   it("GET stores e POST store com token do lojista", async () => {
     const listed = fakeRes()
-    await listStores(fakeReq({}, scope, { query: { external_id: "unidade-1" } }), listed as never)
+    await listStores(
+      fakeReq({}, scope, { query: { external_id: "unidade-1" } }),
+      listed as never
+    )
     expect(listed.code).toBe(200)
     expect((listed.body as { stores: unknown[] }).stores).toHaveLength(1)
     const created = fakeRes()
     await createStoreRoute(
-      fakeReq({}, scope, { body: { name: "Loja Centro", externalId: "unidade-2" } }),
+      fakeReq({}, scope, {
+        body: { name: "Loja Centro", externalId: "unidade-2" },
+      }),
       created as never
     )
     expect(created.code).toBe(201)
@@ -59,7 +73,10 @@ describe("rotas stores/pos (AC8)", () => {
 
   it("GET/POST pos: idempotency key determinística; corpo sem loja → 400", async () => {
     const listed = fakeRes()
-    await listPos(fakeReq({}, scope, { query: { external_id: "stock-1" } }), listed as never)
+    await listPos(
+      fakeReq({}, scope, { query: { external_id: "stock-1" } }),
+      listed as never
+    )
     expect((listed.body as { pos: unknown[] }).pos).toHaveLength(1)
     const created = fakeRes()
     await createPosRoute(
@@ -91,4 +108,3 @@ describe("rotas stores/pos (AC8)", () => {
     globalThis.fetch = original
   })
 })
-

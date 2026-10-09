@@ -16,7 +16,9 @@ export async function GET(
   let connections: Array<Record<string, unknown>> = []
   try {
     const module = _req.scope.resolve("posPayments") as {
-      listPosPaymentsConnections: (f: unknown) => Promise<Array<Record<string, unknown>>>
+      listPosPaymentsConnections: (
+        f: unknown
+      ) => Promise<Array<Record<string, unknown>>>
     }
     const rows = await module.listPosPaymentsConnections({})
     connections = rows.map((row) => ({

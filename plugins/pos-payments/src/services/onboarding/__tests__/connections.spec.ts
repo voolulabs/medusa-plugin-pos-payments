@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest"
-import { connectValidated, disconnectConnection, findConnection } from "../connections"
+import {
+  connectValidated,
+  disconnectConnection,
+  findConnection,
+} from "../connections"
 import { OnboardingError } from "../errors"
 import { fakeModule, withTestKey } from "./helpers"
 
@@ -56,7 +60,9 @@ describe("connections (AC6/AC7: validate-then-activate + purga)", () => {
       from: "unconfigured",
       validate: validateOk,
     })
-    expect((await findConnection(mod.svc as never, "mercadopago"))?.status).toBe("connected")
+    expect(
+      (await findConnection(mod.svc as never, "mercadopago"))?.status
+    ).toBe("connected")
   })
 
   it("desconectar purga credencial, marca disconnected e audita (AC7)", async () => {
