@@ -42,19 +42,6 @@ describe("gaps de branches das rotas de onboarding", () => {
     globalThis.fetch = original
   })
 
-  async function seedConnected(user = "5") {
-    await connectValidated(mod.svc as never, {
-      acquirer: "mercadopago",
-      secret: {
-        access_token: "t",
-        expires_at: new Date(Date.now() + 3600_000).toISOString(),
-      },
-      actorId: null,
-      from: "unconfigured",
-      validate: async () => ({ user_id: user }),
-    })
-  }
-
   it("start/test com adquirente não suportado → 404; test degrada em 5xx do /users/me", async () => {
     const res = fakeRes()
     await startRoute(fakeReq({ acquirer: "stone" }, scope), res as never)
