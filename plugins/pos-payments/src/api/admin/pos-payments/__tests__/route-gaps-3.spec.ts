@@ -55,39 +55,58 @@ describe("gaps de branches das rotas de onboarding", () => {
     })
   }
 
-  it("stores GET sem filtro devolve 200", async () => {
-    const { fetchImpl } = fakeFetch(() => ({ body: { results: [] } }))
-    original = globalThis.fetch
-    globalThis.fetch = fetchImpl
-    await seedConnected()
-    const listed = fakeRes()
-    await listStores(fakeReq({}, scope, { query: {} }), listed as never)
-    expect(listed.code).toBe(200)
+  it("sendOnboardingError mapeia tipado vs 502; merchantCredentials fail-closed", async () => {
+    const res = fakeRes()
+    sendOnboardingError(
+      res as never,
+      new OnboardingError("invalid_credential", 400, "x")
+    )
+    expect(res.code).toBe(400)
+    const res2 = fakeRes()
+    sendOnboardingError(res2 as never, new Error("cru"))
+    expect(res2.code).toBe(502)
+    await expect(
+      merchantCredentials({
+        module: mod.svc as never,
+        cfg: {} as never,
+        http: {} as never,
+        actorId: null,
+      })
+    ).rejects.toMatchObject({
+      code: "not_connected",
+    })
   })
 
-  it("stores POST com location/businessHours aceita; corpo inválido → 400", async () => {
-    const { fetchImpl } = fakeFetch(() => ({ body: { results: [] } }))
+  it("refresh: conexão desconectada → not_connected; sem refresh_token → reauthorize", async () => {
+    await connectValidated(mod.svc as never, {
+      acquirer: "mercadopago",
+      secret: {
+        access_token: "t",
+        expires_at: new Date(Date.now() - 1000).toISOString(),
+      },
+      actorId: null,
+      from: "unconfigured",
+      validate: async () => ({ user_id: "5" }),
+    })
+    const deps = {
+      module: mod.svc,
+      acquirer: "mercadopago",
+      refresh: async () => ({ access_token: "n" }),
+    }
+    await expect(
+      getValidAccessToken(deps as never, { forceRefresh: true })
+    ).rejects.toMatchObject({
+      code: "reauthorize",
+    })
+    const { fetchImpl } = fakeFetch(() => ({ body: {} }))
     original = globalThis.fetch
     globalThis.fetch = fetchImpl
-    await seedConnected()
-    const created = fakeRes()
-    await createStoreRoute(
-      fakeReq({}, scope, {
-        body: {
-          name: "L",
-          externalId: "u1",
-          location: { city_name: "x" },
-          businessHours: { mon: [] },
-        },
-      }),
-      created as never
-    )
-    expect(created.code).toBe(201)
-    const invalid = fakeRes()
-    await createStoreRoute(
-      fakeReq({}, scope, { body: { name: "", externalId: "bad!" } }),
-      invalid as never
-    )
-    expect(invalid.code).toBe(400)
+    await expect(
+      getValidAccessToken({
+        module: mod.svc as never,
+        acquirer: "fantasma",
+        refresh: async () => ({ access_token: "x" }),
+      })
+    ).rejects.toMatchObject({ code: "not_connected" })
   })
 })

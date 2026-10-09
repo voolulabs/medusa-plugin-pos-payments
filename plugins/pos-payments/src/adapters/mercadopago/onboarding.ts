@@ -113,18 +113,11 @@ export async function validateOnboardingConnection(
   http: OnboardingHttpClient,
   accessToken: string
 ): Promise<Record<string, unknown>> {
+  let body: unknown
   try {
-    const { body } = await http.request("GET", "/users/me", {
+    ;({ body } = await http.request("GET", "/users/me", {
       headers: { Authorization: `Bearer ${accessToken}` },
-    })
-    const me = (body ?? {}) as { id?: unknown; nickname?: unknown }
-    if (typeof me.id !== "string" && typeof me.id !== "number") {
-      throw new OnboardingError("invalid_credential", 502, "/users/me sem id")
-    }
-    return {
-      user_id: String(me.id),
-      ...(typeof me.nickname === "string" ? { nickname: me.nickname } : {}),
-    }
+    }))
   } catch (err) {
     const e = err as { status?: number }
     if (e.status === 401 || e.status === 403) {
@@ -135,5 +128,17 @@ export async function validateOnboardingConnection(
       )
     }
     throw err
+  }
+  return toExternalRefs(body)
+}
+
+function toExternalRefs(body: unknown): Record<string, unknown> {
+  const me = (body ?? {}) as { id?: unknown; nickname?: unknown }
+  if (typeof me.id !== "string" && typeof me.id !== "number") {
+    throw new OnboardingError("invalid_credential", 502, "/users/me sem id")
+  }
+  return {
+    user_id: String(me.id),
+    ...(typeof me.nickname === "string" ? { nickname: me.nickname } : {}),
   }
 }

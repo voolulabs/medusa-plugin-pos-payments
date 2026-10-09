@@ -21,6 +21,29 @@ export class OnboardingHttpError extends Error {
   }
 }
 
+function buildHeaders(init: {
+  headers?: Record<string, string>
+  form?: URLSearchParams
+  json?: unknown
+}): Record<string, string> {
+  return {
+    ...(init.form
+      ? { "Content-Type": "application/x-www-form-urlencoded" }
+      : {}),
+    ...(init.json !== undefined ? { "Content-Type": "application/json" } : {}),
+    ...init.headers,
+  }
+}
+
+function buildBody(init: {
+  form?: URLSearchParams
+  json?: unknown
+}): string | undefined {
+  if (init.form) return init.form.toString()
+  if (init.json !== undefined) return JSON.stringify(init.json)
+  return undefined
+}
+
 interface OnboardingHttpOptions {
   baseUrl?: string
   fetchImpl?: typeof fetch
@@ -48,23 +71,12 @@ export class OnboardingHttpClient {
       json?: unknown
     } = {}
   ): Promise<OnboardingHttpResult> {
+    const reqBody = buildBody(init)
     const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
       method,
-      headers: {
-        ...(init.form
-          ? { "Content-Type": "application/x-www-form-urlencoded" }
-          : {}),
-        ...(init.json !== undefined
-          ? { "Content-Type": "application/json" }
-          : {}),
-        ...init.headers,
-      },
+      headers: buildHeaders(init),
       signal: AbortSignal.timeout(this.timeoutMs),
-      ...(init.form
-        ? { body: init.form.toString() }
-        : init.json !== undefined
-          ? { body: JSON.stringify(init.json) }
-          : {}),
+      ...(reqBody === undefined ? {} : { body: reqBody }),
     })
     const text = await response.text()
     let body: unknown = null

@@ -101,29 +101,14 @@ export async function POST(
         "store do backend não encontrada"
       )
     }
-    const metadata = (store.metadata ?? {}) as Record<string, unknown>
-    const pos = { ...((metadata.pos ?? {}) as Record<string, unknown>) }
-    const payments = { ...((pos.payments ?? {}) as Record<string, unknown>) }
-    const registers = {
-      ...((payments.registers ?? {}) as Record<string, unknown>),
-    }
-    const existing = (registers[parsed.data.registerId] ?? {}) as Record<
-      string,
-      unknown
-    >
-    registers[parsed.data.registerId] = {
-      ...existing,
-      ...(parsed.data.label ? { label: parsed.data.label } : {}),
-    }
-    payments.registers = registers
-    pos.payments = payments
-    await storeModule.updateStores(store.id, { metadata: { ...metadata, pos } })
+    const metadata = mergeRegister(store.metadata, parsed.data)
+    await storeModule.updateStores(store.id, { metadata })
     await recordAudit(module, {
       event: "registerBound",
       actorId,
       payload: { registerId: parsed.data.registerId },
     })
-    res.status(200).json({ registers })
+    res.status(200).json({ registers: registersOf(metadata) })
   } catch (error) {
     sendOnboardingError(res, error)
   }

@@ -15,19 +15,29 @@ import {
   withOnboardingEnv,
 } from "./helpers"
 
-/** Respostas MP simuladas das rotas stores/pos (extraído p/ nesting ≤4). */
-const storesResponder = (call: { method: string; url: string }) => {
-  if (call.url.endsWith("/users/me")) return { body: { id: 42 } }
-  if (call.url.includes("/users/42/stores/search"))
-    return { body: { results: [{ id: 1, external_id: "unidade-1" }] } }
-  if (call.url === "https://api.mercadopago.com/users/42/stores")
+/** Respostas MP simuladas das rotas stores/pos (achatado p/ nesting ≤4). */
+function posReply(
+  method: string,
+  url: string
+): { status?: number; body: unknown } {
+  if (url.startsWith("https://api.mercadopago.com/v2/pos/")) return { body: {} }
+  if (method === "POST") return { status: 201, body: { id: 9 } }
+  return { body: { results: [{ id: 7 }] } }
+}
+
+function storesReply(url: string): { status?: number; body: unknown } {
+  if (url === "https://api.mercadopago.com/users/42/stores")
     return { body: { id: 1, name: "Loja" } }
-  if (call.url.startsWith("https://api.mercadopago.com/v2/pos/"))
-    return { body: {} }
-  if (call.url.startsWith("https://api.mercadopago.com/v2/pos"))
-    return call.method === "POST"
-      ? { status: 201, body: { id: 9 } }
-      : { body: { results: [{ id: 7 }] } }
+  return { body: { results: [{ id: 1, external_id: "unidade-1" }] } }
+}
+
+function storesResponder(call: { method: string; url: string }): {
+  status?: number
+  body: unknown
+} {
+  if (call.url.endsWith("/users/me")) return { body: { id: 42 } }
+  if (call.url.includes("/users/42/stores/search")) return storesReply(call.url)
+  if (call.url.includes("/v2/pos")) return posReply(call.method, call.url)
   return { body: {} }
 }
 
