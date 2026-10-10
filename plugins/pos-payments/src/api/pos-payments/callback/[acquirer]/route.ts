@@ -14,6 +14,12 @@ import { mpOnboardingConfig } from "../../../../types/onboarding-options"
  * navegador. Protegida pelo state single-use (§7); valida ANTES da troca do
  * code; trata error do adquirente como result=error SEM detalhe interno;
  * 302 de volta ao Admin (/app/settings/pos-payments). */
+/** Base do Admin do host (admin.path é config do deploy — mesma env usada
+ * no medusa-config; default /app). */
+function adminBase(): string {
+  return process.env.POS_PAYMENTS_ADMIN_PATH || "/app"
+}
+
 function redirect(
   res: MedusaResponse,
   acquirer: string,
@@ -21,7 +27,7 @@ function redirect(
 ): void {
   res.redirect(
     302,
-    `/app/settings/pos-payments?connection=${encodeURIComponent(acquirer)}&result=${result}`
+    `${adminBase()}/settings/pos-payments?connection=${encodeURIComponent(acquirer)}&result=${result}`
   )
 }
 

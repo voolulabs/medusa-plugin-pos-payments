@@ -14,7 +14,7 @@ import {
   type OAuthSecret,
 } from "./credentials"
 
-interface ConnectionRow {
+export interface ConnectionRow {
   id: string
   acquirer: string
   status: string
@@ -154,6 +154,10 @@ export async function connectValidated(
   return conn
 }
 
+// CORRIDA DELETE x POST (CodeRabbit, Major): sem lock por adquirente, um POST
+// concorrente pode regravar a credencial depois do purge do DELETE. Mitigacao
+// completa exige o Locking Module (registro no HOST, nao no plugin) - fila do
+// onboarding; hoje a superficie e admin-only com operador unico.
 export async function disconnectConnection(
   module: PosPaymentsModuleService,
   acquirer: string,

@@ -29,6 +29,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {}
   if (init?.body) headers["Content-Type"] = "application/json"
   const res = await fetch(path, { credentials: "include", headers, ...init })
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`)
+  }
   return (await res.json()) as T
 }
 

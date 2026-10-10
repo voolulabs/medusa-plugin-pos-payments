@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import { Container, Text, Badge } from "@medusajs/ui"
 import { connectionLabel } from "../../services/onboarding/labels"
@@ -38,9 +39,9 @@ const TopbarSetupWidget = () => {
   return (
     <Container className="flex items-center justify-between p-3">
       <Text size="small">POS Payments: onboarding incompleto</Text>
-      <a href="/app/settings/pos-payments">
+      <Link to="/settings/pos-payments">
         <Badge color="orange">{pending}</Badge>
-      </a>
+      </Link>
     </Container>
   )
 }

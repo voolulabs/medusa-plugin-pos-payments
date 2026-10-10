@@ -9,6 +9,7 @@ import {
 import {
   findConnection,
   setStatus,
+  type ConnectionRow,
 } from "../../../../../../services/onboarding/connections"
 import { recordAudit } from "../../../../../../services/onboarding/audit"
 import { getValidAccessToken } from "../../../../../../services/onboarding/refresh"
@@ -18,6 +19,36 @@ import {
   resolveMpConfig,
   sendOnboardingError,
 } from "../../../onboarding-context"
+
+/** Falha do /test: credencial recusada = reconexão (runbook §2 — e de
+ * action_required, degraded nem é transição legal, §4); 5xx/rede degrada só
+ * a partir de connected; demais estados seguem como estão. */
+async function tratarFalhaDeTeste(
+  ctx: ReturnType<typeof onboardingContext>,
+  conn: ConnectionRow,
+  acquirer: string,
+  error: unknown,
+  res: MedusaResponse
+): Promise<void> {
+  if (error instanceof OnboardingError && error.code === "invalid_credential") {
+    await setStatus(ctx.module, conn, "action_required", {
+      reason: "reauthorize",
+    })
+    res.status(200).json({ status: "action_required" })
+    return
+  }
+  if (conn.status === "connected") {
+    await setStatus(ctx.module, conn, "degraded")
+    await recordAudit(ctx.module, {
+      event: "degraded",
+      acquirer,
+      actorId: ctx.actorId,
+    })
+    res.status(200).json({ status: "degraded" })
+    return
+  }
+  res.status(200).json({ status: conn.status })
+}
 
 /** §4: estados de onde o /test pode pousar em connected. */
 export function podePromover(
@@ -75,13 +106,8 @@ export async function POST(
       if (error instanceof OnboardingError && error.code === "reauthorize") {
         throw error // refresh já marcou action_required:reauthorize + audit
       }
-      await setStatus(ctx.module, conn, "degraded")
-      await recordAudit(ctx.module, {
-        event: "degraded",
-        acquirer,
-        actorId: ctx.actorId,
-      })
-      res.status(200).json({ status: "degraded" })
+      await tratarFalhaDeTeste(ctx, conn, acquirer, error, res)
+      return
     }
   } catch (error) {
     sendOnboardingError(res, error)

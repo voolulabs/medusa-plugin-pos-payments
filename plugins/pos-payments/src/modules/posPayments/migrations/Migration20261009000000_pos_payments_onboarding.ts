@@ -17,6 +17,7 @@ export class Migration20261009000000 extends Migration {
       t.string("updated_by").nullable()
       t.timestamp("created_at", { useTz: true }).nullable()
       t.timestamp("updated_at", { useTz: true }).nullable()
+      t.timestamp("deleted_at", { useTz: true }).nullable()
     })
     await k.schema.createTable("pos_payments_credential", (t) => {
       t.string("id").primary()
@@ -24,6 +25,7 @@ export class Migration20261009000000 extends Migration {
       t.text("payload").notNullable()
       t.timestamp("created_at", { useTz: true }).nullable()
       t.timestamp("updated_at", { useTz: true }).nullable()
+      t.timestamp("deleted_at", { useTz: true }).nullable()
     })
     await k.schema.createTable("pos_payments_oauth_state", (t) => {
       t.string("id").primary()
@@ -33,6 +35,8 @@ export class Migration20261009000000 extends Migration {
       t.timestamp("expires_at", { useTz: true }).notNullable()
       t.timestamp("used_at", { useTz: true }).nullable()
       t.timestamp("created_at", { useTz: true }).nullable()
+      t.timestamp("updated_at", { useTz: true }).nullable()
+      t.timestamp("deleted_at", { useTz: true }).nullable()
     })
     await k.schema.createTable("pos_payments_audit_event", (t) => {
       t.string("id").primary()
@@ -41,6 +45,8 @@ export class Migration20261009000000 extends Migration {
       t.string("actor_id").nullable()
       t.jsonb("payload").nullable()
       t.timestamp("created_at", { useTz: true }).nullable()
+      t.timestamp("updated_at", { useTz: true }).nullable()
+      t.timestamp("deleted_at", { useTz: true }).nullable()
     })
   }
 

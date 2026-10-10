@@ -3,7 +3,6 @@ import {
   fakeFetch,
   withTestKey,
 } from "../../../../services/onboarding/__tests__/helpers"
-import { OnboardingHttpClient } from "../../../../adapters/mercadopago/onboarding-client"
 import { POST as startRoute } from "../connections/[acquirer]/start/route"
 import {
   GET as connectionDetail,
@@ -105,14 +104,12 @@ describe("rotas de conexão (AC4/AC6/AC7/AC10)", () => {
     expect(res.code).toBe(404)
   })
 
-  it("test: 5xx da adquirente → degraded (sem virar reauthorize)", async () => {
-    // sem conexão: 404 tipado
+  it("test sem conexão → 404 tipado (o caminho degraded está no route-gaps-2)", async () => {
     const res = fakeRes()
     await testRoute(
       fakeReq({ acquirer: "mercadopago" }, scopeWith(mod)),
       res as never
     )
     expect(res.code).toBe(404)
-    void OnboardingHttpClient
   })
 })

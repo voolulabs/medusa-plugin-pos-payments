@@ -16,7 +16,8 @@ function envOr(
   envKey: string,
   value: string | undefined
 ): string | undefined {
-  return env[envKey] ?? value
+  const v = env[envKey]
+  return v ? v : value
 }
 
 /** Resolve MP clientId/secret/redirect — OnboardingError "platform_config"

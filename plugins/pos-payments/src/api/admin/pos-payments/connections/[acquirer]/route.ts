@@ -63,7 +63,13 @@ export async function POST(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const acquirer = acquirerOf(req)
+  let acquirer: string
+  try {
+    acquirer = acquirerOf(req)
+  } catch (error) {
+    sendOnboardingError(res, error)
+    return
+  }
   const parsed = pastedSchema.safeParse(req.body)
   if (!parsed.success) {
     sendOnboardingError(

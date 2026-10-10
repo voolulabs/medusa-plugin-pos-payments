@@ -25,18 +25,12 @@ const PosPaymentsSettingsPage = () => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadOnboardingState()
-      .then(setState)
-      .catch(() => setError("falha ao carregar estado do onboarding"))
+    reload().catch(() => setError("falha ao carregar estado do onboarding"))
   }, [])
 
   const reload = async () => {
-    try {
-      setState(await loadOnboardingState())
-      setError(null)
-    } catch {
-      setError("falha ao carregar estado do onboarding")
-    }
+    // Propaga a falha: o chamador decide a mensagem (recarga não apaga erro).
+    setState(await loadOnboardingState())
   }
 
   const act = async (acao: () => Promise<void>, erro: string) => {
@@ -50,6 +44,7 @@ const PosPaymentsSettingsPage = () => {
     }
     setBusy(false)
   }
+  // recarga com falha preserva o erro da ação (reload lança; catch acima mantém)
 
   const connect = () =>
     act(async () => {

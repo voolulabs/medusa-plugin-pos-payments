@@ -32,6 +32,7 @@ describe("gaps de branches das rotas de onboarding", () => {
   let scope: ReturnType<typeof fakeScope>
   let original: typeof fetch
   beforeEach(async () => {
+    original = globalThis.fetch
     mod = newModule()
     withTestKey()
     withOnboardingEnv()

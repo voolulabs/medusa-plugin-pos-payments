@@ -79,7 +79,6 @@ describe("connections (AC6/AC7: validate-then-activate + purga)", () => {
     expect(conn?.status).toBe("disconnected")
     const events = mod.db.audits.map((a) => a.event)
     expect(events).toContain("connection.disconnected")
-    expect(events).not.toContain("connection.connected ")
   })
 
   it("desconectar sem conexão é no-op idempotente", async () => {
