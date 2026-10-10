@@ -3,7 +3,8 @@
 // convenção do framework (rotas, middlewares, services, workflows), zero-config,
 // sem exigir type information. Acréscimo da casa: `no-floating-promises`
 // type-aware apenas em plugins/pos-payments/src (código de dinheiro — promise
-// solta em refund/capture é bug de pagamento).
+// solta em refund/capture é bug de pagamento). src/admin/** (UI) fica FORA do
+// bloco type-aware: compila pelo admin-bundler com JSX (ADR 0004).
 import { defineConfig } from "eslint/config"
 import medusa from "@medusajs/eslint-plugin"
 import tseslint from "typescript-eslint"
@@ -20,6 +21,7 @@ export default defineConfig([
   ...medusa.configs.recommended,
   {
     files: ["plugins/pos-payments/src/**/*.ts"],
+    ignores: ["plugins/pos-payments/src/admin/**"],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {

@@ -48,7 +48,7 @@ type InjectedDependencies = {
 export type PosTerminalOptions = {
   /** Fase 1: "manual". Fases 2-3: "mercadopago" | "sumup" | "stone" | "cielo". */
   acquirer: string
-  /** Aditivo (CONSTRAINTS 5): credencial da adquirerente via env do host — nunca literal. */
+  /** Aditivo (CONSTRAINTS 8): credencial da adquirerente via env do host — nunca literal. */
   accessToken?: string
   /** Secret de assinatura do webhook no DevPanel (T5) — obrigatório p/ mercadopago. */
   webhookSecret?: string

@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Merchant onboarding platform (Fase 2b, onboarding.md §11): `posPayments` module
+  (connection/credential/oauth_state/audit_event + migration — deploy runs
+  `medusa db:migrate`), AES-256-GCM credential envelope with dual-key rotation,
+  connection state machine, MP OAuth (single-use server-side state, public callback,
+  urlencoded exchange, lazy single-flight refresh with atomic pair rotation,
+  `invalid_grant` → `action_required: reauthorize`), validate-then-activate pasted
+  credentials, stores/POS CRUD (mercado-pago.md §10.1), per-register terminal binding,
+  audit catalog, Admin UI page (`settings/pos-payments`) + topbar widget. Admin UI
+  adds `@medusajs/ui` + `@medusajs/icons` as devDependencies (ADR 0004).
 
 - Scheduled reconciliation job `pos-payments-reconcile` (daily at 04:00, first plugin job —
   ADR 0002 errata 2026-10-07): scans captured payments of `pp_pos-terminal_mercadopago` from the
