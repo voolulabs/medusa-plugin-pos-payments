@@ -103,9 +103,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Found by the verdaccio rehearsal gate (0.1.0-rc.0 against the real backend);
   regression-tested in `package-exports.spec.ts`. Providers were not affected
   (explicit export entry already).
-- Money: provider agora trata o amount do core como minor units verbatim
-  (`assertMinorAmount`) — a conversão anterior multiplicava por 100 e inflava
-  a cobrança na adquirente; refund compara o `raw_amount` verbatim com o blob.
+- Money: provider agora trata o amount do core como minor units verbatim da
+  moeda da região (BRL inteiras no piloto; `assertMinorAmount`) — a conversão
+  anterior multiplicava por 100 e inflava a cobrança na adquirente; refund
+  compara o `raw_amount` verbatim com o blob.
 - Webhook: `data.id` em lowercase no canonical HMAC (nota oficial da doc de
   notifications) — entregas reais com id maiúsculo eram descartadas.
 - Subscriber: aceita o id do provider com e sem o prefixo `pp_` (o core 2.19
@@ -145,11 +146,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one PR = one nature (feature vs process artifacts), specs as per-ticket
   historical records, and the Phase 1 spec closed as a historical record
   (acceptance criteria checked against the 0.0.1 deployment evidence).
-- CI: local gate parity — `pnpm ci:local` replicates the GitHub CI before every
-  push (14 stages: clean tree + frozen install, lint + format, build, tests with
-  coverage 90/95, strict typecheck, knip, opcore, ADLC spec-lint + manifest
-  verify, npm audit, gitleaks, commitlint, shellcheck, semgrep); CodeRabbit
-  auto-review enabled on develop and staging.
+- CI: local gate battery — `pnpm ci:local` mirrors the local-runnable stages of
+  ci.yml before every push (14 stages: clean tree + frozen install, lint +
+  format, build, tests with coverage 90/95, strict typecheck, knip, opcore, ADLC
+  spec-lint + manifest verify, npm audit, gitleaks, commitlint, shellcheck,
+  semgrep); secret-backed services stay CI-only (Codecov upload, FOSSA, Snyk).
+  CodeRabbit auto-review enabled on develop and staging.
 
 ## [0.0.1] - 2026-09-30
 
