@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs"
+import { createRequire } from "node:module"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
@@ -62,6 +63,23 @@ describe("exports do pacote (discovery de módulos npm)", () => {
     expect(target).toBeTruthy()
     if (!existsSync(join(pkgDir, ".medusa", "server"))) return
     expect(existsSync(join(pkgDir, target as string))).toBe(true)
+  })
+
+  it("o resolvedor real do Node resolve o specifier completo (self-reference)", () => {
+    if (!existsSync(join(pkgDir, ".medusa", "server"))) return
+    const nodeResolve = createRequire(__filename)
+    const resolved = nodeResolve.resolve(`${pkg.name}/${MODULE_SUBPATH}`)
+    expect(resolved).toBe(
+      join(
+        pkgDir,
+        ".medusa",
+        "server",
+        "src",
+        "modules",
+        "posPayments",
+        "index.js"
+      )
+    )
   })
 
   it("subpath de provider continua resolvendo (contrato da 0.0.1)", () => {
