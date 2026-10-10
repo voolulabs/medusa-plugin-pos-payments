@@ -35,12 +35,18 @@ const PosPaymentsSettingsPage = () => {
 
   const act = async (acao: () => Promise<void>, erro: string) => {
     setBusy(true)
+    let acaoOk = false
     try {
       await acao()
+      acaoOk = true
       await reload()
       setError(null)
     } catch {
-      setError(erro)
+      // Recarga falhando depois de ação bem-sucedida não vira mensagem da
+      // ação — o estado exibido é antigo, mas o erro é do refresh da página.
+      setError(
+        acaoOk ? "ação concluída, mas a atualização da página falhou" : erro
+      )
     }
     setBusy(false)
   }
