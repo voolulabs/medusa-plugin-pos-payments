@@ -95,6 +95,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Packaging: subpath exports for plugin modules — the core discovers npm-installed
+  plugin modules via the bare specifier `<plugin>/.medusa/server/src/modules/<name>`
+  (`MEDUSA_PLUGIN_SOURCE_PATH`, verified in the core source), and the generic `./*`
+  export re-prefixed that path, producing a doubled `.medusa/server/src/...` and
+  MODULE_NOT_FOUND on `medusa db:migrate` with the package installed from a registry.
+  Found by the verdaccio rehearsal gate (0.1.0-rc.0 against the real backend);
+  regression-tested in `package-exports.spec.ts`. Providers were not affected
+  (explicit export entry already).
 - Money: provider agora trata o amount do core como minor units verbatim
   (`assertMinorAmount`) — a conversão anterior multiplicava por 100 e inflava
   a cobrança na adquirente; refund compara o `raw_amount` verbatim com o blob.
