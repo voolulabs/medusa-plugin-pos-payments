@@ -104,7 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regression-tested in `package-exports.spec.ts`. Providers were not affected
   (explicit export entry already).
 - Money: provider agora trata o amount do core como minor units verbatim da
-  moeda da região (BRL inteiras no piloto; `assertMinorAmount`) — a conversão
+  moeda da região (centavos de BRL no piloto; `assertMinorAmount`) — a conversão
   anterior multiplicava por 100 e inflava a cobrança na adquirente; refund
   compara o `raw_amount` verbatim com o blob.
 - Webhook: `data.id` em lowercase no canonical HMAC (nota oficial da doc de
